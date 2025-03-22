@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>글로벌 제재 대상 검색 시스템</title>
+    <link rel="stylesheet" href="public/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- 인증 섹션 (로그인/회원가입) -->
+    <section id="auth-section" class="auth-section">
+        <!-- 로그인 컨테이너 -->
+        <div id="login-container" class="auth-container">
+            <div class="auth-logo">
+                <img src="public/images/logo.png" alt="로고" id="auth-logo-img">
+                <h2>글로벌 제재 대상 검색 시스템</h2>
+                <p>국제 제재 목록에서 개인과 단체를 검색하세요</p>
+            </div>
+            
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-email">이메일</label>
+                    <input type="email" id="login-email" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password">비밀번호</label>
+                    <input type="password" id="login-password" class="form-control" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">로그인</button>
+            </form>
+            
+            <div class="auth-footer">
+                계정이 없으신가요? <a href="#" id="show-register" class="auth-link">회원가입</a>
+            </div>
+        </div>
+        
+        <!-- 회원가입 컨테이너 -->
+        <div id="register-container" class="auth-container hidden">
+            <div class="auth-logo">
+                <img src="public/images/logo.png" alt="로고" id="register-logo-img">
+                <h2>글로벌 제재 대상 검색 시스템</h2>
+                <p>회원가입하고 제재 검색 서비스를 이용하세요</p>
+            </div>
+            
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="register-name">이름</label>
+                    <input type="text" id="register-name" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-email">이메일</label>
+                    <input type="email" id="register-email" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-password">비밀번호</label>
+                    <input type="password" id="register-password" class="form-control" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">회원가입</button>
+            </form>
+            
+            <div class="auth-footer">
+                이미 계정이 있으신가요? <a href="#" id="show-login" class="auth-link">로그인</a>
+            </div>
+        </div>
+    </section>
+    
+    <!-- 메인 섹션 (검색 및 결과) -->
+    <section id="main-section" class="main-section hidden">
+        <!-- 헤더 -->
+        <header class="header">
+            <div class="header-logo">
+                <img src="public/images/logo-white.png" alt="로고">
+                <h1>글로벌 제재 대상 검색 시스템</h1>
+            </div>
+            
+            <div class="user-info">
+                <span id="user-name" class="user-name"></span>
+                <button id="logout-button" class="logout-button">
+                    <i class="fas fa-sign-out-alt"></i> 로그아웃
+                </button>
+            </div>
+        </header>
+        
+        <!-- 소개글 -->
+        <div class="main-intro">
+            <h2>국제 제재 대상 검색</h2>
+            <p>UN, EU, 미국 OFAC 등 국제기구 및 각국 정부의 제재 목록에서 개인과 단체를 검색합니다.</p>
+        </div>
+        
+        <!-- 검색 폼 -->
+        <div class="search-container">
+            <h3 class="search-title">
+                <i class="fas fa-search"></i> 제재 대상 검색
+            </h3>
+            
+            <form id="search-form">
+                <div class="search-grid">
+                    <div class="form-group">
+                        <label for="search-name">이름 또는 키워드</label>
+                        <input type="text" id="search-name" class="form-control" placeholder="검색할 이름 또는 키워드">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="search-id">ID 또는 참조번호</label>
+                        <input type="text" id="search-id" class="form-control" placeholder="제재 대상 ID 또는 참조번호">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="search-type">유형</label>
+                        <select id="search-type" class="select-control">
+                            <option value="">모든 유형</option>
+                            <option value="Individual">개인</option>
+                            <option value="Entity">단체</option>
+                            <option value="Vessel">선박</option>
+                            <option value="Aircraft">항공기</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="search-country">국가</label>
+                        <select id="search-country" class="select-control">
+                            <option value="">모든 국가</option>
+                            <option value="North Korea">북한</option>
+                            <option value="Iran">이란</option>
+                            <option value="Russia">러시아</option>
+                            <option value="Syria">시리아</option>
+                            <option value="Belarus">벨라루스</option>
+                            <option value="Venezuela">베네수엘라</option>
+                            <option value="Myanmar">미얀마</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="search-program">제재 프로그램</label>
+                        <select id="search-program" class="select-control">
+                            <option value="">모든 프로그램</option>
+                            <option value="DPRK">북한 제재 (DPRK)</option>
+                            <option value="IRAN">이란 제재 (IRAN)</option>
+                            <option value="RUSSIA">러시아 제재 (RUSSIA)</option>
+                            <option value="SYRIA">시리아 제재 (SYRIA)</option>
+                            <option value="BELARUS">벨라루스 제재 (BELARUS)</option>
+                            <option value="TERRORISM">테러리즘 관련 제재 (SDGT, FTO)</option>
+                            <option value="CYBER">사이버 활동 관련 제재</option>
+                            <option value="CAATSA">CAATSA</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="search-list">제재 목록</label>
+                        <select id="search-list" class="select-control">
+                            <option value="">모든 목록</option>
+                            <option value="UN">UN 안전보장이사회</option>
+                            <option value="OFAC">미국 OFAC SDN</option>
+                            <option value="EU">EU 통합 제재 목록</option>
+                            <option value="UK">영국 금융제재 목록</option>
+                            <option value="JP">일본 제재 목록</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group score-container">
+                    <label for="match-score">최소 일치도: <span id="match-score-value">75%</span></label>
+                    <input type="range" id="match-score" class="score-slider" min="0" max="100" step="1" value="75">
+                </div>
+                
+                <div class="search-actions">
+                    <button type="submit" class="search-btn">
+                        <i class="fas fa-search"></i> 검색
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- 검색 결과 -->
+        <div id="results-container" class="results-container hidden">
+            <div class="results-header">
+                <h3 class="results-title">검색 결과</h3>
+                <div id="results-count" class="results-count">0개의 결과를 찾았습니다</div>
+            </div>
+            
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>이름</th>
+                        <th>유형</th>
+                        <th>국가</th>
+                        <th>제재 프로그램</th>
+                        <th>목록 출처</th>
+                        <th>일치도</th>
+                    </tr>
+                </thead>
+                <tbody id="results-list">
+                    <!-- 검색 결과가 여기에 동적으로 추가됩니다 -->
+                </tbody>
+            </table>
+        </div>
+    </section>
+    
+    <!-- 상세 정보 섹션 -->
+    <section id="detail-section" class="detail-section hidden">
+        <!-- 헤더 -->
+        <header class="header">
+            <div class="header-logo">
+                <img src="public/images/logo-white.png" alt="로고">
+                <h1>글로벌 제재 대상 검색 시스템</h1>
+            </div>
+            
+            <div class="user-info">
+                <span id="detail-user-name" class="user-name"></span>
+                <button id="detail-logout-button" class="logout-button">
+                    <i class="fas fa-sign-out-alt"></i> 로그아웃
+                </button>
+            </div>
+        </header>
+        
+        <!-- 상세 페이지 헤더 -->
+        <div class="detail-header">
+            <div class="detail-header-title">
+                <h2 id="detail-title">제재 대상 상세 정보</h2>
+            </div>
+            
+            <div class="detail-header-actions">
+                <button id="back-to-results" class="back-btn">
+                    <i class="fas fa-arrow-left"></i> 결과 목록으로 돌아가기
+                </button>
+            </div>
+        </div>
+        
+        <!-- 상세 정보 내용 -->
+        <div class="detail-content">
+            <div class="detail-info">
+                <h3>기본 정보</h3>
+                
+                <div class="detail-data">
+                    <div class="detail-item">
+                        <span class="detail-item-label">유형</span>
+                        <span id="detail-type" class="detail-item-value">-</span>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-item-label">국가</span>
+                        <span id="detail-country" class="detail-item-value">-</span>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-item-label">제재 사유</span>
+                        <span id="detail-reason" class="detail-item-value">-</span>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-item-label">등재일</span>
+                        <span id="detail-date" class="detail-item-value">-</span>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-item-label">제재 프로그램</span>
+                        <span id="detail-program" class="detail-item-value">-</span>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-item-label">목록 출처</span>
+                        <span id="detail-source" class="detail-item-value">-</span>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-item-label">식별 ID</span>
+                        <span id="detail-id" class="detail-item-value">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-description">
+                <h3>상세 설명</h3>
+                
+                <div id="detail-additional" class="detail-description-content">
+                    <!-- 상세 설명이 동적으로 추가됩니다 -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="src/app.js"></script>
+</body>
+</html> 
