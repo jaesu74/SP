@@ -3,283 +3,325 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="글로벌 제재 대상을 검색하고 확인할 수 있는 서비스">
-    <title>제재 대상 검색 시스템 | wvl.co.kr</title>
-    
-    <!-- Favicon -->
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
-    
-    <!-- CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-    <link rel="stylesheet" href="css/styles.css">
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <title>?�계 경제 ?�재 ?�??검??/title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-gray-50 font-sans">
-    <div id="app">
-        <!-- 헤더 -->
-        <header class="bg-white shadow-sm">
-            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-                <div class="flex items-center">
-                    <a href="/" class="flex items-center">
-                        <span class="text-xl font-bold text-blue-800">제재 대상 검색</span>
-                    </a>
-                </div>
-                
-                <div class="flex items-center space-x-2">
-                    <div id="user-info" class="hidden">
-                        <span id="user-name" class="mr-2 text-sm"></span>
-                        <button id="logout-button" class="px-3 py-1 text-sm rounded border border-red-500 text-red-500 hover:bg-red-50">로그아웃</button>
-                    </div>
-                    
-                    <div id="auth-buttons">
-                        <button id="login-button" class="px-3 py-1 text-sm rounded border border-blue-500 text-blue-500 hover:bg-blue-50">로그인</button>
-                        <button id="register-button" class="px-3 py-1 text-sm rounded bg-blue-500 text-white hover:bg-blue-600">회원가입</button>
-                    </div>
-                </div>
-            </div>
-        </header>
-        
-        <!-- 인증 섹션 -->
-        <section id="auth-section" class="hidden container mx-auto px-4 py-8 max-w-md">
-            <!-- 로그인 컨테이너 -->
-            <div id="login-container" class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-bold mb-4">로그인</h2>
-                <form id="login-form">
-                    <div class="mb-4">
-                        <label for="login-email" class="block text-sm font-medium text-gray-700 mb-1">이메일</label>
-                        <input type="email" id="login-email" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                    </div>
-                    <div class="mb-4">
-                        <label for="login-password" class="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
-                        <input type="password" id="login-password" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                    </div>
-                    <button type="submit" class="w-full py-2 px-4 bg-blue-500 text-white font-medium rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">로그인</button>
-                </form>
-                <p class="mt-4 text-sm text-center">
-                    계정이 없으신가요? <a href="#" id="show-register" class="text-blue-500 hover:underline">회원가입</a>
-                </p>
+<body>
+    <!-- Y2K ?��???배경 ?�소 -->
+    <div class="y2k-element"></div>
+    <div class="y2k-element"></div>
+    <div class="y2k-element"></div>
+    
+    <!-- ?�증 ?�션 (로그???�원가?? -->
+    <section id="auth-section" class="auth-section">
+        <!-- 로그??컨테?�너 -->
+        <div id="login-container" class="auth-container">
+            <div class="auth-logo">
+                <img src="images/logo.png" alt="로고" id="auth-logo-img">
+                <h2>?�계 경제 ?�재 ?�??검??/h2>
+                <p>�?�� ?�재 목록?�서 개인�??�체�?검?�하?�요</p>
             </div>
             
-            <!-- 회원가입 컨테이너 -->
-            <div id="register-container" class="hidden bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-bold mb-4">회원가입</h2>
-                <form id="register-form">
-                    <div class="mb-4">
-                        <label for="register-name" class="block text-sm font-medium text-gray-700 mb-1">이름</label>
-                        <input type="text" id="register-name" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                    </div>
-                    <div class="mb-4">
-                        <label for="register-email" class="block text-sm font-medium text-gray-700 mb-1">이메일</label>
-                        <input type="email" id="register-email" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                    </div>
-                    <div class="mb-4">
-                        <label for="register-password" class="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
-                        <input type="password" id="register-password" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                    </div>
-                    <button type="submit" class="w-full py-2 px-4 bg-blue-500 text-white font-medium rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">회원가입</button>
-                </form>
-                <p class="mt-4 text-sm text-center">
-                    이미 계정이 있으신가요? <a href="#" id="show-login" class="text-blue-500 hover:underline">로그인</a>
-                </p>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-email">?�메??/label>
+                    <input type="email" id="login-email" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password">비�?번호</label>
+                    <input type="password" id="login-password" class="form-control" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">로그??/button>
+            </form>
+            
+            <div class="auth-footer">
+                계정???�으?��??? <a href="#" id="show-register" class="auth-link">?�원가??/a>
             </div>
-        </section>
+        </div>
         
-        <!-- 메인 섹션 -->
-        <section id="main-section" class="container mx-auto px-4 py-8">
-            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
-                <h1 class="text-2xl font-bold mb-4">제재 대상 검색</h1>
-                <form id="search-form">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div>
-                            <label for="search-name" class="block text-sm font-medium text-gray-700 mb-1">이름 또는 키워드</label>
-                            <input type="text" id="search-name" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="검색어 입력">
-                        </div>
-                        <div>
-                            <label for="search-id" class="block text-sm font-medium text-gray-700 mb-1">ID (선택)</label>
-                            <input type="text" id="search-id" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="고유 ID">
-                        </div>
-                        <div>
-                            <label for="search-type" class="block text-sm font-medium text-gray-700 mb-1">유형</label>
-                            <select id="search-type" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="all">전체</option>
-                                <option value="Individual">개인</option>
-                                <option value="Entity">단체/기업</option>
-                            </select>
-                        </div>
+        <!-- ?�원가??컨테?�너 -->
+        <div id="register-container" class="auth-container hidden">
+            <div class="auth-logo">
+                <img src="images/logo.png" alt="로고" id="register-logo-img">
+                <h2>?�계 경제 ?�재 ?�??검??/h2>
+                <p>?�원가?�하�??�재 검???�비?��? ?�용?�세??/p>
+            </div>
+            
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="register-name">?�름 (?�명)</label>
+                    <input type="text" id="register-name" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-phone">?�화번호</label>
+                    <input type="tel" id="register-phone" class="form-control" placeholder="010-0000-0000" pattern="[0-9]{3}-[0-9]{4}-[0-9]{4}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-email">?�메??/label>
+                    <input type="email" id="register-email" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-password">비�?번호</label>
+                    <input type="password" id="register-password" class="form-control" required>
+                    <div class="password-hint">8???�상, ?�문/?�자/?�수문자 조합</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-password-confirm">비�?번호 ?�인</label>
+                    <input type="password" id="register-password-confirm" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <button type="button" id="verify-identity-btn" class="btn btn-outline">
+                        <i class="fas fa-user-check"></i> 본인 ?�인
+                    </button>
+                    <div id="identity-status" class="verify-status">본인 ?�인???�요?�니??/div>
+                </div>
+                
+                <div class="form-group consent-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="terms-consent" required>
+                        <label for="terms-consent">
+                            <a href="#" id="register-terms-link">?�용?��?</a> ?�의 (?�수)
+                        </label>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div>
-                            <label for="search-country" class="block text-sm font-medium text-gray-700 mb-1">국가</label>
-                            <select id="search-country" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="all">전체</option>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="privacy-consent" required>
+                        <label for="privacy-consent">
+                            <a href="#" id="register-privacy-link">개인?�보 ?�집 �??�용</a> ?�의 (?�수)
+                        </label>
+                    </div>
+                    
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="marketing-consent">
+                        <label for="marketing-consent">
+                            마�????�보 ?�신 ?�의 (?�택)
+                        </label>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">?�원가??/button>
+            </form>
+            
+            <div class="auth-footer">
+                ?��? 계정???�으?��??? <a href="#" id="show-login" class="auth-link">로그??/a>
+            </div>
+        </div>
+    </section>
+    
+    <!-- 메인 ?�션 (검??�?결과) -->
+    <section id="main-section" class="hidden">
+        <div class="header">
+            <div class="header-logo">
+                <img src="images/logo.png" alt="로고">
+                <h1>?�재 ?�??검???�스??/h1>
+            </div>
+            <div class="user-info">
+                <span id="welcome-message" class="user-name">?�영?�니??/span>
+                <button id="logout-button" class="logout-button">로그?�웃</button>
+            </div>
+        </div>
+
+        <div class="search-container">
+            <h2 class="search-title">?�재 ?�??검??/h2>
+            <form id="search-form" class="search-form">
+                <div class="search-group">
+                    <input type="text" id="search-input" class="search-input" placeholder="?�름, ?�체�??�는 ?�워?��? ?�력?�세??..">
+                    <button type="submit" id="search-button" class="search-button">검??/button>
+                </div>
+                
+                <div class="filter-options-header">
+                    <div class="filter-label">?�터 ?�션</div>
+                    <button type="button" id="toggle-advanced" class="toggle-advanced">고급 검??<span class="toggle-icon">+</span></button>
+                </div>
+                
+                <div class="filter-options">
+                    <div class="filter-option active" data-filter="all">모든 ?�형</div>
+                    <div class="filter-option" data-filter="individual">개인</div>
+                    <div class="filter-option" data-filter="entity">?�체</div>
+                    <div class="filter-option" data-filter="vessel">?�박</div>
+                    <div class="filter-option" data-filter="aircraft">??���?/div>
+                </div>
+                
+                <div id="advanced-search" class="advanced-search hidden">
+                    <div class="advanced-row">
+                        <div class="advanced-group">
+                            <label for="search-id">ID ?�는 참조번호</label>
+                            <input type="text" id="search-id" class="advanced-input" placeholder="?�재 ?�??ID">
+                        </div>
+                        
+                        <div class="advanced-group">
+                            <label for="search-country">�??</label>
+                            <select id="search-country" class="advanced-select">
+                                <option value="">모든 �??</option>
                                 <option value="North Korea">북한</option>
-                                <option value="Russia">러시아</option>
-                                <option value="Iran">이란</option>
-                                <option value="Syria">시리아</option>
+                                <option value="Iran">?��?</option>
+                                <option value="Russia">?�시??/option>
+                                <option value="Syria">?�리??/option>
                                 <option value="Belarus">벨라루스</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="search-program" class="block text-sm font-medium text-gray-700 mb-1">프로그램</label>
-                            <select id="search-program" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="all">전체</option>
-                                <option value="DPRK">북한 제재</option>
-                                <option value="RUSSIA">러시아 제재</option>
-                                <option value="IRAN">이란 제재</option>
-                                <option value="SYRIA">시리아 제재</option>
-                                <option value="BELARUS">벨라루스 제재</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="search-list" class="block text-sm font-medium text-gray-700 mb-1">제재 목록</label>
-                            <select id="search-list" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="all">전체</option>
-                                <option value="UN">UN 제재</option>
-                                <option value="EU">EU 제재</option>
-                                <option value="OFAC">미국 OFAC</option>
-                                <option value="UK">영국 제재</option>
+                                <option value="Venezuela">베네?�엘??/option>
+                                <option value="Myanmar">미�?�?/option>
                             </select>
                         </div>
                     </div>
                     
-                    <div class="flex flex-col md:flex-row md:items-center gap-4 mb-4">
-                        <div class="flex-1">
-                            <label for="match-score" class="block text-sm font-medium text-gray-700 mb-1">최소 일치도 <span id="match-score-value">75%</span></label>
-                            <input type="range" id="match-score" min="0" max="100" value="75" step="5" class="w-full">
+                    <div class="advanced-row">
+                        <div class="advanced-group">
+                            <label for="search-program">?�재 ?�로그램</label>
+                            <select id="search-program" class="advanced-select">
+                                <option value="">모든 ?�로그램</option>
+                                <option value="DPRK">북한 ?�재 (DPRK)</option>
+                                <option value="IRAN">?��? ?�재 (IRAN)</option>
+                                <option value="RUSSIA">?�시???�재 (RUSSIA)</option>
+                                <option value="SYRIA">?�리???�재 (SYRIA)</option>
+                                <option value="BELARUS">벨라루스 ?�재 (BELARUS)</option>
+                                <option value="TERRORISM">?�러리즘 관???�재</option>
+                                <option value="CYBER">?�이�??�동 관???�재</option>
+                            </select>
                         </div>
-                        <div class="md:w-32">
-                            <button type="submit" class="w-full px-4 py-2 bg-blue-500 text-white font-medium rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">검색</button>
+                        
+                        <div class="advanced-group">
+                            <label for="search-list">?�재 목록</label>
+                            <select id="search-list" class="advanced-select">
+                                <option value="">모든 목록</option>
+                                <option value="UN">UN ?�전보장?�사??/option>
+                                <option value="OFAC">미국 OFAC SDN</option>
+                                <option value="EU">EU ?�합 ?�재 목록</option>
+                                <option value="UK">?�국 금융?�재 목록</option>
+                                <option value="JP">?�본 ?�재 목록</option>
+                            </select>
                         </div>
                     </div>
-                </form>
+                    
+                    <div class="advanced-row">
+                        <div class="advanced-group full-width">
+                            <label for="match-score">최소 ?�치?? <span id="match-score-value">75%</span></label>
+                            <div class="score-slider-container">
+                                <input type="range" id="match-score" class="score-slider" min="0" max="100" step="1" value="75">
+                                <div class="slider-track"></div>
+                                <div class="slider-progress"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div id="loading-container" class="loading-container hidden">
+            <div class="loading-spinner"></div>
+        </div>
+
+        <div id="results-container" class="results-container hidden">
+            <h3 class="results-title">검??결과 <span id="results-count" class="results-count">(0)</span></h3>
+            <div id="results-list" class="result-list">
+                <!-- 검??결과가 ?�기???�적?�로 추�??�니??-->
+            </div>
+        </div>
+        
+        <div id="no-results" class="no-results hidden">
+            <h3>검??결과가 ?�습?�다</h3>
+            <p>검?�어�?변경하거나 ?�른 ?�터 ?�션???�용??보세??</p>
+        </div>
+    </section>
+
+    <!-- ?�세 ?�보 ?�션 -->
+    <section id="detail-section">
+        <div id="detail-content" class="detail-content">
+            <div class="detail-header">
+                <h2 id="detail-title" class="detail-title">?�세 ?�보</h2>
+                <button id="detail-close" class="detail-close">×</button>
             </div>
             
-            <!-- 검색 결과 -->
-            <div id="results-container" class="hidden bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-bold mb-2">검색 결과</h2>
-                <p id="results-count" class="text-gray-600 mb-4">0개의 결과를 찾았습니다</p>
-                
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이름</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">유형</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">국가</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">프로그램</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">출처</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">일치도</th>
-                            </tr>
-                        </thead>
-                        <tbody id="results-list" class="bg-white divide-y divide-gray-200">
-                            <!-- 결과가 여기에 동적으로 추가됩니다 -->
-                        </tbody>
-                    </table>
+            <div id="detail-metadata" class="detail-metadata">
+                <!-- 메�??�이?��? ?�기???�적?�로 추�??�니??-->
+                <div class="metadata-item">
+                    <span class="metadata-label">?�형</span>
+                    <span id="detail-type" class="metadata-value">-</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">�?��</span>
+                    <span id="detail-country" class="metadata-value">-</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">?�재 ?�작??/span>
+                    <span id="detail-date" class="metadata-value">-</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">?�재 출처</span>
+                    <span id="detail-source" class="metadata-value">-</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">?�별 ID</span>
+                    <span id="detail-id" class="metadata-value">-</span>
                 </div>
             </div>
-        </section>
-        
-        <!-- 상세 정보 섹션 -->
-        <section id="detail-section" class="hidden container mx-auto px-4 py-8">
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 id="detail-title" class="text-2xl font-bold"></h2>
-                    <div class="flex items-center space-x-2">
-                        <span id="detail-user-name" class="mr-2 text-sm"></span>
-                        <button id="detail-logout-button" class="px-3 py-1 text-sm rounded border border-red-500 text-red-500 hover:bg-red-50">로그아웃</button>
-                    </div>
+            
+            <div id="detail-content-body" class="detail-content-body">
+                <!-- ?�세 ?�용???�기???�적?�로 추�??�니??-->
+            </div>
+            
+            <div id="detail-actions" class="detail-actions">
+                <button class="action-button">보고???�운로드</button>
+                <button class="action-button primary">?�재 ?�보 공유</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 검???�스?�리 ?�션 -->
+    <section id="history-section" class="hidden">
+        <div class="header">
+            <div class="header-logo">
+                <img src="images/logo.png" alt="로고">
+                <h1>?�재 ?�??검???�스??/h1>
+            </div>
+            <div class="user-info">
+                <span id="history-welcome-message" class="user-name">?�영?�니??/span>
+                <button id="history-logout-button" class="logout-button">로그?�웃</button>
+            </div>
+        </div>
+
+        <div class="history-container">
+            <h2 class="history-title">??검??기록</h2>
+            <div id="history-list" class="history-list">
+                <!-- 검??기록???�기???�적?�로 추�??�니??-->
+            </div>
+            <div class="history-actions">
+                <button id="back-to-search" class="action-button">검?�으�??�아가�?/button>
+                <button id="clear-history" class="action-button">기록 ??��</button>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="images/logo.png" alt="로고">
+                    <h3>?�계 경제 ?�재 ?�??검??/h3>
                 </div>
-                
-                <button id="back-to-results" class="mb-4 flex items-center text-blue-500 hover:text-blue-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    결과 목록으로 돌아가기
-                </button>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <h3 class="text-lg font-semibold mb-3">기본 정보</h3>
-                        <div class="space-y-2">
-                            <div class="flex">
-                                <span class="w-24 text-gray-500">유형:</span>
-                                <span id="detail-type" class="font-medium"></span>
-                            </div>
-                            <div class="flex">
-                                <span class="w-24 text-gray-500">국가:</span>
-                                <span id="detail-country" class="font-medium"></span>
-                            </div>
-                            <div class="flex">
-                                <span class="w-24 text-gray-500">제재 사유:</span>
-                                <span id="detail-reason" class="font-medium"></span>
-                            </div>
-                            <div class="flex">
-                                <span class="w-24 text-gray-500">등재 일자:</span>
-                                <span id="detail-date" class="font-medium"></span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <h3 class="text-lg font-semibold mb-3">제재 정보</h3>
-                        <div class="space-y-2">
-                            <div class="flex">
-                                <span class="w-24 text-gray-500">프로그램:</span>
-                                <span id="detail-program" class="font-medium"></span>
-                            </div>
-                            <div class="flex">
-                                <span class="w-24 text-gray-500">출처:</span>
-                                <span id="detail-source" class="font-medium"></span>
-                            </div>
-                            <div class="flex">
-                                <span class="w-24 text-gray-500">고유 ID:</span>
-                                <span id="detail-id" class="font-medium"></span>
-                            </div>
-                        </div>
-                    </div>
+                <div class="footer-links">
+                    <ul>
+                        <li><a href="#" id="terms-link">?�용?��?</a></li>
+                        <li><a href="#" id="privacy-link">개인?�보처리방침</a></li>
+                        <li><a href="#" id="help-link">?��?�?/a></li>
+                    </ul>
                 </div>
-                
-                <div class="mt-6">
-                    <h3 class="text-lg font-semibold mb-3">상세 설명</h3>
-                    <div id="detail-additional" class="text-gray-700"></div>
+                <div class="footer-info">
+                    <p>주식?�사 ?�션 (Faction Co.,Ltd)</p>
+                    <p>경기??고양???�양�??�기�?182, ?��??�라?�?�향??T1008??/p>
+                    <p>&copy; 2025 ?�재 ?�??검???�스?? All rights reserved.</p>
                 </div>
             </div>
-        </section>
-        
-        <!-- 푸터 -->
-        <footer class="bg-gray-100 mt-12">
-            <div class="container mx-auto px-4 py-6">
-                <div class="flex flex-col md:flex-row justify-between items-center">
-                    <div class="text-sm text-gray-600 mb-4 md:mb-0">
-                        &copy; 2024 제재 대상 검색 시스템. All rights reserved.
-                    </div>
-                    <div class="flex space-x-4">
-                        <a href="#" class="text-gray-600 hover:text-gray-800">이용약관</a>
-                        <a href="#" class="text-gray-600 hover:text-gray-800">개인정보처리방침</a>
-                        <a href="#" class="text-gray-600 hover:text-gray-800">도움말</a>
-                    </div>
-                </div>
-            </div>
-        </footer>
-    </div>
-    
-    <!-- JavaScript -->
-    <script src="js/config.js"></script>
+        </div>
+    </footer>
+
     <script src="js/app.js"></script>
-    
-    <!-- 운영 환경에서만 Google Analytics 추가 -->
-    <script>
-        if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-            // Google Analytics 코드 (실제 사용 시 여기에 추가)
-        }
-    </script>
 </body>
 </html> 
