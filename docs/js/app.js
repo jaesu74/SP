@@ -240,41 +240,53 @@ async function loginUser(credentials) {
         const storedPassword = localStorage.getItem('temp_registered_password');
         const storedName = localStorage.getItem('temp_registered_name');
         
+        // 테스트 계정 정보
+        const testAccounts = [
+            { email: 'test@example.com', password: 'password', name: '테스트 사용자' },
+            { email: 'admin@example.com', password: 'admin1234', name: '관리자' },
+            { email: 'demo@wvl.co.kr', password: 'demo1234', name: '데모 사용자' }
+        ];
+        
+        // 테스트 계정으로 로그인 시도
+        const testAccount = testAccounts.find(
+            account => account.email === credentials.email && account.password === credentials.password
+        );
+        
+        if (testAccount) {
+            // 테스트 계정으로 로그인 성공
+            const user = {
+                email: testAccount.email,
+                name: testAccount.name
+            };
+            
+            // 임시 토큰 생성
+            const mockToken = 'mock_token_' + Date.now();
+            
+            // 로컬 스토리지에 토큰과 사용자 정보 저장
+            localStorage.setItem('token', mockToken);
+            localStorage.setItem('user', JSON.stringify(user));
+            
+            // 현재 사용자 업데이트
+            currentUser = user;
+            
+            // 성공 알림 표시
+            showAlert(`${testAccount.name}님 환영합니다.`, 'success', loginContainer);
+            
+            // 메인 페이지로 이동
+            setTimeout(() => {
+                showMainSection();
+                updateUserInfo();
+            }, 1000);
+            
+            return;
+        }
+        
         if (!storedEmail) {
-            // 아직 회원가입하지 않은 경우
-            if (credentials.email === 'test@example.com' && credentials.password === 'password') {
-                // 테스트 계정으로 로그인 허용
-                const user = {
-                    email: credentials.email,
-                    name: 'Test User'
-                };
-                
-                // 임시 토큰 생성
-                const mockToken = 'mock_token_' + Date.now();
-                
-                // 로컬 스토리지에 토큰과 사용자 정보 저장
-                localStorage.setItem('token', mockToken);
-                localStorage.setItem('user', JSON.stringify(user));
-                
-                // 현재 사용자 업데이트
-                currentUser = user;
-                
-                // 성공 알림 표시
-                showAlert('테스트 계정으로 로그인되었습니다.', 'success', loginContainer);
-                
-                // 메인 페이지로 이동
-                setTimeout(() => {
-                    showMainSection();
-                    updateUserInfo();
-                }, 1000);
-                
-                return;
-            }
-            throw new Error('가입된 사용자가 없습니다. 회원가입해주세요.');
+            throw new Error('계정이 존재하지 않습니다. 회원가입 후 이용해주세요. (테스트 계정: demo@wvl.co.kr / demo1234)');
         }
         
         if (credentials.email !== storedEmail || credentials.password !== storedPassword) {
-            throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.');
+            throw new Error('이메일 또는 비밀번호가 올바르지 않습니다. (테스트 계정: demo@wvl.co.kr / demo1234)');
         }
         
         // 사용자 정보 생성
@@ -1084,7 +1096,7 @@ function showTermsPage() {
         termsSection.innerHTML = `
             <header class="header">
                 <div class="header-logo">
-                    <img src="public/images/logo-white.png" alt="로고">
+                    <img src="images/logo-white.png" alt="로고">
                     <h1>세계 경제 제재 대상 검색</h1>
                 </div>
                 <button id="terms-back-btn" class="back-button">
@@ -1162,7 +1174,7 @@ function showPrivacyPage() {
         privacySection.innerHTML = `
             <header class="header">
                 <div class="header-logo">
-                    <img src="public/images/logo-white.png" alt="로고">
+                    <img src="images/logo-white.png" alt="로고">
                     <h1>세계 경제 제재 대상 검색</h1>
                 </div>
                 <button id="privacy-back-btn" class="back-button">
@@ -1247,7 +1259,7 @@ function showHelpPage() {
         helpSection.innerHTML = `
             <header class="header">
                 <div class="header-logo">
-                    <img src="public/images/logo-white.png" alt="로고">
+                    <img src="images/logo-white.png" alt="로고">
                     <h1>세계 경제 제재 대상 검색</h1>
                 </div>
                 <button id="help-back-btn" class="back-button">
