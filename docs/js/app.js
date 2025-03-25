@@ -69,20 +69,33 @@ let searchHistory = [];
 
 // 세션 체크 및 초기 라우팅
 function checkSession() {
-    const token = localStorage.getItem('token');
-    const userJson = localStorage.getItem('user');
+    // 로컬 스토리지에서 사용자 정보 가져오기
+    const user = localStorage.getItem('user');
     
-    if (token && userJson) {
-        try {
-            currentUser = JSON.parse(userJson);
-            showMainSection();
-            updateUserInfo();
-        } catch (e) {
-            // 유효하지 않은 사용자 정보
-            logout();
-        }
+    if (user) {
+        // 사용자 정보가 있으면 메인 화면으로
+        showMainSection();
+        
+        // 사용자 정보 표시
+        const userData = JSON.parse(user);
+        const userNameElements = document.querySelectorAll('.user-name');
+        userNameElements.forEach(element => {
+            if (element) element.textContent = userData.name || '사용자';
+        });
+        
+        // 사용자 정보 표시
+        const userInfoElements = document.querySelectorAll('.user-info');
+        userInfoElements.forEach(element => {
+            if (element) element.classList.remove('hidden');
+        });
     } else {
-        showAuthSection();
+        // 사용자 정보가 없으면 로그인 화면으로
+        const authSection = document.getElementById('auth-section');
+        if (authSection) authSection.classList.remove('hidden');
+        
+        // 메인 화면 숨기기
+        const mainSection = document.getElementById('main-section');
+        if (mainSection) mainSection.classList.add('hidden');
     }
 }
 
@@ -221,120 +234,66 @@ async function registerUser(userData) {
     }
 }
 
-// 로그인 함수
-async function loginUser(credentials) {
+// 로그인 처리
+function loginUser(credentials) {
+    // 로그인 상태 표시
+    const loginBtn = document.querySelector('#login-form button[type="submit"]');
+    if (loginBtn) {
+        loginBtn.disabled = true;
+        loginBtn.textContent = '로그인 중...';
+    }
+    
     try {
-        console.log("로그인 시도:", credentials.email);
-        
-        // 실제 API 연결 코드 (현재 서버 연결 문제로 주석 처리)
-        /*
-        // FormData 형식으로 변환 (OAuth2 형식)
-        const formData = new URLSearchParams();
-        formData.append('username', credentials.email);
-        formData.append('password', credentials.password);
-        
-        console.log("API URL:", `${API_URL}/users/login`);
-        const response = await fetch(`${API_URL}/users/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: formData
-        });
-        
-        console.log("로그인 응답 상태:", response.status);
-        const data = await response.json();
-        console.log("로그인 응답 데이터:", data);
-        
-        if (!response.ok) {
-            throw new Error(data.detail || '로그인 중 오류가 발생했습니다');
-        }
-        */
-        
-        // 임시 로그인 처리 (서버 연결 없이 로컬에서 처리)
-        // 저장된 임시 회원가입 정보와 비교
-        const storedEmail = localStorage.getItem('temp_registered_email');
-        const storedPassword = localStorage.getItem('temp_registered_password');
-        const storedName = localStorage.getItem('temp_registered_name');
-        
-        // 테스트 계정 정보
-        const testAccounts = [
-            { email: 'test@example.com', password: 'password', name: '테스트 사용자' },
-            { email: 'admin@example.com', password: 'admin1234', name: '관리자' },
-            { email: 'demo@wvl.co.kr', password: 'demo1234', name: '데모 사용자' },
-            { email: 'jaesu@kakao.com', password: '1234', name: '개발자' }
-        ];
-        
-        // 테스트 계정으로 로그인 시도
-        const testAccount = testAccounts.find(
-            account => account.email === credentials.email && account.password === credentials.password
-        );
-        
-        if (testAccount) {
-            // 테스트 계정으로 로그인 성공
-            const user = {
-                email: testAccount.email,
-                name: testAccount.name
-            };
-            
-            // 임시 토큰 생성
-            const mockToken = 'mock_token_' + Date.now();
-            
-            // 로컬 스토리지에 토큰과 사용자 정보 저장
-            localStorage.setItem('token', mockToken);
-            localStorage.setItem('user', JSON.stringify(user));
-            
-            // 현재 사용자 업데이트
-            currentUser = user;
-            
-            // 성공 알림 표시
-            showAlert(`${testAccount.name}님 환영합니다.`, 'success', loginContainer);
-            
-            // 메인 페이지로 이동
-            setTimeout(() => {
-                showMainSection();
-                updateUserInfo();
-            }, 1000);
-            
-            return;
-        }
-        
-        if (!storedEmail) {
-            throw new Error('계정이 존재하지 않습니다. 회원가입 후 이용해주세요. (테스트 계정: jaesu@kakao.com / 1234)');
-        }
-        
-        if (credentials.email !== storedEmail || credentials.password !== storedPassword) {
-            throw new Error('이메일 또는 비밀번호가 올바르지 않습니다. (테스트 계정: jaesu@kakao.com / 1234)');
-        }
-        
-        // 사용자 정보 생성
-        const user = {
-            email: credentials.email,
-            name: storedName || credentials.email.split('@')[0] // 이름이 없는 경우 이메일에서 추출
-        };
-        
-        // 임시 토큰 생성
-        const mockToken = 'mock_token_' + Date.now();
-        
-        // 로컬 스토리지에 토큰과 사용자 정보 저장
-        localStorage.setItem('token', mockToken);
-        localStorage.setItem('user', JSON.stringify(user));
-        
-        // 현재 사용자 업데이트
-        currentUser = user;
-        
-        // 성공 알림 표시
-        showAlert('로그인 되었습니다.', 'success', loginContainer);
-        
-        // 메인 페이지로 이동
+        // 실제로는 서버에 API 요청을 보내야 함
+        // 현재는 테스트를 위해 로컬에서 처리
         setTimeout(() => {
-            showMainSection();
-            updateUserInfo();
-        }, 1000);
-        
+            // 예시 계정 (테스트용)
+            if (credentials.email === 'test@example.com' && credentials.password === 'password') {
+                // 로그인 성공
+                const user = {
+                    id: 'user123',
+                    name: '테스트 계정',
+                    email: credentials.email
+                };
+                
+                // 로컬 스토리지에 사용자 정보와 토큰 저장
+                localStorage.setItem('user', JSON.stringify(user));
+                localStorage.setItem('token', 'test-token-123');
+                
+                // 메인 화면으로 이동
+                showMainSection();
+                
+                // 사용자 정보 표시
+                const userNameElements = document.querySelectorAll('.user-name');
+                userNameElements.forEach(element => {
+                    if (element) element.textContent = user.name;
+                });
+                
+                // 사용자 정보 표시
+                const userInfoElements = document.querySelectorAll('.user-info');
+                userInfoElements.forEach(element => {
+                    if (element) element.classList.remove('hidden');
+                });
+            } else {
+                // 로그인 실패
+                showAlert('이메일 또는 비밀번호가 올바르지 않습니다.', 'error', document.getElementById('login-alerts'));
+            }
+            
+            // 로그인 버튼 상태 복원
+            if (loginBtn) {
+                loginBtn.disabled = false;
+                loginBtn.textContent = '로그인';
+            }
+        }, 1000); // 1초 후 결과 반환 (서버 응답 시뮬레이션)
     } catch (error) {
-        console.error("로그인 오류:", error);
-        showAlert(error.message, 'error', loginContainer);
+        console.error('로그인 중 오류 발생:', error);
+        showAlert('로그인 중 오류가 발생했습니다.', 'error', document.getElementById('login-alerts'));
+        
+        // 로그인 버튼 상태 복원
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.textContent = '로그인';
+        }
     }
 }
 
@@ -739,8 +698,69 @@ function displayResults(results, params) {
     // 결과가 있는 경우
     if (noResults) noResults.classList.add('hidden');
     
+    // 검색 점수 계산 (가중치 적용)
+    const calculateSearchScore = (item, searchTerm) => {
+        if (!searchTerm) return 100; // 검색어가 없으면 최대 점수
+        
+        searchTerm = searchTerm.toLowerCase();
+        const name = item.name.toLowerCase();
+        let score = 0;
+        
+        // 직접 이름 일치 (가장 높은 가중치)
+        if (name === searchTerm) {
+            score = 100;
+        } 
+        // 이름 시작 부분 일치
+        else if (name.startsWith(searchTerm)) {
+            score = 90;
+        } 
+        // 이름에 검색어 포함
+        else if (name.includes(searchTerm)) {
+            score = 75;
+        }
+        // 별칭(aliases) 검색
+        else if (item.aliases && item.aliases.some(alias => 
+            alias.toLowerCase() === searchTerm
+        )) {
+            score = 85;
+        }
+        else if (item.aliases && item.aliases.some(alias => 
+            alias.toLowerCase().includes(searchTerm)
+        )) {
+            score = 70;
+        }
+        // ID 일치
+        else if (item.id.toLowerCase().includes(searchTerm)) {
+            score = 60;
+        }
+        // 국가 일치
+        else if (item.country.toLowerCase().includes(searchTerm)) {
+            score = 50;
+        }
+        // 프로그램 또는 출처 일치
+        else if (
+            (item.program && item.program.toLowerCase().includes(searchTerm)) ||
+            (item.source && item.source.toLowerCase().includes(searchTerm))
+        ) {
+            score = 40;
+        }
+        // 이유에 검색어 포함
+        else if (item.reason && item.reason.toLowerCase().includes(searchTerm)) {
+            score = 30;
+        }
+        // 기본 최소 점수
+        else {
+            score = 20;
+        }
+        
+        return score;
+    };
+    
     // 결과를 카드로 표시
     results.forEach(item => {
+        // 검색 점수 계산
+        const searchScore = calculateSearchScore(item, params.name);
+        
         const resultCard = document.createElement('div');
         resultCard.className = 'result-card';
         resultCard.dataset.id = item.id;
@@ -763,6 +783,16 @@ function displayResults(results, params) {
             ? new Date(item.date_listed).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
             : '정보 없음';
         
+        // 유사도 그래프 HTML
+        const similarityGraph = `
+            <div class="similarity-graph">
+                <div class="similarity-label">유사도: ${searchScore}%</div>
+                <div class="similarity-bar">
+                    <div class="similarity-fill" style="width: ${searchScore}%"></div>
+                </div>
+            </div>
+        `;
+        
         resultCard.innerHTML = `
             <h3 class="result-title">${item.name}</h3>
             <div class="result-info">
@@ -773,6 +803,7 @@ function displayResults(results, params) {
                     <span class="metadata-item"><strong>제재 날짜:</strong> ${dateStr}</span>
                 </div>
                 ${aliasesDisplay}
+                ${params.name ? similarityGraph : ''}
             </div>
             <p class="result-description">${item.reason || '구체적인 제재 사유 정보가 없습니다.'}</p>
             <div class="result-actions">

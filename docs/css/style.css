@@ -1796,4 +1796,60 @@ input[type="range"]:active::-moz-range-thumb {
     color: rgba(255, 255, 255, 0.6);
     margin: 0;
     font-style: italic;
+}
+
+/* 유사도 그래프 */
+.similarity-graph {
+    margin: 0.75rem 0;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+.similarity-label {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 0.35rem;
+    font-weight: 500;
+}
+
+.similarity-bar {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.similarity-fill {
+    height: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: linear-gradient(90deg, #4caf50, #8bc34a);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+/* 유사도에 따른 색상 변경 (JS에서 처리할 수도 있음) */
+.similarity-fill[style*="width: 100%"],
+.similarity-fill[style*="width: 9"], /* 90%~ */
+.similarity-fill[style*="width: 8"] /* 80%~ */ {
+    background: linear-gradient(90deg, #4caf50, #8bc34a);
+}
+
+.similarity-fill[style*="width: 7"], /* 70%~ */
+.similarity-fill[style*="width: 6"] /* 60%~ */ {
+    background: linear-gradient(90deg, #8bc34a, #ffc107);
+}
+
+.similarity-fill[style*="width: 5"], /* 50%~ */
+.similarity-fill[style*="width: 4"] /* 40%~ */ {
+    background: linear-gradient(90deg, #ffc107, #ff9800);
+}
+
+.similarity-fill[style*="width: 3"], /* 30%~ */
+.similarity-fill[style*="width: 2"], /* 20%~ */
+.similarity-fill[style*="width: 1"] /* 10%~ */ {
+    background: linear-gradient(90deg, #ff9800, #f44336);
 } 
