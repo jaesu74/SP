@@ -23,26 +23,29 @@ function checkSession() {
     
     try {
         // 로컬 스토리지에서 사용자 정보 확인
-        const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-        const token = localStorage.getItem('token');
+        const userInfoStr = localStorage.getItem('userInfo');
+        console.log('저장된 사용자 정보:', userInfoStr);
         
-        console.log('저장된 사용자 정보:', userInfo);
-        console.log('저장된 토큰:', token);
-        
-        if (userInfo && token) {
-            // 유효한 사용자 정보가 있으면 메인 화면으로
-            currentUser = userInfo;
-            console.log('사용자 정보 찾음:', currentUser);
+        if (userInfoStr) {
+            // 사용자 정보가 있으면 파싱하여 현재 사용자로 설정
+            currentUser = JSON.parse(userInfoStr);
+            console.log('사용자 정보 파싱 완료:', currentUser);
             
-            // 메인 화면으로 이동
-            updateUserInfo(currentUser);
+            // 메인 화면으로 전환
             showMainSection();
+            
+            // 사용자 이름 표시
+            const userNameEl = document.querySelector('.user-name');
+            if (userNameEl) {
+                userNameEl.textContent = currentUser.name;
+            }
         } else {
-            // 사용자 정보가 없으면 로그인 화면으로
-            console.log('저장된 사용자 정보 없음, 로그인 화면 표시');
+            // 사용자 정보가 없으면 인증 화면 표시
+            console.log('저장된 사용자 정보 없음');
             showAuthSection();
         }
     } catch (error) {
+        // 오류 발생 시 인증 화면 표시
         console.error('세션 체크 오류:', error);
         showAuthSection();
     }
@@ -77,24 +80,60 @@ function updateUserInfo(userInfo) {
 
 // 인증 섹션 표시
 function showAuthSection() {
-    if (!authSection || !mainSection) return;
+    console.log('인증 화면 표시');
     
-    mainSection.style.display = 'none';
-    authSection.style.display = 'block';
-    historySection.style.display = 'none';
+    if (authSection) {
+        authSection.style.display = 'flex';
+    } else {
+        console.error('authSection 요소를 찾을 수 없음');
+    }
     
-    // 기본적으로 로그인 폼 표시
-    showLogin();
+    if (mainSection) {
+        mainSection.style.display = 'none';
+    } else {
+        console.error('mainSection 요소를 찾을 수 없음');
+    }
+    
+    if (resultsContainer) {
+        resultsContainer.style.display = 'none';
+    }
+    
+    if (detailSection) {
+        detailSection.classList.remove('active');
+    }
+    
+    if (historySection) {
+        historySection.style.display = 'none';
+    }
 }
 
 // 메인 섹션 표시
 function showMainSection() {
-    if (!mainSection || !authSection) return;
+    console.log('메인 화면 표시');
     
-    authSection.style.display = 'none';
-    mainSection.style.display = 'block';
-    historySection.style.display = 'none';
-    detailSection.classList.remove('active');
+    if (mainSection) {
+        mainSection.style.display = 'block';
+    } else {
+        console.error('mainSection 요소를 찾을 수 없음');
+    }
+    
+    if (authSection) {
+        authSection.style.display = 'none';
+    } else {
+        console.error('authSection 요소를 찾을 수 없음');
+    }
+    
+    if (resultsContainer) {
+        resultsContainer.style.display = 'none';
+    }
+    
+    if (detailSection) {
+        detailSection.classList.remove('active');
+    }
+    
+    if (historySection) {
+        historySection.style.display = 'none';
+    }
 }
 
 // 로그인 폼 표시
@@ -114,59 +153,42 @@ function showRegister() {
 }
 
 // 로그인 처리
-function loginUser(userData) {
-    console.log('로그인 시도:', userData);
-    
-    // 로그인 버튼 비활성화 및 로딩 표시
-    const loginButton = document.querySelector('#login-form button[type="submit"]');
-    if (loginButton) {
-        loginButton.disabled = true;
-        loginButton.textContent = '로그인 중...';
-    }
+function loginUser(email, password) {
+    console.log('로그인 시도:', email);
     
     // 테스트 계정 확인
-    if (userData.email === 'jaesu@kakao.com' && userData.password === '1234') {
+    if (email === 'jaesu@kakao.com' && password === '1234') {
         console.log('로그인 성공');
         
-        // 사용자 정보 저장
+        // 사용자 정보 생성
         const userInfo = {
             id: 'user123',
             name: '김재수',
-            email: userData.email,
+            email: email,
             role: 'user',
             lastLogin: new Date().toISOString()
         };
         
-        // 로컬 스토리지에 사용자 정보와 토큰 저장
+        // 로컬 스토리지에 사용자 정보 저장
         localStorage.setItem('userInfo', JSON.stringify(userInfo));
-        localStorage.setItem('token', 'test-token-' + Math.random().toString(36).substring(2));
         
-        // 사용자 정보 업데이트 및 메인 화면으로 이동
+        // 현재 사용자 정보 업데이트
         currentUser = userInfo;
-        updateUserInfo(userInfo);
+        
+        // 메인 화면으로 전환
         showMainSection();
         
-        // 로그인 알림 표시
-        showAlert('환영합니다, ' + userInfo.name + '님!', 'success', mainSection);
-    } else {
-        console.log('로그인 실패');
-        
-        // 로그인 버튼 원래 상태로 복원
-        if (loginButton) {
-            loginButton.disabled = false;
-            loginButton.textContent = '로그인';
+        // 사용자 이름 표시
+        const userNameEl = document.querySelector('.user-name');
+        if (userNameEl) {
+            userNameEl.textContent = userInfo.name;
         }
         
-        // 로그인 실패 알림
-        const loginContainer = document.querySelector('#login-container');
-        showAlert('로그인 실패: 이메일 또는 비밀번호가 일치하지 않습니다.<br>테스트 계정: jaesu@kakao.com / 1234', 'error', loginContainer);
-        return;
-    }
-    
-    // 로그인 버튼 원래 상태로 복원
-    if (loginButton) {
-        loginButton.disabled = false;
-        loginButton.textContent = '로그인';
+        // 알림 표시
+        showAlert('환영합니다, ' + userInfo.name + '님!', 'success');
+    } else {
+        console.log('로그인 실패');
+        showAlert('로그인 실패: 이메일 또는 비밀번호가 일치하지 않습니다.<br>테스트 계정: jaesu@kakao.com / 1234', 'error');
     }
 }
 
@@ -194,54 +216,54 @@ function registerUser(userData) {
         console.log('회원가입 성공');
         
         // 회원가입 성공 알림 후 로그인 페이지로 이동
-        showAlert('회원가입이 완료되었습니다. 로그인해 주세요.', 'success', loginContainer);
+        showAlert('회원가입이 완료되었습니다. 로그인해 주세요.', 'success');
         showLogin();
     }, 1500); // 1.5초 지연 (API 요청 시뮬레이션)
 }
 
 // 로그아웃 처리
 function logoutUser() {
-    // 로컬 스토리지에서 사용자 정보와 토큰 삭제
-    localStorage.removeItem('userInfo');
-    localStorage.removeItem('token');
+    console.log('로그아웃 처리');
     
-    // 사용자 정보 초기화
+    // 로컬 스토리지에서 사용자 정보 삭제
+    localStorage.removeItem('userInfo');
+    
+    // 현재 사용자 정보 초기화
     currentUser = null;
     
-    // 인증 화면으로 이동
+    // 인증 화면으로 전환
     showAuthSection();
     
-    // 로그인 폼 초기화
-    const loginEmail = document.getElementById('login-email');
-    const loginPassword = document.getElementById('login-password');
-    
-    if (loginEmail && loginPassword) {
-        loginEmail.value = '';
-        loginPassword.value = '';
-    }
-    
-    // 로그아웃 알림
-    showAlert('로그아웃되었습니다.', 'info', document.querySelector('#login-container'));
+    // 알림 표시
+    showAlert('로그아웃되었습니다.', 'info');
 }
 
 // 알림 메시지 표시
-function showAlert(message, type, container) {
-    if (!container) return;
+function showAlert(message, type = 'info') {
+    console.log('알림 표시:', message, type);
     
-    // 알림 컨테이너 생성
-    const alertElement = document.createElement('div');
-    alertElement.className = `alert alert-${type}`;
-    alertElement.innerHTML = message;
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type}`;
+    alertDiv.innerHTML = message;
     
-    // 컨테이너에 알림 추가
-    const alertContainer = container.querySelector('.alert-container') || container;
-    alertContainer.innerHTML = '';
-    alertContainer.appendChild(alertElement);
-    
-    // 5초 후 알림 자동 제거
-    setTimeout(() => {
-        alertElement.remove();
-    }, 5000);
+    // 알림 컨테이너에 추가
+    const container = document.querySelector('.alert-container');
+    if (container) {
+        container.innerHTML = '';
+        container.appendChild(alertDiv);
+        
+        // 3초 후 알림 제거
+        setTimeout(() => {
+            alertDiv.style.opacity = '0';
+            setTimeout(() => {
+                container.removeChild(alertDiv);
+            }, 300);
+        }, 3000);
+    } else {
+        console.error('알림 컨테이너를 찾을 수 없음');
+        // 알림 컨테이너가 없으면 경고 메시지만 콘솔에 출력
+        console.warn(type, message);
+    }
 }
 
 // 검색 매개변수 수집
@@ -826,7 +848,7 @@ function shareResult(item) {
         try {
             // 클립보드에 복사
             navigator.clipboard.writeText(`${shareText}\n${shareUrl}?id=${item.id}`)
-                .then(() => showAlert('클립보드에 복사되었습니다.', 'success', mainSection))
+                .then(() => showAlert('클립보드에 복사되었습니다.', 'success'))
                 .catch(err => console.log('클립보드 복사 실패:', err));
         } catch (err) {
             console.log('클립보드 복사 오류:', err);
@@ -868,7 +890,7 @@ ${item.aliases ? item.aliases.join('\n') : '정보 없음'}
     a.click();
     URL.revokeObjectURL(url);
     
-    showAlert('보고서가 다운로드 되었습니다.', 'success', mainSection);
+    showAlert('보고서가 다운로드 되었습니다.', 'success');
 }
 
 // 상세 보기 표시
@@ -1046,11 +1068,11 @@ function generateReport() {
         a.click();
         window.URL.revokeObjectURL(url);
         
-        showAlert('리포트가 생성되었습니다.', 'success', mainSection);
+        showAlert('리포트가 생성되었습니다.', 'success');
     })
     .catch(error => {
         console.error('PDF 생성 오류:', error);
-        showAlert('리포트 생성 중 오류가 발생했습니다.', 'error', mainSection);
+        showAlert('리포트 생성 중 오류가 발생했습니다.', 'error');
     });
 }
 
@@ -1070,7 +1092,7 @@ function shareDetail() {
         // 대체 공유 방법
         const shareText = `${shareData.title}\n${shareData.url}`;
         navigator.clipboard.writeText(shareText)
-            .then(() => showAlert('클립보드에 복사되었습니다.', 'success', mainSection))
+            .then(() => showAlert('클립보드에 복사되었습니다.', 'success'))
             .catch(err => console.log('클립보드 복사 실패:', err));
     }
 }
@@ -1446,8 +1468,10 @@ function initY2KElements() {
 
 // DOM이 로드되면 초기화
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM 로드 완료');
+    
     // DOM 요소 초기화
-    initializeDOMElements();
+    initElements();
     
     // Y2K 배경 요소 초기화
     initY2KElements();
@@ -1455,14 +1479,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // 세션 체크
     checkSession();
     
-    // 이벤트 리스너 등록
+    // 이벤트 리스너 설정
     setupEventListeners();
     
     console.log('앱 초기화 완료');
 });
 
 // DOM 요소 초기화
-function initializeDOMElements() {
+function initElements() {
+    console.log('DOM 요소 초기화 시작');
+    
     // 인증 관련
     authSection = document.getElementById('auth-section');
     loginContainer = document.getElementById('login-container');
@@ -1517,28 +1543,58 @@ function initializeDOMElements() {
     
     // Y2K 배경 요소 초기화
     initY2KElements();
+    
+    console.log('DOM 요소 초기화 완료:', {
+        authSection: !!authSection,
+        loginForm: !!loginForm,
+        mainSection: !!mainSection,
+        searchForm: !!searchForm
+    });
 }
 
 // 이벤트 리스너 설정
 function setupEventListeners() {
-    console.log('이벤트 리스너 설정');
+    console.log('이벤트 리스너 설정 시작');
     
-    // 로그인/회원가입 전환 링크
-    if (showLoginLink) {
-        showLoginLink.addEventListener('click', () => {
-            document.querySelector('.auth-container').classList.remove('show-register');
+    // 로그인 폼 제출
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('로그인 폼 제출됨');
+            
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            console.log('입력된 이메일:', email);
+            console.log('입력된 비밀번호:', password);
+            
+            loginUser(email, password);
+        });
+    } else {
+        console.error('로그인 폼을 찾을 수 없음');
+    }
+    
+    // 로그아웃 버튼
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', logoutUser);
+    }
+    
+    // 회원가입/로그인 전환 링크
+    if (showRegisterLink) {
+        showRegisterLink.addEventListener('click', function() {
+            document.querySelector('.auth-container').classList.add('show-register');
         });
     }
     
-    if (showRegisterLink) {
-        showRegisterLink.addEventListener('click', () => {
-            document.querySelector('.auth-container').classList.add('show-register');
+    if (showLoginLink) {
+        showLoginLink.addEventListener('click', function() {
+            document.querySelector('.auth-container').classList.remove('show-register');
         });
     }
     
     // 비밀번호 토글 버튼
     const passwordToggles = document.querySelectorAll('.password-toggle');
-    passwordToggles.forEach(toggle => {
+    passwordToggles.forEach(function(toggle) {
         toggle.addEventListener('click', function() {
             const passwordField = this.previousElementSibling;
             if (passwordField.type === 'password') {
@@ -1550,34 +1606,6 @@ function setupEventListeners() {
             }
         });
     });
-    
-    // 로그인 폼 제출 이벤트
-    if (loginForm) {
-        loginForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            console.log('로그인 폼 제출');
-            
-            const emailInput = document.getElementById('login-email');
-            const passwordInput = document.getElementById('login-password');
-            
-            if (!emailInput || !passwordInput) {
-                console.error('로그인 폼 요소를 찾을 수 없습니다.');
-                return;
-            }
-            
-            const userData = {
-                email: emailInput.value.trim(),
-                password: passwordInput.value
-            };
-            
-            loginUser(userData);
-        });
-    }
-    
-    // 로그아웃 버튼
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', logoutUser);
-    }
     
     // 검색 폼 제출 이벤트
     if (searchForm) {
@@ -1652,6 +1680,8 @@ function setupEventListeners() {
             }
         });
     });
+    
+    console.log('이벤트 리스너 설정 완료');
 }
 
 // 이용약관 페이지 표시
