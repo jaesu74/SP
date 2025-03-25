@@ -394,3 +394,499 @@ function showAlert(message, type) {
         }, 300);
     }, 5000);
 }
+
+/**
+ * 검색 수행
+ */
+function performSearch(query) {
+    // 로딩 인디케이터 표시
+    const loading = document.getElementById('loading');
+    if (loading) loading.style.display = 'flex';
+    
+    // 결과 영역 초기화
+    const resultsArea = document.getElementById('results-area');
+    const resultsList = document.getElementById('results-list');
+    const noResults = document.getElementById('no-results');
+    const resultsCount = document.getElementById('results-count');
+    
+    if (resultsList) resultsList.innerHTML = '';
+    if (resultsCount) resultsCount.textContent = '0';
+    if (noResults) noResults.style.display = 'none';
+    
+    // 검색 쿼리 실행 (데모용 임시 데이터)
+    setTimeout(() => {
+        // 샘플 데이터 생성
+        const results = generateSampleResults(query);
+        
+        // 결과 표시
+        displaySearchResults(results);
+        
+        // 로딩 인디케이터 숨기기
+        if (loading) loading.style.display = 'none';
+        
+        // 결과 영역 표시
+        if (resultsArea) resultsArea.style.display = 'block';
+    }, 1000); // 1초 지연 - 실제 API 호출 시뮬레이션
+}
+
+/**
+ * 샘플 검색 결과 생성 (데모용)
+ */
+function generateSampleResults(query) {
+    // 데모용 샘플 데이터
+    const sampleData = [
+        {
+            id: 'NK001',
+            name: '김정은',
+            type: 'individual',
+            country: '북한',
+            program: 'DPRK',
+            listingDate: '2016-04-15',
+            details: {
+                aliases: ['Kim Jong Un', 'Kim Jong-un'],
+                dateOfBirth: '1984-01-08',
+                placeOfBirth: '평양',
+                nationality: '북한',
+                passportDetails: 'Diplomatic Passport 29001',
+                addresses: ['평양시 중구역'],
+                position: '국무위원장',
+                otherInformation: '유엔 안전보장이사회 결의안 1718호에 따른 제재 대상'
+            }
+        },
+        {
+            id: 'RU002',
+            name: '러시아 대외무역은행',
+            type: 'entity',
+            country: '러시아',
+            program: 'RUSSIA',
+            listingDate: '2022-02-24',
+            details: {
+                aliases: ['VTB Bank', 'ВТБ Банк'],
+                registrationDetails: '1990년 설립',
+                addresses: ['모스크바 시 미라 대로 29'],
+                activities: '금융, 은행',
+                otherInformation: '러시아 정부 소유 은행으로 국제 제재 대상'
+            }
+        },
+        {
+            id: 'IR003',
+            name: 'Sepah Shipping Line',
+            type: 'entity',
+            country: '이란',
+            program: 'IRAN',
+            listingDate: '2018-11-05',
+            details: {
+                aliases: ['IRISL Group Affiliate', 'Sepah Line'],
+                registrationDetails: 'IMO Company No. 1234567',
+                addresses: ['테헤란, 이란'],
+                activities: '해운, 물류',
+                otherInformation: '이란 혁명수비대 소유 기업으로 핵 프로그램 관련 물자 운송 의혹'
+            }
+        },
+        {
+            id: 'SY004',
+            name: 'Syrian Scientific Studies and Research Center',
+            type: 'entity',
+            country: '시리아',
+            program: 'SYRIA',
+            listingDate: '2017-04-24',
+            details: {
+                aliases: ['SSRC', 'Centre d\'Etudes et de Recherches Scientifiques'],
+                registrationDetails: '1971년 설립',
+                addresses: ['다마스쿠스, 시리아'],
+                activities: '연구, 군사',
+                otherInformation: '시리아 정부의 화학무기 개발 프로그램 수행 기관'
+            }
+        },
+        {
+            id: 'NK005',
+            name: 'M/V Wise Honest',
+            type: 'vessel',
+            country: '북한',
+            program: 'DPRK',
+            listingDate: '2018-09-30',
+            details: {
+                IMO: '8905490',
+                callSign: 'DPRK1234',
+                vesselType: '화물선',
+                tonnage: '17,601 GT',
+                yearBuilt: '1989',
+                otherInformation: '북한 석탄 불법 수출에 관여한 선박'
+            }
+        }
+    ];
+    
+    // 검색어가 포함된 결과만 필터링 (대소문자 구분 없이)
+    const lowerQuery = query.toLowerCase();
+    return sampleData.filter(item => {
+        return item.name.toLowerCase().includes(lowerQuery) || 
+               item.country.toLowerCase().includes(lowerQuery) ||
+               (item.details && JSON.stringify(item.details).toLowerCase().includes(lowerQuery));
+    });
+}
+
+/**
+ * 검색 결과 표시
+ */
+function displaySearchResults(results) {
+    const resultsList = document.getElementById('results-list');
+    const noResults = document.getElementById('no-results');
+    const resultsCount = document.getElementById('results-count');
+    
+    if (!resultsList || !noResults || !resultsCount) return;
+    
+    // 결과 개수 표시
+    resultsCount.textContent = results.length;
+    
+    if (results.length === 0) {
+        // 결과 없음 표시
+        resultsList.innerHTML = '';
+        noResults.style.display = 'flex';
+        return;
+    }
+    
+    // 결과 있음
+    noResults.style.display = 'none';
+    resultsList.innerHTML = '';
+    
+    // 결과 목록 생성
+    results.forEach(item => {
+        const resultItem = document.createElement('div');
+        resultItem.className = 'result-item';
+        resultItem.dataset.id = item.id;
+        
+        // 항목 타입에 따른 아이콘 클래스
+        let iconClass = 'fa-user';
+        if (item.type === 'entity') iconClass = 'fa-building';
+        else if (item.type === 'vessel') iconClass = 'fa-ship';
+        else if (item.type === 'aircraft') iconClass = 'fa-plane';
+        
+        // 결과 항목 HTML 생성
+        resultItem.innerHTML = `
+            <div class="result-icon">
+                <i class="fas ${iconClass}"></i>
+            </div>
+            <div class="result-content">
+                <h4 class="result-title">${item.name}</h4>
+                <div class="result-meta">
+                    <span class="result-type">${translateType(item.type)}</span>
+                    <span class="result-country">${item.country}</span>
+                    <span class="result-date">제재일: ${formatDate(item.listingDate)}</span>
+                </div>
+            </div>
+            <div class="result-action">
+                <button class="view-detail-btn" data-id="${item.id}">상세보기</button>
+            </div>
+        `;
+        
+        // 결과 목록에 추가
+        resultsList.appendChild(resultItem);
+        
+        // 상세보기 버튼 이벤트 리스너
+        const viewDetailBtn = resultItem.querySelector('.view-detail-btn');
+        if (viewDetailBtn) {
+            viewDetailBtn.addEventListener('click', function() {
+                showDetailView(item);
+            });
+        }
+    });
+    
+    // 결과 항목 클릭 이벤트 리스너
+    document.querySelectorAll('.result-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            // 버튼 영역 클릭은 무시 (이미 버튼에 이벤트가 있음)
+            if (e.target.closest('.view-detail-btn')) return;
+            
+            // 해당 항목의 ID로 상세 정보 표시
+            const id = this.dataset.id;
+            const result = results.find(item => item.id === id);
+            if (result) {
+                showDetailView(result);
+            }
+        });
+    });
+}
+
+/**
+ * 상세 정보 보기
+ */
+function showDetailView(item) {
+    const detailModal = document.getElementById('detail-modal');
+    if (!detailModal) return;
+    
+    // 모달 제목과 정보 설정
+    const detailTitle = document.getElementById('detail-title');
+    const detailType = document.getElementById('detail-type');
+    const detailCountry = document.getElementById('detail-country');
+    const detailDate = document.getElementById('detail-date');
+    const detailSource = document.getElementById('detail-source');
+    const detailContent = document.getElementById('detail-content');
+    
+    if (detailTitle) detailTitle.textContent = item.name;
+    if (detailType) detailType.textContent = translateType(item.type);
+    if (detailCountry) detailCountry.textContent = item.country;
+    if (detailDate) detailDate.textContent = formatDate(item.listingDate);
+    if (detailSource) detailSource.textContent = translateProgram(item.program);
+    
+    // 상세 정보 콘텐츠 생성
+    if (detailContent) {
+        let contentHTML = '<div class="detail-sections">';
+        
+        // 기본 정보 섹션
+        contentHTML += `
+            <div class="detail-section">
+                <h3 class="section-title">기본 정보</h3>
+                <div class="detail-data">
+                    <div class="data-item">
+                        <span class="data-label">ID:</span>
+                        <span class="data-value">${item.id}</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">이름:</span>
+                        <span class="data-value">${item.name}</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">제재 프로그램:</span>
+                        <span class="data-value">${translateProgram(item.program)}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // 항목 유형별 추가 정보
+        if (item.details) {
+            if (item.type === 'individual') {
+                // 개인 정보
+                contentHTML += `
+                    <div class="detail-section">
+                        <h3 class="section-title">개인 정보</h3>
+                        <div class="detail-data">
+                            ${item.details.dateOfBirth ? `
+                                <div class="data-item">
+                                    <span class="data-label">생년월일:</span>
+                                    <span class="data-value">${item.details.dateOfBirth}</span>
+                                </div>
+                            ` : ''}
+                            ${item.details.placeOfBirth ? `
+                                <div class="data-item">
+                                    <span class="data-label">출생지:</span>
+                                    <span class="data-value">${item.details.placeOfBirth}</span>
+                                </div>
+                            ` : ''}
+                            ${item.details.nationality ? `
+                                <div class="data-item">
+                                    <span class="data-label">국적:</span>
+                                    <span class="data-value">${item.details.nationality}</span>
+                                </div>
+                            ` : ''}
+                            ${item.details.position ? `
+                                <div class="data-item">
+                                    <span class="data-label">직위:</span>
+                                    <span class="data-value">${item.details.position}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            } else if (item.type === 'entity') {
+                // 기관/기업 정보
+                contentHTML += `
+                    <div class="detail-section">
+                        <h3 class="section-title">기관 정보</h3>
+                        <div class="detail-data">
+                            ${item.details.registrationDetails ? `
+                                <div class="data-item">
+                                    <span class="data-label">등록 정보:</span>
+                                    <span class="data-value">${item.details.registrationDetails}</span>
+                                </div>
+                            ` : ''}
+                            ${item.details.activities ? `
+                                <div class="data-item">
+                                    <span class="data-label">활동 분야:</span>
+                                    <span class="data-value">${item.details.activities}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            } else if (item.type === 'vessel') {
+                // 선박 정보
+                contentHTML += `
+                    <div class="detail-section">
+                        <h3 class="section-title">선박 정보</h3>
+                        <div class="detail-data">
+                            ${item.details.IMO ? `
+                                <div class="data-item">
+                                    <span class="data-label">IMO 번호:</span>
+                                    <span class="data-value">${item.details.IMO}</span>
+                                </div>
+                            ` : ''}
+                            ${item.details.callSign ? `
+                                <div class="data-item">
+                                    <span class="data-label">호출 부호:</span>
+                                    <span class="data-value">${item.details.callSign}</span>
+                                </div>
+                            ` : ''}
+                            ${item.details.vesselType ? `
+                                <div class="data-item">
+                                    <span class="data-label">선박 유형:</span>
+                                    <span class="data-value">${item.details.vesselType}</span>
+                                </div>
+                            ` : ''}
+                            ${item.details.tonnage ? `
+                                <div class="data-item">
+                                    <span class="data-label">톤수:</span>
+                                    <span class="data-value">${item.details.tonnage}</span>
+                                </div>
+                            ` : ''}
+                            ${item.details.yearBuilt ? `
+                                <div class="data-item">
+                                    <span class="data-label">건조 연도:</span>
+                                    <span class="data-value">${item.details.yearBuilt}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 별칭 정보
+            if (item.details.aliases && item.details.aliases.length > 0) {
+                contentHTML += `
+                    <div class="detail-section">
+                        <h3 class="section-title">별칭</h3>
+                        <div class="detail-data">
+                            <div class="data-item">
+                                <ul class="aliases-list">
+                                    ${item.details.aliases.map(alias => `<li>${alias}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 주소 정보
+            if (item.details.addresses && item.details.addresses.length > 0) {
+                contentHTML += `
+                    <div class="detail-section">
+                        <h3 class="section-title">주소</h3>
+                        <div class="detail-data">
+                            <div class="data-item">
+                                <ul class="addresses-list">
+                                    ${item.details.addresses.map(address => `<li>${address}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 기타 정보
+            if (item.details.otherInformation) {
+                contentHTML += `
+                    <div class="detail-section">
+                        <h3 class="section-title">기타 정보</h3>
+                        <div class="detail-data">
+                            <div class="data-item">
+                                <p class="other-info">${item.details.otherInformation}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        contentHTML += '</div>';
+        detailContent.innerHTML = contentHTML;
+    }
+    
+    // 모달 표시
+    detailModal.classList.add('active');
+}
+
+/**
+ * 프로그램 코드 변환
+ */
+function translateProgram(programCode) {
+    const programs = {
+        'DPRK': '북한 제재 프로그램',
+        'RUSSIA': '러시아 제재 프로그램',
+        'IRAN': '이란 제재 프로그램',
+        'SYRIA': '시리아 제재 프로그램'
+    };
+    
+    return programs[programCode] || programCode;
+}
+
+/**
+ * 항목 유형 변환
+ */
+function translateType(type) {
+    const types = {
+        'individual': '개인',
+        'entity': '기관/기업',
+        'vessel': '선박',
+        'aircraft': '항공기'
+    };
+    
+    return types[type] || type;
+}
+
+/**
+ * 날짜 형식 변환
+ */
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    
+    return date.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+/**
+ * 필터 적용
+ */
+function applyFilters() {
+    // 현재 활성화된 필터 버튼 가져오기
+    const activeFilters = Array.from(document.querySelectorAll('.filter-btn.active'))
+        .map(btn => btn.getAttribute('data-filter'));
+    
+    // 모든 결과 항목 가져오기
+    const resultItems = document.querySelectorAll('.result-item');
+    
+    // 결과가 없으면 종료
+    if (resultItems.length === 0) return;
+    
+    // 'all' 필터가 활성화되어 있으면 모든 항목 표시
+    if (activeFilters.includes('all')) {
+        resultItems.forEach(item => {
+            item.style.display = 'flex';
+        });
+        return;
+    }
+    
+    // 각 항목에 필터 적용
+    resultItems.forEach(item => {
+        const type = item.querySelector('.result-type').textContent;
+        
+        // 유형 매핑
+        let itemType = '';
+        if (type === '개인') itemType = 'individual';
+        else if (type === '기관/기업') itemType = 'entity';
+        else if (type === '선박') itemType = 'vessel';
+        else if (type === '항공기') itemType = 'aircraft';
+        
+        // 활성화된 필터에 항목 유형이 포함되어 있으면 표시, 아니면 숨김
+        if (activeFilters.includes(itemType)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
