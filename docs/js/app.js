@@ -8,28 +8,41 @@ const TEST_EMAIL = 'jaesu@kakao.com';
 const TEST_PASSWORD = '1234';
 
 // 애플리케이션 초기화
-document.addEventListener('DOMContentLoaded', initApp);
-
-/**
- * 애플리케이션 초기화 함수
- */
-function initApp() {
+document.addEventListener('DOMContentLoaded', function() {
     console.log('앱 초기화');
     
+    // 페이지 섹션들의 초기 상태 설정
+    document.querySelectorAll('.page-section').forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    // 초기 로그인 상태 확인
+    setTimeout(checkLoginStatus, 100);
+    
+    // 이벤트 리스너 설정
+    setupEventListeners();
+});
+
+/**
+ * 이벤트 리스너 설정
+ */
+function setupEventListeners() {
     // 로그인 폼 이벤트 리스너
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            handleLogin(
-                document.getElementById('email').value,
-                document.getElementById('password').value
-            );
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            handleLogin(email, password);
         });
     }
 
     // 로그아웃 버튼 이벤트 리스너
-    document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
+    }
 
     // 비밀번호 토글 버튼
     const togglePasswordBtn = document.querySelector('.toggle-password');
@@ -59,96 +72,151 @@ function initApp() {
     }
 
     // 고급 검색 토글 버튼
-    document.getElementById('advanced-toggle')?.addEventListener('click', function() {
-        const advancedSearch = document.getElementById('advanced-search');
-        advancedSearch.classList.toggle('active');
-        this.querySelector('i').classList.toggle('fa-sliders-h');
-        this.querySelector('i').classList.toggle('fa-times');
-    });
+    const advancedToggle = document.getElementById('advanced-toggle');
+    if (advancedToggle) {
+        advancedToggle.addEventListener('click', function() {
+            const advancedSearch = document.getElementById('advanced-search');
+            advancedSearch.classList.toggle('active');
+            
+            const icon = this.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('fa-sliders-h');
+                icon.classList.toggle('fa-times');
+            }
+        });
+    }
 
     // 필터 버튼 이벤트 리스너
     const filterBtns = document.querySelectorAll('.filter-btn');
     filterBtns.forEach(btn => {
         btn.addEventListener('click', function() {
             // 기존 활성 버튼 제거
-            document.querySelector('.filter-btn.active')?.classList.remove('active');
+            const activeBtn = document.querySelector('.filter-btn.active');
+            if (activeBtn) {
+                activeBtn.classList.remove('active');
+            }
+            
             // 클릭한 버튼 활성화
             this.classList.add('active');
             
             // 검색 결과가 있으면 필터링 적용
             const resultsArea = document.getElementById('results-area');
-            if (!resultsArea.classList.contains('hidden') && resultsArea.style.display !== 'none') {
+            if (resultsArea && resultsArea.style.display !== 'none') {
                 applyFilters();
             }
         });
     });
 
     // 상세 정보 모달 닫기 버튼
-    document.getElementById('detail-close')?.addEventListener('click', function() {
-        document.getElementById('detail-modal').classList.remove('active');
-    });
+    const detailClose = document.getElementById('detail-close');
+    if (detailClose) {
+        detailClose.addEventListener('click', function() {
+            document.getElementById('detail-modal').classList.remove('active');
+        });
+    }
 
     // 인쇄/다운로드 버튼
-    document.getElementById('detail-print')?.addEventListener('click', printDetail);
-    document.getElementById('detail-download')?.addEventListener('click', function() {
-        alert('PDF 다운로드 기능은 개발 중입니다.');
-    });
+    const detailPrint = document.getElementById('detail-print');
+    if (detailPrint) {
+        detailPrint.addEventListener('click', printDetail);
+    }
+    
+    const detailDownload = document.getElementById('detail-download');
+    if (detailDownload) {
+        detailDownload.addEventListener('click', function() {
+            alert('PDF 다운로드 기능은 개발 중입니다.');
+        });
+    }
 
     // 이용약관 및 개인정보처리방침 링크
-    document.getElementById('terms-link')?.addEventListener('click', function(e) {
-        e.preventDefault();
-        showPageSection('terms-section');
-    });
+    const termsLink = document.getElementById('terms-link');
+    if (termsLink) {
+        termsLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            showPageSection('terms-section');
+        });
+    }
 
-    document.getElementById('privacy-link')?.addEventListener('click', function(e) {
-        e.preventDefault();
-        showPageSection('privacy-section');
-    });
+    const privacyLink = document.getElementById('privacy-link');
+    if (privacyLink) {
+        privacyLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            showPageSection('privacy-section');
+        });
+    }
 
-    document.getElementById('help-link')?.addEventListener('click', function(e) {
-        e.preventDefault();
-        showPageSection('help-section');
-    });
+    const helpLink = document.getElementById('help-link');
+    if (helpLink) {
+        helpLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            showPageSection('help-section');
+        });
+    }
 
     // 뒤로가기 버튼
-    document.getElementById('terms-back-btn')?.addEventListener('click', function() {
-        hidePageSection('terms-section');
-    });
+    const termsBackBtn = document.getElementById('terms-back-btn');
+    if (termsBackBtn) {
+        termsBackBtn.addEventListener('click', function() {
+            hidePageSection('terms-section');
+        });
+    }
 
-    document.getElementById('privacy-back-btn')?.addEventListener('click', function() {
-        hidePageSection('privacy-section');
-    });
+    const privacyBackBtn = document.getElementById('privacy-back-btn');
+    if (privacyBackBtn) {
+        privacyBackBtn.addEventListener('click', function() {
+            hidePageSection('privacy-section');
+        });
+    }
 
-    document.getElementById('help-back-btn')?.addEventListener('click', function() {
-        hidePageSection('help-section');
-    });
-
-    // 저장된 로그인 상태 확인
-    checkLoginStatus();
+    const helpBackBtn = document.getElementById('help-back-btn');
+    if (helpBackBtn) {
+        helpBackBtn.addEventListener('click', function() {
+            hidePageSection('help-section');
+        });
+    }
 
     // 첫 번째 필터 버튼 활성화
-    filterBtns[0]?.classList.add('active');
+    if (filterBtns.length > 0) {
+        filterBtns[0].classList.add('active');
+    }
 }
 
 /**
  * 로그인 상태 확인
  */
 function checkLoginStatus() {
-    const userInfo = localStorage.getItem('userInfo');
-    
-    if (userInfo) {
-        // 로그인 상태
-        const user = JSON.parse(userInfo);
-        document.getElementById('user-name').textContent = user.name;
-        // 메인 섹션 표시
-        document.getElementById('main-section').style.display = 'block';
-        document.getElementById('login-section').style.display = 'none';
-        console.log('로그인 상태 - 메인 섹션 표시');
-    } else {
-        // 비로그인 상태
-        document.getElementById('main-section').style.display = 'none';
-        document.getElementById('login-section').style.display = 'block';
-        console.log('비로그인 상태 - 로그인 섹션 표시');
+    try {
+        const userInfo = localStorage.getItem('userInfo');
+        console.log('로그인 상태 확인:', userInfo ? 'true' : 'false');
+        
+        if (userInfo) {
+            // 로그인 상태
+            const user = JSON.parse(userInfo);
+            const userNameElement = document.getElementById('user-name');
+            if (userNameElement) {
+                userNameElement.textContent = user.name;
+            }
+            
+            // 메인 섹션 표시
+            const mainSection = document.getElementById('main-section');
+            const loginSection = document.getElementById('login-section');
+            
+            if (mainSection) mainSection.style.display = 'block';
+            if (loginSection) loginSection.style.display = 'none';
+            
+            console.log('로그인 상태 - 메인 섹션 표시');
+        } else {
+            // 비로그인 상태
+            const mainSection = document.getElementById('main-section');
+            const loginSection = document.getElementById('login-section');
+            
+            if (mainSection) mainSection.style.display = 'none';
+            if (loginSection) loginSection.style.display = 'block';
+            
+            console.log('비로그인 상태 - 로그인 섹션 표시');
+        }
+    } catch (error) {
+        console.error('로그인 상태 확인 중 오류 발생:', error);
     }
 }
 
@@ -158,31 +226,45 @@ function checkLoginStatus() {
 function handleLogin(email, password) {
     console.log('로그인 시도:', email);
     
-    // 테스트 계정 체크
-    if (email === TEST_EMAIL && password === TEST_PASSWORD) {
-        // 로그인 성공
-        const userInfo = {
-            id: 'user123',
-            name: '김재수',
-            email: email,
-            role: 'admin',
-            lastLogin: new Date().toISOString()
-        };
-        
-        // 로컬 스토리지에 사용자 정보 저장
-        localStorage.setItem('userInfo', JSON.stringify(userInfo));
-        
-        // 성공 알림 표시
-        showAlert('로그인 성공! 환영합니다.', 'success');
-        
-        // 메인 화면으로 즉시 전환
-        document.getElementById('user-name').textContent = userInfo.name;
-        document.getElementById('main-section').style.display = 'block';
-        document.getElementById('login-section').style.display = 'none';
-        console.log('로그인 성공 - 메인 섹션 표시');
-    } else {
-        // 로그인 실패
-        showAlert('로그인 실패. 이메일 또는 비밀번호가 일치하지 않습니다.', 'error');
+    try {
+        // 테스트 계정 체크
+        if (email === TEST_EMAIL && password === TEST_PASSWORD) {
+            // 로그인 성공
+            const userInfo = {
+                id: 'user123',
+                name: '김재수',
+                email: email,
+                role: 'admin',
+                lastLogin: new Date().toISOString()
+            };
+            
+            // 로컬 스토리지에 사용자 정보 저장
+            localStorage.setItem('userInfo', JSON.stringify(userInfo));
+            
+            // 성공 알림 표시
+            showAlert('로그인 성공! 환영합니다.', 'success');
+            
+            // 유저 정보 업데이트
+            const userNameElement = document.getElementById('user-name');
+            if (userNameElement) {
+                userNameElement.textContent = userInfo.name;
+            }
+            
+            // 메인 화면으로 즉시 전환
+            const mainSection = document.getElementById('main-section');
+            const loginSection = document.getElementById('login-section');
+            
+            if (mainSection) mainSection.style.display = 'block';
+            if (loginSection) loginSection.style.display = 'none';
+            
+            console.log('로그인 성공 - 메인 섹션 표시');
+        } else {
+            // 로그인 실패
+            showAlert('로그인 실패. 이메일 또는 비밀번호가 일치하지 않습니다.', 'error');
+        }
+    } catch (error) {
+        console.error('로그인 처리 중 오류 발생:', error);
+        showAlert('로그인 과정에서 오류가 발생했습니다. 다시 시도해주세요.', 'error');
     }
 }
 
@@ -190,16 +272,24 @@ function handleLogin(email, password) {
  * 로그아웃 처리
  */
 function handleLogout() {
-    // 로컬 스토리지에서 사용자 정보 삭제
-    localStorage.removeItem('userInfo');
-    
-    // 알림 표시
-    showAlert('로그아웃되었습니다.', 'info');
-    
-    // 로그인 화면으로 즉시 전환
-    document.getElementById('login-section').style.display = 'block';
-    document.getElementById('main-section').style.display = 'none';
-    console.log('로그아웃 - 로그인 섹션 표시');
+    try {
+        // 로컬 스토리지에서 사용자 정보 삭제
+        localStorage.removeItem('userInfo');
+        
+        // 알림 표시
+        showAlert('로그아웃되었습니다.', 'info');
+        
+        // 로그인 화면으로 즉시 전환
+        const loginSection = document.getElementById('login-section');
+        const mainSection = document.getElementById('main-section');
+        
+        if (loginSection) loginSection.style.display = 'block';
+        if (mainSection) mainSection.style.display = 'none';
+        
+        console.log('로그아웃 - 로그인 섹션 표시');
+    } catch (error) {
+        console.error('로그아웃 처리 중 오류 발생:', error);
+    }
 }
 
 /**
