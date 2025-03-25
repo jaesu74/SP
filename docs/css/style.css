@@ -177,74 +177,260 @@ body::before {
 
 /* 인증 섹션 (로그인/회원가입) */
 #auth-section {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(245, 248, 255, 0.97);
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: calc(100vh - 70px);
-  padding: 2rem;
-  position: relative;
-  z-index: 5;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .auth-container {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  padding: 2rem;
+  background: #fff;
+  border-radius: 15px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 450px;
+  padding: 0;
   position: relative;
   overflow: hidden;
-}
-
-.auth-container::before {
-  content: '';
-  position: absolute;
-  width: 100%;
-  height: 5px;
-  background: linear-gradient(to right, #4285f4, #34a853, #fbbc05, #ea4335);
-  top: 0;
-  left: 0;
+  transition: all 0.3s ease;
 }
 
 .auth-header {
+  position: relative;
+  padding: 25px 30px;
+  background: linear-gradient(135deg, #396afc, #2948ff);
+  color: white;
   text-align: center;
-  margin-bottom: 2rem;
 }
 
-.auth-header h1 {
-  color: #1a73e8;
-  margin-bottom: 0.5rem;
+.auth-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.auth-header p {
+  margin: 10px 0 0;
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+.auth-logo {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  height: 40px;
+}
+
+.auth-form-container {
+  display: flex;
+  overflow: hidden;
+  position: relative;
+  height: 420px;
 }
 
 .auth-form {
-  margin-bottom: 1.5rem;
+  width: 100%;
+  padding: 30px;
+  transition: transform 0.4s ease-in-out;
 }
 
-.auth-footer {
+#login-container, #register-container {
+  min-width: 100%;
+}
+
+#login-container {
+  transform: translateX(0);
+}
+
+#register-container {
+  transform: translateX(100%);
+}
+
+.auth-container.show-register #login-container {
+  transform: translateX(-100%);
+}
+
+.auth-container.show-register #register-container {
+  transform: translateX(0);
+}
+
+.form-group {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #e1e1e1;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  font-size: 15px;
+  transition: all 0.3s;
+}
+
+.form-group input:focus {
+  border-color: #2948ff;
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(41, 72, 255, 0.1);
+  outline: none;
+}
+
+.form-group .password-toggle {
+  position: absolute;
+  right: 15px;
+  top: 38px;
+  cursor: pointer;
+  color: #999;
+}
+
+.auth-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #396afc, #2948ff);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 10px;
+}
+
+.auth-btn:hover {
+  background: linear-gradient(135deg, #2948ff, #396afc);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(41, 72, 255, 0.2);
+}
+
+.auth-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.auth-links {
+  margin-top: 25px;
   text-align: center;
-  font-size: 0.9rem;
+  font-size: 14px;
 }
 
 .auth-link {
-  color: #1a73e8;
+  color: #2948ff;
   cursor: pointer;
   text-decoration: none;
+  transition: all 0.3s;
 }
 
 .auth-link:hover {
   text-decoration: underline;
+  color: #396afc;
 }
 
-.status-message {
-  margin-top: 10px;
-  font-size: 0.9rem;
-  color: #5f6368;
+.auth-separator {
+  display: flex;
+  align-items: center;
+  margin: 25px 0;
+  color: #777;
+  font-size: 14px;
 }
 
-.status-message.verified {
-  color: #34a853;
-  font-weight: 500;
+.auth-separator::before, .auth-separator::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+.auth-separator::before {
+  margin-right: 15px;
+}
+
+.auth-separator::after {
+  margin-left: 15px;
+}
+
+.social-auth {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.social-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e1e1e1;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.social-btn i {
+  font-size: 20px;
+}
+
+.social-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.social-btn.google {
+  color: #ea4335;
+}
+
+.social-btn.facebook {
+  color: #3b5998;
+}
+
+.social-btn.kakao {
+  color: #3c1e1e;
+  background: #fee500;
+}
+
+/* 약관 체크박스 스타일 */
+.terms-checkbox {
+  margin-top: 20px;
+}
+
+.terms-checkbox label {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+}
+
+.terms-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
+}
+
+.terms-links {
+  margin-top: 5px;
+  font-size: 13px;
+  color: #888;
 }
 
 /* 메인 섹션 */
@@ -1881,10 +2067,7 @@ input[type="range"]:active::-moz-range-thumb {
 .terms-content li,
 .privacy-content li,
 .help-content li {
-    font-size: 1rem;
-    line-height: 1.6;
     margin-bottom: 0.5rem;
-    color: var(--text-color);
 }
 
 /* 반응형 스타일 */

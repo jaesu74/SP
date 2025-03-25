@@ -22,12 +22,12 @@ function checkSession() {
     console.log('세션 체크 중...');
     try {
         // 로컬 스토리지에서 사용자 정보 확인
-        const userString = localStorage.getItem('userInfo');
+        const userInfo = JSON.parse(localStorage.getItem('userInfo'));
         const token = localStorage.getItem('token');
         
-        if (userString && token) {
+        if (userInfo && token) {
             // 유효한 사용자 정보가 있으면 메인 화면으로
-            currentUser = JSON.parse(userString);
+            currentUser = userInfo;
             console.log('사용자 정보 찾음:', currentUser);
             
             // 사용자 정보 업데이트 및 메인 화면 표시
@@ -45,18 +45,29 @@ function checkSession() {
 }
 
 // 사용자 정보 업데이트
-function updateUserInfo(user) {
-    if (!user) return;
+function updateUserInfo(userInfo) {
+    if (!userInfo) return;
     
     // 메인 화면의 사용자 이름 표시
     if (welcomeMessage) {
-        welcomeMessage.textContent = user.name || '사용자';
+        welcomeMessage.textContent = userInfo.name || '사용자';
     }
     
     // 히스토리 화면의 사용자 이름 표시
     const historyWelcomeMessage = document.getElementById('history-welcome-message');
     if (historyWelcomeMessage) {
-        historyWelcomeMessage.textContent = user.name || '사용자';
+        historyWelcomeMessage.textContent = userInfo.name || '사용자';
+    }
+    
+    // 로그아웃 버튼 활성화
+    if (logoutBtn) {
+        logoutBtn.classList.remove('hidden');
+        logoutBtn.addEventListener('click', logoutUser);
+    }
+    
+    // 히스토리 섹션의 로그아웃 버튼 처리
+    if (historyLogoutBtn) {
+        historyLogoutBtn.addEventListener('click', logoutUser);
     }
 }
 
@@ -127,6 +138,7 @@ function loginUser(userData) {
         localStorage.setItem('token', 'test-token-' + Math.random().toString(36).substring(2));
         
         // 사용자 정보 업데이트 및 메인 화면으로 이동
+        currentUser = userInfo;
         updateUserInfo(userInfo);
         showMainSection();
         
@@ -135,7 +147,7 @@ function loginUser(userData) {
     } else {
         console.log('로그인 실패');
         // 로그인 실패 알림
-        showAlert('로그인 실패: 이메일 또는 비밀번호가 일치하지 않습니다.<br>테스트 계정: jaesu@kakao.com / 1234', 'error', loginContainer);
+        showAlert('로그인 실패: 이메일 또는 비밀번호가 일치하지 않습니다.<br>테스트 계정: jaesu@kakao.com / 1234', 'error', document.querySelector('#login-container'));
     }
     
     // 로그인 버튼 원래 상태로 복원
@@ -175,21 +187,28 @@ function registerUser(userData) {
 }
 
 // 로그아웃 처리
-function logout() {
-    console.log('로그아웃');
-    
-    // 로컬 스토리지에서 사용자 정보 삭제
+function logoutUser() {
+    // 로컬 스토리지에서 사용자 정보와 토큰 삭제
     localStorage.removeItem('userInfo');
     localStorage.removeItem('token');
     
-    // 검색 기록 초기화
-    searchHistory = [];
+    // 사용자 정보 초기화
+    currentUser = null;
     
     // 인증 화면으로 이동
     showAuthSection();
     
+    // 로그인 폼 초기화
+    const loginEmail = document.getElementById('login-email');
+    const loginPassword = document.getElementById('login-password');
+    
+    if (loginEmail && loginPassword) {
+        loginEmail.value = '';
+        loginPassword.value = '';
+    }
+    
     // 로그아웃 알림
-    showAlert('로그아웃되었습니다.', 'info', loginContainer);
+    showAlert('로그아웃되었습니다.', 'info', document.querySelector('#login-container'));
 }
 
 // 알림 메시지 표시
@@ -1493,46 +1512,54 @@ function initializeDOMElements() {
 
 // 이벤트 리스너 설정
 function setupEventListeners() {
-    // 로그인 폼 제출 이벤트
+    // 로그인/회원가입 토글
+    if (showLoginLink) {
+        showLoginLink.addEventListener('click', () => {
+            document.querySelector('.auth-container').classList.remove('show-register');
+        });
+    }
+    
+    if (showRegisterLink) {
+        showRegisterLink.addEventListener('click', () => {
+            document.querySelector('.auth-container').classList.add('show-register');
+        });
+    }
+    
+    // 비밀번호 토글 버튼
+    const passwordToggles = document.querySelectorAll('.password-toggle');
+    passwordToggles.forEach(toggle => {
+        toggle.addEventListener('click', function() {
+            const passwordField = this.previousElementSibling;
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                this.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                passwordField.type = 'password';
+                this.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        });
+    });
+    
+    // 로그인 폼 제출 처리
     if (loginForm) {
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            loginUser({ email, password });
-        });
-    }
-    
-    // 회원가입 폼 제출 이벤트
-    if (registerForm) {
-        registerForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const name = document.getElementById('register-name').value;
-            const email = document.getElementById('register-email').value;
-            const password = document.getElementById('register-password').value;
-            const passwordConfirm = document.getElementById('register-password-confirm').value;
-            const phone = document.getElementById('register-phone').value;
             
-            if (password !== passwordConfirm) {
-                showAlert('비밀번호가 일치하지 않습니다.', 'error', registerContainer);
+            const emailInput = document.getElementById('login-email');
+            const passwordInput = document.getElementById('login-password');
+            
+            if (!emailInput || !passwordInput) {
+                console.error('로그인 폼 요소를 찾을 수 없습니다.');
                 return;
             }
             
-            registerUser({ name, email, password, phone });
+            const userData = {
+                email: emailInput.value.trim(),
+                password: passwordInput.value
+            };
+            
+            loginUser(userData);
         });
-    }
-    
-    // 로그아웃 버튼 이벤트
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', logout);
-    }
-    
-    // 로그인/회원가입 전환 링크 이벤트
-    if (showLoginLink) {
-        showLoginLink.addEventListener('click', showLogin);
-    }
-    if (showRegisterLink) {
-        showRegisterLink.addEventListener('click', showRegister);
     }
     
     // 검색 폼 제출 이벤트

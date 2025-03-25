@@ -28,84 +28,84 @@
     <div class="y2k-element"></div>
     <div class="y2k-element"></div>
     
-    <!-- 인증 섹션 (로그인/회원가입) -->
-    <section id="auth-section">
-        <!-- 로그인 컨테이너 -->
-        <div id="login-container" class="auth-container">
+    <!-- 로그인/회원가입 섹션 -->
+    <section id="auth-section" class="section">
+        <div class="auth-container">
             <div class="auth-header">
-                <h1>로그인</h1>
-                <p>계정 정보로 로그인하세요</p>
+                <img src="images/logo-white.png" alt="로고" class="auth-logo">
+                <h2>WVL 제재 조회 시스템</h2>
+                <p>전세계 경제 제재 대상을 검색하세요</p>
             </div>
-            <form id="login-form" class="auth-form">
-                <div class="form-group">
-                    <label for="login-email">이메일</label>
-                    <input type="email" id="login-email" class="form-control" required>
+
+            <div class="auth-form-container">
+                <!-- 로그인 폼 -->
+                <div id="login-container" class="auth-form">
+                    <h3>로그인</h3>
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label for="login-email">이메일</label>
+                            <input type="email" id="login-email" placeholder="이메일을 입력하세요" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">비밀번호</label>
+                            <input type="password" id="login-password" placeholder="비밀번호를 입력하세요" required>
+                            <i class="fas fa-eye password-toggle"></i>
+                        </div>
+                        <button type="submit" class="auth-btn">로그인</button>
+                    </form>
+                    
+                    <div class="auth-separator">또는</div>
+                    
+                    <div class="social-auth">
+                        <button class="social-btn google">
+                            <i class="fab fa-google"></i>
+                        </button>
+                        <button class="social-btn facebook">
+                            <i class="fab fa-facebook-f"></i>
+                        </button>
+                        <button class="social-btn kakao">
+                            <i class="fas fa-comment"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="auth-links">
+                        계정이 없으신가요? <a id="show-register" class="auth-link">회원가입</a>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="login-password">비밀번호</label>
-                    <input type="password" id="login-password" class="form-control" required>
+                
+                <!-- 회원가입 폼 -->
+                <div id="register-container" class="auth-form">
+                    <h3>회원가입</h3>
+                    <form id="register-form">
+                        <div class="form-group">
+                            <label for="register-email">이메일</label>
+                            <input type="email" id="register-email" placeholder="이메일을 입력하세요" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-password">비밀번호</label>
+                            <input type="password" id="register-password" placeholder="비밀번호를 입력하세요" required>
+                            <i class="fas fa-eye password-toggle"></i>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-password-confirm">비밀번호 확인</label>
+                            <input type="password" id="register-password-confirm" placeholder="비밀번호를 다시 입력하세요" required>
+                        </div>
+                        
+                        <div class="terms-checkbox">
+                            <label>
+                                <input type="checkbox" id="terms-agree" required>
+                                <a id="register-terms-link" class="auth-link">이용약관</a> 및 <a id="register-privacy-link" class="auth-link">개인정보처리방침</a>에 동의합니다.
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="auth-btn">회원가입</button>
+                    </form>
+                    
+                    <div class="auth-links">
+                        이미 계정이 있으신가요? <a id="show-login" class="auth-link">로그인</a>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary">로그인</button>
-            </form>
-            <div class="auth-footer">
-                계정이 없으신가요? <a id="show-register" class="auth-link">회원가입</a>
             </div>
-            <div class="alert-container"></div>
-        </div>
-        
-        <!-- 회원가입 컨테이너 -->
-        <div id="register-container" class="auth-container" style="display: none;">
-            <div class="auth-header">
-                <h1>회원가입</h1>
-                <p>새 계정을 생성하세요</p>
-            </div>
-            <form id="register-form" class="auth-form">
-                <div class="form-group">
-                    <label for="register-name">이름</label>
-                    <input type="text" id="register-name" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="register-email">이메일</label>
-                    <input type="email" id="register-email" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="register-password">비밀번호</label>
-                    <input type="password" id="register-password" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="register-password-confirm">비밀번호 확인</label>
-                    <input type="password" id="register-password-confirm" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="register-phone">전화번호 (본인인증용)</label>
-                    <input type="tel" id="register-phone" class="form-control" required>
-                    <button type="button" id="verify-identity" class="btn btn-secondary">본인 인증</button>
-                    <div id="identity-status" class="status-message"></div>
-                </div>
-                <div class="form-group checkbox-group">
-                    <label>
-                        <input type="checkbox" id="terms-consent" required>
-                        <a id="register-terms-link" href="#" class="terms-link">이용약관</a>에 동의합니다
-                    </label>
-                </div>
-                <div class="form-group checkbox-group">
-                    <label>
-                        <input type="checkbox" id="privacy-consent" required>
-                        <a id="register-privacy-link" href="#" class="terms-link">개인정보 처리방침</a>에 동의합니다
-                    </label>
-                </div>
-                <div class="form-group checkbox-group">
-                    <label>
-                        <input type="checkbox" id="marketing-consent">
-                        마케팅 정보 수신에 동의합니다 (선택)
-                    </label>
-                </div>
-                <button type="submit" class="btn btn-primary">회원가입</button>
-            </form>
-            <div class="auth-footer">
-                이미 계정이 있으신가요? <a id="show-login" class="auth-link">로그인</a>
-            </div>
-            <div class="alert-container"></div>
         </div>
     </section>
     
@@ -351,22 +351,27 @@
 
     <!-- 푸터 -->
     <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-logo">
-                <img src="images/logo.png" alt="로고">
-                <h3>세계 경제 제재 대상 검색</h3>
-            </div>
-            <div class="footer-links">
-                <ul>
-                    <li><a href="#" id="terms-link">이용약관</a></li>
-                    <li><a href="#" id="privacy-link">개인정보처리방침</a></li>
-                    <li><a href="#" id="help-link">도움말</a></li>
-                </ul>
-            </div>
-            <div class="footer-info">
-                <p>© 2023 세계 경제 제재 대상 검색 서비스</p>
-                <p>서울특별시 강남구 테헤란로 231, 센터필드 빌딩 23층</p>
-                <p>대표전화: 02-1234-5678</p>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="images/logo-white.png" alt="로고">
+                    <h2>WVL</h2>
+                </div>
+                <div class="footer-info">
+                    <p>울트라리서치 (주) | 대표이사: 김재수</p>
+                    <p>서울특별시 강남구 테헤란로 123, 여삼빌딩 15층</p>
+                    <p>사업자등록번호: 123-45-67890 | 통신판매업신고: 제2024-서울강남-1234호</p>
+                    <p>개인정보관리책임자: 김민수 | 이메일: info@wvl.co.kr | 전화: 02-123-4567</p>
+                    <p>&copy; 2024 울트라리서치. All rights reserved.</p>
+                </div>
+                <div class="footer-nav">
+                    <ul>
+                        <li><a href="#" id="terms-link">이용약관</a></li>
+                        <li><a href="#" id="privacy-link">개인정보처리방침</a></li>
+                        <li><a href="#" id="help-link">도움말</a></li>
+                        <li><a href="mailto:info@wvl.co.kr">문의하기</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
     </footer>
