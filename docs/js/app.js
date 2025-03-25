@@ -13,25 +13,49 @@ const LOGIN_SECTION_ID = 'login-section';
 window.addEventListener('DOMContentLoaded', function() {
     console.log('앱 초기화 시작');
     
-    // 페이지 섹션들의 초기 상태 설정
-    document.querySelectorAll('.page-section').forEach(section => {
-        section.style.display = 'none';
-    });
-    
-    // 초기에 모든 섹션 숨기기
-    hideAllSections();
-    
-    // 이벤트 리스너 설정
-    setupEventListeners();
-    
-    // 로딩 인디케이터 숨기기
-    const loading = document.getElementById('loading');
-    if (loading) loading.style.display = 'none';
-    
-    // 로그인 상태 확인
-    setTimeout(checkLoginStatus, 200);
-    
-    console.log('앱 초기화 완료');
+    try {
+        // 기존 로컬 스토리지 정리 (필요시)
+        try {
+            // 스토리지 확인
+            if (localStorage.length > 10) { // 너무 많은 항목이 있는 경우 정리
+                console.log('로컬 스토리지 정리 중...');
+                localStorage.clear();
+            }
+        } catch (storageError) {
+            console.error('로컬 스토리지 접근 오류:', storageError);
+        }
+        
+        // 페이지 섹션들의 초기 상태 설정
+        document.querySelectorAll('.page-section').forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        // 초기에 모든 섹션 숨기기
+        hideAllSections();
+        
+        // 이벤트 리스너 설정
+        setupEventListeners();
+        
+        // 로딩 인디케이터 숨기기
+        const loading = document.getElementById('loading');
+        if (loading) loading.style.display = 'none';
+        
+        // 로그인 상태 확인 - 약간의 지연을 두어 DOM이 완전히 로드된 후 실행
+        setTimeout(function() {
+            console.log('로그인 상태 확인 타이머 실행...');
+            checkLoginStatus();
+        }, 300);
+        
+        console.log('앱 초기화 완료');
+    } catch (error) {
+        console.error('앱 초기화 중 오류 발생:', error);
+        
+        // 초기화 오류 시 기본적으로 로그인 화면 표시
+        const loginSection = document.querySelector('#login-section');
+        if (loginSection) {
+            loginSection.style.display = 'block';
+        }
+    }
 });
 
 /**
@@ -250,14 +274,27 @@ function checkLoginStatus() {
         // 화면 기본 상태 설정
         hideAllSections();
         
-        const userInfo = localStorage.getItem('userInfo');
-        console.log('저장된 사용자 정보:', userInfo ? '있음' : '없음');
+        // 로컬 스토리지 오류 가능성 처리
+        let userInfo = null;
+        try {
+            userInfo = localStorage.getItem('userInfo');
+            console.log('저장된 사용자 정보:', userInfo ? '있음' : '없음');
+        } catch (storageError) {
+            console.error('로컬 스토리지 접근 오류:', storageError);
+            // 로컬 스토리지 오류 시 로그인되지 않은 상태로 처리
+            userInfo = null;
+        }
         
         const mainSection = document.getElementById(MAIN_SECTION_ID);
         const loginSection = document.getElementById(LOGIN_SECTION_ID);
         
         if (!mainSection || !loginSection) {
             console.error('필수 섹션 요소를 찾을 수 없음');
+            // 요소가 없을 경우 로그인 화면 표시 시도
+            const fallbackLoginSection = document.querySelector('#login-section');
+            if (fallbackLoginSection) {
+                fallbackLoginSection.style.display = 'block';
+            }
             return;
         }
         
@@ -267,7 +304,7 @@ function checkLoginStatus() {
                 const user = JSON.parse(userInfo);
                 const userNameElement = document.getElementById('user-name');
                 if (userNameElement) {
-                    userNameElement.textContent = user.name;
+                    userNameElement.textContent = user.name || '사용자';
                 }
                 
                 // 메인 섹션 표시
@@ -318,17 +355,23 @@ function handleLogin(email, password) {
         if (email === TEST_EMAIL && password === TEST_PASSWORD) {
             console.log('로그인 성공: 테스트 계정 인증 완료');
             
-            // 로그인 성공
+            // 로그인 성공 - 최소한의 사용자 정보만 저장
             const userInfo = {
-                id: 'user123',
                 name: '김재수',
-                email: email,
-                role: 'admin',
-                lastLogin: new Date().toISOString()
+                email: email
             };
             
-            // 로컬 스토리지에 사용자 정보 저장
-            localStorage.setItem('userInfo', JSON.stringify(userInfo));
+            try {
+                // 기존 데이터 정리
+                localStorage.clear();
+                
+                // 로컬 스토리지에 사용자 정보 저장
+                localStorage.setItem('userInfo', JSON.stringify(userInfo));
+                console.log('사용자 정보 저장 완료');
+            } catch (storageError) {
+                console.error('로컬 스토리지 저장 오류:', storageError);
+                // 스토리지 오류가 발생해도 로그인은 진행
+            }
             
             // 성공 알림 표시
             showAlert('로그인 성공! 환영합니다.', 'success');
@@ -767,38 +810,67 @@ function printDetail() {
  * 알림 표시
  */
 function showAlert(message, type) {
-    // 현재 활성화된 섹션의 알림 컨테이너 찾기
-    let container;
-    
-    if (document.getElementById(LOGIN_SECTION_ID).style.display !== 'none') {
-        container = document.querySelector(`#${LOGIN_SECTION_ID} .alert-container`);
-    } else {
-        container = document.querySelector(`#${MAIN_SECTION_ID} .alert-container`);
-    }
-    
-    if (!container) {
-        console.error('알림 컨테이너를 찾을 수 없습니다.');
-        return;
-    }
-    
-    // 알림 요소 생성
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type}`;
-    alertDiv.innerHTML = message;
-    
-    // 컨테이너에 알림 추가
-    container.innerHTML = '';
-    container.appendChild(alertDiv);
-    
-    // 5초 후 알림 자동 제거
-    setTimeout(() => {
-        alertDiv.style.opacity = '0';
-        setTimeout(() => {
-            if (container.contains(alertDiv)) {
-                container.removeChild(alertDiv);
+    try {
+        // 현재 활성화된 섹션의 알림 컨테이너 찾기
+        let container = null;
+        
+        // 먼저 로그인 섹션의 알림 컨테이너 찾기 시도
+        const loginSection = document.getElementById(LOGIN_SECTION_ID);
+        if (loginSection && loginSection.style.display !== 'none') {
+            container = loginSection.querySelector('.alert-container');
+        } 
+        
+        // 없으면 메인 섹션에서 찾기
+        if (!container) {
+            const mainSection = document.getElementById(MAIN_SECTION_ID);
+            if (mainSection && mainSection.style.display !== 'none') {
+                container = mainSection.querySelector('.alert-container');
             }
-        }, 300);
-    }, 5000);
+        }
+        
+        // 여전히 없으면 fallback으로 문서에서 첫 번째 알림 컨테이너 찾기
+        if (!container) {
+            container = document.querySelector('.alert-container');
+        }
+        
+        if (!container) {
+            console.error('알림 컨테이너를 찾을 수 없습니다.');
+            console.log('알림 메시지:', message, '타입:', type);
+            return;
+        }
+        
+        // 알림 요소 생성
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type}`;
+        alertDiv.innerHTML = message;
+        
+        // 컨테이너에 알림 추가
+        container.innerHTML = '';
+        container.appendChild(alertDiv);
+        
+        // 5초 후 알림 자동 제거
+        setTimeout(() => {
+            try {
+                if (alertDiv && alertDiv.parentNode) {
+                    alertDiv.style.opacity = '0';
+                    setTimeout(() => {
+                        try {
+                            if (alertDiv.parentNode) {
+                                alertDiv.parentNode.removeChild(alertDiv);
+                            }
+                        } catch (innerError) {
+                            console.error('알림 제거 중 오류 발생:', innerError);
+                        }
+                    }, 300);
+                }
+            } catch (fadeError) {
+                console.error('알림 페이드아웃 중 오류 발생:', fadeError);
+            }
+        }, 5000);
+    } catch (error) {
+        console.error('알림 표시 중 오류 발생:', error);
+        console.log('알림 메시지:', message, '타입:', type);
+    }
 }
 
 /**
