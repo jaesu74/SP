@@ -119,12 +119,15 @@ body::before {
   font-size: 1.5rem;
   font-weight: 600;
   text-align: center;
+  width: 100%;
 }
 
 .header-logo {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  justify-content: center;
+  flex: 1;
 }
 
 .header-logo img {
@@ -132,9 +135,7 @@ body::before {
 }
 
 .user-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+  margin-left: auto;
 }
 
 .user-name {
@@ -332,6 +333,7 @@ body::before {
   background: linear-gradient(90deg, #f72585, #7209b7);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  text-align: center;
 }
 
 .search-title::after {
@@ -806,7 +808,6 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 50%;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
-  border: none;
 }
 
 input[type="range"]::-moz-range-thumb:hover {
@@ -1072,4 +1073,277 @@ input[type="range"]:active::-moz-range-thumb {
     flex-direction: row;
     flex-wrap: wrap;
   }
+}
+
+/* 필터 옵션 헤더 */
+.filter-options-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.toggle-advanced {
+  background: none;
+  border: none;
+  color: #f72585;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.2s ease;
+}
+
+.toggle-advanced:hover {
+  color: #ff66b2;
+  transform: translateY(-2px);
+}
+
+.toggle-icon {
+  font-size: 1.1rem;
+  transition: transform 0.3s ease;
+}
+
+.toggle-advanced.active .toggle-icon {
+  transform: rotate(45deg);
+}
+
+/* 고급 검색 영역 */
+.advanced-search {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-top: 1rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.advanced-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.advanced-row:last-child {
+  margin-bottom: 0;
+}
+
+.advanced-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.advanced-group.full-width {
+  flex: 1 0 100%;
+}
+
+.advanced-group label {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.advanced-input,
+.advanced-select {
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+}
+
+.advanced-input:focus,
+.advanced-select:focus {
+  outline: none;
+  border-color: #f72585;
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 3px rgba(247, 37, 133, 0.2);
+}
+
+/* 일치도 슬라이더 */
+.score-slider-container {
+  position: relative;
+  height: 36px;
+  display: flex;
+  align-items: center;
+}
+
+.score-slider {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  position: relative;
+  z-index: 10;
+}
+
+.slider-track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+
+.slider-progress {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  height: 6px;
+  background: linear-gradient(90deg, #f72585, #7209b7);
+  border-radius: 6px;
+  transition: width 0.2s ease;
+}
+
+.score-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.score-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  border: none;
+}
+
+.score-slider::-webkit-slider-thumb:hover,
+.score-slider:active::-webkit-slider-thumb {
+  transform: scale(1.2);
+}
+
+.score-slider::-moz-range-thumb:hover,
+.score-slider:active::-moz-range-thumb {
+  transform: scale(1.2);
+}
+
+/* 검색 히스토리 섹션 */
+.history-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.history-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  position: relative;
+  display: inline-block;
+  background: linear-gradient(90deg, #f72585, #7209b7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.history-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.history-item {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.25rem;
+  transition: all 0.3s ease;
+  position: relative;
+  cursor: pointer;
+}
+
+.history-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.history-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 0;
+  background: linear-gradient(180deg, #f72585, #7209b7);
+  transition: height 0.3s ease;
+}
+
+.history-item:hover::before {
+  height: 100%;
+}
+
+.history-date {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.history-query {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.history-details {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+.history-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  margin-right: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.history-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.no-history {
+  text-align: center;
+  padding: 3rem 0;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.no-history h3 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  color: #fff;
 } 

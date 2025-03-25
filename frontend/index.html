@@ -137,7 +137,11 @@
                     <button type="submit" id="search-button" class="search-button">검색</button>
                 </div>
                 
-                <div class="filter-label">필터 옵션</div>
+                <div class="filter-options-header">
+                    <div class="filter-label">필터 옵션</div>
+                    <button type="button" id="toggle-advanced" class="toggle-advanced">고급 검색 <span class="toggle-icon">+</span></button>
+                </div>
+                
                 <div class="filter-options">
                     <div class="filter-option active" data-filter="all">모든 유형</div>
                     <div class="filter-option" data-filter="individual">개인</div>
@@ -146,8 +150,66 @@
                     <div class="filter-option" data-filter="aircraft">항공기</div>
                 </div>
                 
-                <div id="advanced-search" class="hidden">
-                    <!-- 고급 검색 옵션은 필요시 여기에 추가 -->
+                <div id="advanced-search" class="advanced-search hidden">
+                    <div class="advanced-row">
+                        <div class="advanced-group">
+                            <label for="search-id">ID 또는 참조번호</label>
+                            <input type="text" id="search-id" class="advanced-input" placeholder="제재 대상 ID">
+                        </div>
+                        
+                        <div class="advanced-group">
+                            <label for="search-country">국가</label>
+                            <select id="search-country" class="advanced-select">
+                                <option value="">모든 국가</option>
+                                <option value="North Korea">북한</option>
+                                <option value="Iran">이란</option>
+                                <option value="Russia">러시아</option>
+                                <option value="Syria">시리아</option>
+                                <option value="Belarus">벨라루스</option>
+                                <option value="Venezuela">베네수엘라</option>
+                                <option value="Myanmar">미얀마</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="advanced-row">
+                        <div class="advanced-group">
+                            <label for="search-program">제재 프로그램</label>
+                            <select id="search-program" class="advanced-select">
+                                <option value="">모든 프로그램</option>
+                                <option value="DPRK">북한 제재 (DPRK)</option>
+                                <option value="IRAN">이란 제재 (IRAN)</option>
+                                <option value="RUSSIA">러시아 제재 (RUSSIA)</option>
+                                <option value="SYRIA">시리아 제재 (SYRIA)</option>
+                                <option value="BELARUS">벨라루스 제재 (BELARUS)</option>
+                                <option value="TERRORISM">테러리즘 관련 제재</option>
+                                <option value="CYBER">사이버 활동 관련 제재</option>
+                            </select>
+                        </div>
+                        
+                        <div class="advanced-group">
+                            <label for="search-list">제재 목록</label>
+                            <select id="search-list" class="advanced-select">
+                                <option value="">모든 목록</option>
+                                <option value="UN">UN 안전보장이사회</option>
+                                <option value="OFAC">미국 OFAC SDN</option>
+                                <option value="EU">EU 통합 제재 목록</option>
+                                <option value="UK">영국 금융제재 목록</option>
+                                <option value="JP">일본 제재 목록</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="advanced-row">
+                        <div class="advanced-group full-width">
+                            <label for="match-score">최소 일치도: <span id="match-score-value">75%</span></label>
+                            <div class="score-slider-container">
+                                <input type="range" id="match-score" class="score-slider" min="0" max="100" step="1" value="75">
+                                <div class="slider-track"></div>
+                                <div class="slider-progress"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -179,6 +241,26 @@
             
             <div id="detail-metadata" class="detail-metadata">
                 <!-- 메타데이터가 여기에 동적으로 추가됩니다 -->
+                <div class="metadata-item">
+                    <span class="metadata-label">유형</span>
+                    <span id="detail-type" class="metadata-value">-</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">국적</span>
+                    <span id="detail-country" class="metadata-value">-</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">제재 시작일</span>
+                    <span id="detail-date" class="metadata-value">-</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">제재 출처</span>
+                    <span id="detail-source" class="metadata-value">-</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">식별 ID</span>
+                    <span id="detail-id" class="metadata-value">-</span>
+                </div>
             </div>
             
             <div id="detail-content-body" class="detail-content-body">
@@ -188,6 +270,31 @@
             <div id="detail-actions" class="detail-actions">
                 <button class="action-button">보고서 다운로드</button>
                 <button class="action-button primary">제재 정보 공유</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 검색 히스토리 섹션 -->
+    <section id="history-section" class="hidden">
+        <div class="header">
+            <div class="header-logo">
+                <img src="images/logo.png" alt="로고">
+                <h1>제재 대상 검색 시스템</h1>
+            </div>
+            <div class="user-info">
+                <span id="history-welcome-message" class="user-name">환영합니다</span>
+                <button id="history-logout-button" class="logout-button">로그아웃</button>
+            </div>
+        </div>
+
+        <div class="history-container">
+            <h2 class="history-title">내 검색 기록</h2>
+            <div id="history-list" class="history-list">
+                <!-- 검색 기록이 여기에 동적으로 추가됩니다 -->
+            </div>
+            <div class="history-actions">
+                <button id="back-to-search" class="action-button">검색으로 돌아가기</button>
+                <button id="clear-history" class="action-button">기록 삭제</button>
             </div>
         </div>
     </section>
