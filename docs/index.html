@@ -4,116 +4,108 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>세계 경제 제재 대상 검색</title>
+    <title>세계 경제 제재 대상 검색 서비스</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
+    <!-- 상단 바 -->
+    <header class="header">
+        <div class="header-logo">
+            <img src="images/logo.png" alt="로고" class="logo-img">
+            <h1>세계 경제 제재 대상 검색</h1>
+        </div>
+        <div class="user-info hidden">
+            <span class="user-name"></span>
+            <button class="logout-button">로그아웃</button>
+        </div>
+    </header>
+
     <!-- Y2K 배경 소스 -->
     <div class="y2k-element"></div>
     <div class="y2k-element"></div>
     <div class="y2k-element"></div>
     
     <!-- 인증 섹션 (로그인/회원가입) -->
-    <section id="auth-section" class="auth-section">
+    <section id="auth-section" class="hidden">
         <!-- 로그인 컨테이너 -->
         <div id="login-container" class="auth-container">
-            <div class="auth-logo">
-                <img src="images/logo.png" alt="로고" id="auth-logo-img">
-                <h2>세계 경제 제재 대상 검색</h2>
-                <p>기존 제재 목록에서 개인과 기업을 검색하세요</p>
+            <div class="auth-header">
+                <h1>로그인</h1>
+                <p>계정 정보로 로그인하세요</p>
             </div>
-            
-            <form id="login-form">
+            <form id="login-form" class="auth-form">
                 <div class="form-group">
                     <label for="login-email">이메일</label>
                     <input type="email" id="login-email" class="form-control" required>
                 </div>
-                
                 <div class="form-group">
                     <label for="login-password">비밀번호</label>
                     <input type="password" id="login-password" class="form-control" required>
                 </div>
-                
                 <button type="submit" class="btn btn-primary">로그인</button>
             </form>
-            
             <div class="auth-footer">
-                계정이 없으신가요? <a href="#" id="show-register" class="auth-link">회원가입</a>
+                계정이 없으신가요? <a id="show-register" class="auth-link">회원가입</a>
             </div>
+            <div id="login-alerts" class="alerts-container"></div>
         </div>
         
         <!-- 회원가입 컨테이너 -->
         <div id="register-container" class="auth-container hidden">
-            <div class="auth-logo">
-                <img src="images/logo.png" alt="로고" id="register-logo-img">
-                <h2>세계 경제 제재 대상 검색</h2>
-                <p>회원가입하여 제재 검색 및 비교를 이용하세요</p>
+            <div class="auth-header">
+                <h1>회원가입</h1>
+                <p>새 계정을 생성하세요</p>
             </div>
-            
-            <form id="register-form">
+            <form id="register-form" class="auth-form">
                 <div class="form-group">
-                    <label for="register-name">이름 (성명)</label>
+                    <label for="register-name">이름</label>
                     <input type="text" id="register-name" class="form-control" required>
                 </div>
-                
-                <div class="form-group">
-                    <label for="register-phone">전화번호</label>
-                    <input type="tel" id="register-phone" class="form-control" placeholder="010-0000-0000" pattern="[0-9]{3}-[0-9]{4}-[0-9]{4}" required>
-                </div>
-                
                 <div class="form-group">
                     <label for="register-email">이메일</label>
                     <input type="email" id="register-email" class="form-control" required>
                 </div>
-                
                 <div class="form-group">
                     <label for="register-password">비밀번호</label>
                     <input type="password" id="register-password" class="form-control" required>
-                    <div class="password-hint">8자 이상, 문자/숫자/특수문자 조합</div>
                 </div>
-                
                 <div class="form-group">
                     <label for="register-password-confirm">비밀번호 확인</label>
                     <input type="password" id="register-password-confirm" class="form-control" required>
                 </div>
-                
                 <div class="form-group">
-                    <button type="button" id="verify-identity-btn" class="btn btn-outline">
-                        <i class="fas fa-user-check"></i> 본인 인증
-                    </button>
-                    <div id="identity-status" class="verify-status">본인 인증이 완료되었습니다</div>
+                    <label for="register-phone">전화번호 (본인인증용)</label>
+                    <input type="tel" id="register-phone" class="form-control" required>
+                    <button type="button" id="verify-identity" class="btn btn-secondary">본인 인증</button>
+                    <div id="identity-status" class="status-message"></div>
                 </div>
-                
-                <div class="form-group consent-group">
-                    <div class="checkbox-item">
+                <div class="form-group checkbox-group">
+                    <label>
                         <input type="checkbox" id="terms-consent" required>
-                        <label for="terms-consent">
-                            <a href="#" id="register-terms-link">이용약관</a> 동의 (필수)
-                        </label>
-                    </div>
-                    
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="privacy-consent" required>
-                        <label for="privacy-consent">
-                            <a href="#" id="register-privacy-link">개인정보 수집 및 이용</a> 동의 (필수)
-                        </label>
-                    </div>
-                    
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="marketing-consent">
-                        <label for="marketing-consent">
-                            마케팅 정보 수신 동의 (선택)
-                        </label>
-                    </div>
+                        <a id="register-terms-link" href="#" class="terms-link">이용약관</a>에 동의합니다
+                    </label>
                 </div>
-                
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="privacy-consent" required>
+                        <a id="register-privacy-link" href="#" class="terms-link">개인정보 처리방침</a>에 동의합니다
+                    </label>
+                </div>
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="marketing-consent">
+                        마케팅 정보 수신에 동의합니다 (선택)
+                    </label>
+                </div>
                 <button type="submit" class="btn btn-primary">회원가입</button>
             </form>
-            
             <div class="auth-footer">
-                이미 계정이 있으신가요? <a href="#" id="show-login" class="auth-link">로그인</a>
+                이미 계정이 있으신가요? <a id="show-login" class="auth-link">로그인</a>
             </div>
+            <div id="register-alerts" class="alerts-container"></div>
         </div>
     </section>
     
@@ -134,84 +126,28 @@
             <h2 class="search-title">제재 대상 검색</h2>
             <form id="search-form" class="search-form">
                 <div class="search-group">
-                    <input type="text" id="search-input" class="search-input" placeholder="이름, 기관명, 국적 등을 입력하세요..">
-                    <button type="submit" id="search-button" class="search-button">검색</button>
+                    <input type="text" id="search-name" class="search-input" placeholder="이름, 기관명 또는 키워드로 검색">
+                    <button type="submit" class="search-button">검색</button>
                 </div>
                 
                 <div class="filter-options-header">
-                    <div class="filter-label">필터 옵션</div>
-                    <button type="button" id="toggle-advanced" class="toggle-advanced">고급 검색<span class="toggle-icon">+</span></button>
+                    <span class="filter-label">유형 필터:</span>
+                    <button type="button" class="toggle-advanced">
+                        <span>고급 검색 열기</span>
+                        <i class="toggle-icon">+</i>
+                    </button>
                 </div>
                 
                 <div class="filter-options">
-                    <div class="filter-option active" data-filter="all">모든 형태</div>
-                    <div class="filter-option" data-filter="individual">개인</div>
-                    <div class="filter-option" data-filter="entity">기관</div>
-                    <div class="filter-option" data-filter="vessel">선박</div>
-                    <div class="filter-option" data-filter="aircraft">항공기</div>
+                    <div class="filter-option active" data-filter="all">모든 유형</div>
+                    <div class="filter-option" data-filter="Individual">개인</div>
+                    <div class="filter-option" data-filter="Entity">기업/기관</div>
+                    <div class="filter-option" data-filter="Vessel">선박</div>
+                    <div class="filter-option" data-filter="Aircraft">항공기</div>
                 </div>
                 
-                <div id="advanced-search" class="advanced-search hidden">
-                    <div class="advanced-row">
-                        <div class="advanced-group">
-                            <label for="search-id">ID 또는 참조번호</label>
-                            <input type="text" id="search-id" class="advanced-input" placeholder="제재 대상 ID">
-                        </div>
-                        
-                        <div class="advanced-group">
-                            <label for="search-country">국가</label>
-                            <select id="search-country" class="advanced-select">
-                                <option value="">모든 국가</option>
-                                <option value="North Korea">북한</option>
-                                <option value="Iran">이란</option>
-                                <option value="Russia">러시아</option>
-                                <option value="Syria">시리아</option>
-                                <option value="Belarus">벨라루스</option>
-                                <option value="Venezuela">베네수엘라</option>
-                                <option value="Myanmar">미얀마</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="advanced-row">
-                        <div class="advanced-group">
-                            <label for="search-program">제재 프로그램</label>
-                            <select id="search-program" class="advanced-select">
-                                <option value="">모든 프로그램</option>
-                                <option value="DPRK">북한 제재 (DPRK)</option>
-                                <option value="IRAN">이란 제재 (IRAN)</option>
-                                <option value="RUSSIA">러시아 제재 (RUSSIA)</option>
-                                <option value="SYRIA">시리아 제재 (SYRIA)</option>
-                                <option value="BELARUS">벨라루스 제재 (BELARUS)</option>
-                                <option value="TERRORISM">테러리즘 관련 제재</option>
-                                <option value="CYBER">사이버 관련 제재</option>
-                            </select>
-                        </div>
-                        
-                        <div class="advanced-group">
-                            <label for="search-list">제재 목록</label>
-                            <select id="search-list" class="advanced-select">
-                                <option value="">모든 목록</option>
-                                <option value="UN">UN 전범 목록</option>
-                                <option value="OFAC">미국 OFAC SDN</option>
-                                <option value="EU">EU 제재 목록</option>
-                                <option value="UK">영국 금융제재 목록</option>
-                                <option value="JP">일본 제재 목록</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="advanced-row">
-                        <div class="advanced-group full-width">
-                            <label for="match-score">최소 점수 <span id="match-score-value">75%</span></label>
-                            <div class="score-slider-container">
-                                <input type="range" id="match-score" class="score-slider" min="0" max="100" step="1" value="75">
-                                <div class="slider-track"></div>
-                                <div class="slider-progress"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <!-- 고급 검색 영역 -->
+                <div id="advanced-search" class="advanced-search hidden"></div>
             </form>
         </div>
 
@@ -220,24 +156,22 @@
         </div>
 
         <div id="results-container" class="results-container hidden">
-            <h3 class="results-title">검색결과 <span id="results-count" class="results-count">(0)</span></h3>
-            <div id="results-list" class="result-list">
-                <!-- 검색결과가 동적으로 추가됩니다 -->
-            </div>
+            <h2 class="results-title">검색 결과 <span id="results-count" class="results-count">(0)</span></h2>
+            <div id="results-list" class="result-list"></div>
         </div>
         
         <div id="no-results" class="no-results hidden">
-            <h3>검색결과가 없습니다</h3>
-            <p>검색어를 변경하거나 다른 필터 옵션을 사용해보세요</p>
+            <h3>검색 결과가 없습니다</h3>
+            <p>다른 키워드로 검색하거나 필터 옵션을 변경해 보세요.</p>
         </div>
     </section>
 
     <!-- 상세 정보 섹션 -->
-    <section id="detail-section">
-        <div id="detail-content" class="detail-content">
+    <section id="detail-section" class="hidden">
+        <div class="detail-content">
             <div class="detail-header">
-                <h2 id="detail-title" class="detail-title">상세 정보</h2>
-                <button id="detail-close" class="detail-close">×</button>
+                <h2 id="detail-title" class="detail-title"></h2>
+                <button id="detail-close" class="detail-close">&times;</button>
             </div>
             
             <div id="detail-metadata" class="detail-metadata">
@@ -264,9 +198,7 @@
                 </div>
             </div>
             
-            <div id="detail-content-body" class="detail-content-body">
-                <!-- 상세 내용이 동적으로 추가됩니다 -->
-            </div>
+            <div id="detail-content-body" class="detail-content-body"></div>
             
             <div id="detail-actions" class="detail-actions">
                 <button class="action-button">보고서 다운로드</button>
@@ -300,25 +232,200 @@
         </div>
     </section>
 
-    <footer class="footer">
+    <!-- 이용약관 섹션 -->
+    <section id="terms-section" class="terms-section hidden">
+        <div class="header">
+            <button id="terms-back" class="back-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                뒤로 가기
+            </button>
+            <div class="header-logo">
+                <img src="images/logo.png" alt="로고" class="logo-img">
+                <h1>이용약관</h1>
+            </div>
+        </div>
+        
         <div class="container">
-            <div class="footer-content">
-                <div class="footer-logo">
-                    <img src="images/logo.png" alt="로고">
-                    <h3>세계 경제 제재 대상 검색</h3>
-                </div>
-                <div class="footer-links">
-                    <ul>
-                        <li><a href="#" id="terms-link">이용약관</a></li>
-                        <li><a href="#" id="privacy-link">개인정보처리방침</a></li>
-                        <li><a href="#" id="help-link">도움말</a></li>
-                    </ul>
-                </div>
-                <div class="footer-info">
-                    <p>주식회사 팩션 (Faction Co.,Ltd)</p>
-                    <p>경기도 고양시 일산동구 백석동 182, 풍산빌딩 1008호</p>
-                    <p>&copy; 2025 제재 대상 검색 서비스 All rights reserved.</p>
-                </div>
+            <div class="terms-content">
+                <h2 class="terms-title">서비스 이용약관</h2>
+                
+                <h3>1. 서비스 개요</h3>
+                <p>세계 경제 제재 대상 검색 서비스(이하 "서비스")는 전 세계 각국과 국제기구에서 지정한 경제 제재 대상 정보를 검색할 수 있는 온라인 플랫폼입니다.</p>
+                
+                <h3>2. 이용 계약의 성립</h3>
+                <p>이용계약은 회원이 되고자 하는 자가 본 약관에 동의하고 회원가입을 신청하며, 회사가 이를 승낙함으로써 체결됩니다.</p>
+                
+                <h3>3. 회원 정보의 관리</h3>
+                <p>회원은 서비스 이용을 위한 ID, 비밀번호, 이메일 주소 등의 정보를 관리할 책임이 있으며, 회원 정보의 유출로 인한 피해는 회원 본인이 책임집니다.</p>
+                
+                <h3>4. 서비스 이용</h3>
+                <p>회원은 서비스를 통해 제공되는 정보를 자유롭게 이용할 수 있으나, 다음 각 호에 해당하는 행위는 금지됩니다:</p>
+                <ul>
+                    <li>서비스를 통해 제공되는 데이터베이스의 무단 복제 및 배포</li>
+                    <li>타인의 개인정보를 도용하거나 무단으로 수집하는 행위</li>
+                    <li>서비스의 정상적인 운영을 방해하는 행위</li>
+                    <li>기타 불법적이거나 부적절한 행위</li>
+                </ul>
+                
+                <h3>5. 서비스 제공 및 중단</h3>
+                <p>회사는 회원이 본 약관을 위반하는 경우 서비스 이용을 제한하거나 중지할 수 있습니다. 또한 시스템 점검, 보수, 교체 등의 사유로 서비스가 일시적으로 중단될 수 있습니다.</p>
+                
+                <h3>6. 책임의 한계</h3>
+                <p>회사는 서비스를 통해 제공되는 정보의 정확성, 신뢰성을 보장하지 않으며, 회원이 서비스를 이용하여 얻은 정보를 활용함에 따라 발생하는 모든 결과에 대한 책임은 회원 본인에게 있습니다.</p>
+                
+                <h3>7. 약관의 변경</h3>
+                <p>회사는 필요에 따라 본 약관을 변경할 수 있으며, 변경된 약관은 서비스 내 공지사항을 통해 공지됩니다.</p>
+                
+                <h3>8. 분쟁 해결</h3>
+                <p>본 약관과 관련하여 발생한 분쟁은 양 당사자 간의 협의를 통해 해결하며, 협의가 이루어지지 않을 경우 관련 법령 및 상관례에 따릅니다.</p>
+                
+                <h3>9. 기타</h3>
+                <p>본 약관에 명시되지 않은 사항에 대해서는 관련 법령 및 회사의 정책에 따릅니다.</p>
+                
+                <p>시행일: 2023년 10월 1일</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 개인정보처리방침 섹션 -->
+    <section id="privacy-section" class="privacy-section hidden">
+        <div class="header">
+            <button id="privacy-back" class="back-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                뒤로 가기
+            </button>
+            <div class="header-logo">
+                <img src="images/logo.png" alt="로고" class="logo-img">
+                <h1>개인정보처리방침</h1>
+            </div>
+        </div>
+        
+        <div class="container">
+            <div class="privacy-content">
+                <h2 class="privacy-title">개인정보처리방침</h2>
+                
+                <h3>1. 개인정보의 수집 및 이용 목적</h3>
+                <p>회사는 다음과 같은 목적으로 개인정보를 수집하고 이용합니다:</p>
+                <ul>
+                    <li>서비스 제공 및 계약의 이행</li>
+                    <li>회원 관리</li>
+                    <li>서비스 개선 및 개발</li>
+                    <li>마케팅 및 광고 활용 (동의한 경우에 한함)</li>
+                </ul>
+                
+                <h3>2. 수집하는 개인정보 항목</h3>
+                <p>회사는 서비스 제공을 위해 다음과 같은 개인정보를 수집합니다:</p>
+                <ul>
+                    <li>필수항목: 이름, 이메일 주소, 비밀번호, 전화번호</li>
+                    <li>선택항목: 마케팅 정보 수신 동의</li>
+                    <li>자동수집항목: IP 주소, 쿠키, 서비스 이용 기록, 기기 정보</li>
+                </ul>
+                
+                <h3>3. 개인정보의 보유 및 이용기간</h3>
+                <p>회사는 회원탈퇴 시 또는 서비스 종료 시까지 개인정보를 보유합니다. 다만, 관련 법령에 따라 보존할 필요가 있는 경우에는 해당 기간 동안 보관됩니다.</p>
+                
+                <h3>4. 개인정보의 제3자 제공</h3>
+                <p>회사는 회원의 개인정보를 원칙적으로 외부에 제공하지 않습니다. 다만, 아래의 경우에는 예외로 합니다:</p>
+                <ul>
+                    <li>회원의 동의가 있는 경우</li>
+                    <li>법령의 규정에 의하거나, 수사 목적으로 법령에 정해진 절차와 방법에 따라 요구가 있는 경우</li>
+                </ul>
+                
+                <h3>5. 개인정보의 파기 절차 및 방법</h3>
+                <p>회사는 개인정보 보유기간의 경과, 처리목적 달성 등 개인정보가 불필요하게 되었을 때에는 지체 없이 해당 개인정보를 파기합니다.</p>
+                
+                <h3>6. 정보주체의 권리, 의무 및 행사방법</h3>
+                <p>회원은 개인정보에 대한 열람, 정정, 삭제, 처리정지 요구 등의 권리를 행사할 수 있으며, 회사는 이에 대해 지체 없이 조치합니다.</p>
+                
+                <h3>7. 개인정보 보호책임자</h3>
+                <p>회사는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보 처리와 관련한 정보주체의 불만처리 및 피해구제를 위하여 아래와 같이 개인정보 보호책임자를 지정하고 있습니다.</p>
+                <ul>
+                    <li>개인정보 보호책임자: 홍길동</li>
+                    <li>연락처: privacy@example.com</li>
+                </ul>
+                
+                <h3>8. 개인정보 처리방침 변경</h3>
+                <p>이 개인정보 처리방침은 2023년 10월 1일부터 적용되며, 법령 및 방침에 따른 변경내용의 추가, 삭제 및 정정이 있는 경우에는 변경사항의 시행 7일 전부터 공지사항을 통하여 고지할 것입니다.</p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- 도움말 섹션 -->
+    <section id="help-section" class="help-section hidden">
+        <div class="header">
+            <button id="help-back" class="back-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                뒤로 가기
+            </button>
+            <div class="header-logo">
+                <img src="images/logo.png" alt="로고" class="logo-img">
+                <h1>도움말</h1>
+            </div>
+        </div>
+        
+        <div class="container">
+            <div class="help-content">
+                <h2 class="help-title">서비스 이용 가이드</h2>
+                
+                <h3>1. 검색 방법</h3>
+                <p>검색창에 이름, 기관명, 또는 키워드를 입력하여 제재 대상을 검색할 수 있습니다. 유형별 필터를 통해 검색 결과를 개인, 기업/기관, 선박, 항공기 등으로 구분할 수 있습니다.</p>
+                
+                <h3>2. 고급 검색 기능</h3>
+                <p>고급 검색 옵션을 활용하면 보다 세부적인 조건으로 검색이 가능합니다. 국가, 제재 프로그램, 제재 출처 등 다양한 조건을 설정할 수 있습니다.</p>
+                
+                <h3>3. 검색 결과 확인</h3>
+                <p>검색 결과에서 원하는 항목을 클릭하면 상세 정보를 확인할 수 있습니다. 상세 정보에는 제재 사유, 별칭, 관련 정보 등이 포함됩니다.</p>
+                
+                <h3>4. 보고서 다운로드</h3>
+                <p>검색 결과 및 상세 정보 페이지에서 보고서 다운로드 버튼을 클릭하여 텍스트 또는 PDF 형식의 보고서를 다운로드할 수 있습니다.</p>
+                
+                <h3>5. 검색 기록 관리</h3>
+                <p>로그인 후 검색한 내용은 검색 기록에 저장됩니다. 검색 기록 페이지에서 과거 검색 내용을 확인하고 관리할 수 있습니다.</p>
+                
+                <h3>6. 계정 관리</h3>
+                <p>사용자 계정은 이메일 주소를 기준으로 관리됩니다. 회원가입 시 등록한 정보는 마이페이지에서 확인하고 수정할 수 있습니다.</p>
+                
+                <h3>7. 자주 묻는 질문</h3>
+                <p>서비스 이용 중 자주 발생하는 질문에 대한 답변입니다.</p>
+                
+                <h4>Q: 검색 결과가 정확하지 않은 것 같아요.</h4>
+                <p>A: 제재 대상에 대한 정보는 주기적으로 업데이트되며, 각국 정부 및 국제기구의 공식 발표를 기준으로 합니다. 정확한 정보 확인을 위해 해당 기관의 공식 웹사이트를 함께 참고하시기 바랍니다.</p>
+                
+                <h4>Q: 계정 정보를 변경하고 싶어요.</h4>
+                <p>A: 로그인 후 마이페이지에서 계정 정보를 변경할 수 있습니다. 다만, 이메일 주소 변경은 보안상의 이유로 제한될 수 있습니다.</p>
+                
+                <h4>Q: 검색 기록을 삭제할 수 있나요?</h4>
+                <p>A: 검색 기록 페이지에서 '기록 삭제' 버튼을 클릭하여 모든 검색 기록을 삭제할 수 있습니다.</p>
+                
+                <h3>8. 문의 및 지원</h3>
+                <p>서비스 이용 중 문제가 발생하거나 추가 지원이 필요한 경우, 다음 연락처로 문의해 주세요.</p>
+                <ul>
+                    <li>이메일: support@example.com</li>
+                    <li>전화: 02-123-4567</li>
+                    <li>운영 시간: 평일 09:00 - 18:00</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- 푸터 -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-logo">
+                <img src="images/logo.png" alt="로고">
+                <h3>세계 경제 제재 대상 검색</h3>
+            </div>
+            <div class="footer-links">
+                <ul>
+                    <li><a href="#" id="terms-link">이용약관</a></li>
+                    <li><a href="#" id="privacy-link">개인정보처리방침</a></li>
+                    <li><a href="#" id="help-link">도움말</a></li>
+                </ul>
+            </div>
+            <div class="footer-info">
+                <p>© 2023 세계 경제 제재 대상 검색 서비스</p>
+                <p>서울특별시 강남구 강남대로 123, 10층</p>
+                <p>대표전화: 02-123-4567</p>
             </div>
         </div>
     </footer>

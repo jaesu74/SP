@@ -350,61 +350,148 @@ function logout() {
 
 // 검색 매개변수 수집
 function collectSearchParams() {
-    const name = searchInput.value.trim();
-    const id = document.getElementById('search-id') ? document.getElementById('search-id').value.trim() : '';
+    const params = {};
     
-    // 현재 선택된 유형 필터 가져오기 (다중 선택 가능하도록 수정)
-    let types = [];
-    const activeFilters = document.querySelectorAll('.filter-option.active');
-    if (activeFilters) {
-        activeFilters.forEach(filter => {
-            const filterType = filter.getAttribute('data-filter');
-            if (filterType && filterType !== 'all') {
-                types.push(filterType.charAt(0).toUpperCase() + filterType.slice(1));
-            }
-        });
+    // 기본 검색
+    const nameInput = document.getElementById('search-name');
+    if (nameInput && nameInput.value.trim()) {
+        params.name = nameInput.value.trim();
     }
     
-    const country = document.getElementById('search-country') ? document.getElementById('search-country').value : '';
-    const program = document.getElementById('search-program') ? document.getElementById('search-program').value : '';
-    const list = document.getElementById('search-list') ? document.getElementById('search-list').value : '';
-    const score = document.getElementById('match-score') ? document.getElementById('match-score').value : 75;
+    const idInput = document.getElementById('search-id');
+    if (idInput && idInput.value.trim()) {
+        params.id = idInput.value.trim();
+    }
     
-    // 검색 매개변수를 객체로 반환
-    return { name, id, types, country, program, list, score };
+    // 유형 필터 (다중 선택 가능)
+    const activeFilters = document.querySelectorAll('.filter-option.active');
+    if (activeFilters.length > 0) {
+        // '모든 유형'이 선택되지 않은 경우에만 특정 유형 필터 적용
+        const isAllSelected = Array.from(activeFilters).some(el => el.getAttribute('data-filter') === 'all');
+        
+        if (!isAllSelected) {
+            params.types = Array.from(activeFilters).map(el => el.getAttribute('data-filter'));
+        }
+    }
+    
+    // 고급 검색 필드
+    const countrySelect = document.getElementById('search-country');
+    if (countrySelect && countrySelect.value && countrySelect.value !== 'all') {
+        params.country = countrySelect.value;
+    }
+    
+    const programSelect = document.getElementById('search-program');
+    if (programSelect && programSelect.value && programSelect.value !== 'all') {
+        params.program = programSelect.value;
+    }
+    
+    const listSelect = document.getElementById('search-list');
+    if (listSelect && listSelect.value && listSelect.value !== 'all') {
+        params.list = listSelect.value;
+    }
+    
+    // 새로운 고급 검색 필드 추가
+    const advancedIdInput = document.getElementById('advanced-id');
+    if (advancedIdInput && advancedIdInput.value.trim()) {
+        params.advancedId = advancedIdInput.value.trim();
+    }
+    
+    const advancedCodeInput = document.getElementById('advanced-code');
+    if (advancedCodeInput && advancedCodeInput.value.trim()) {
+        params.advancedCode = advancedCodeInput.value.trim();
+    }
+    
+    const matchScoreSlider = document.getElementById('match-score');
+    if (matchScoreSlider) {
+        params.matchScore = parseInt(matchScoreSlider.value);
+    }
+    
+    return params;
 }
 
-// 검색 수행
+// 검색 실행 함수
 async function performSearch(e) {
     if (e) e.preventDefault();
     
-    // 로딩 상태 표시
-    if (resultsContainer) resultsContainer.classList.add('hidden');
-    if (noResults) noResults.classList.add('hidden');
-    if (loadingContainer) loadingContainer.classList.remove('hidden');
-    
-    // 검색 매개변수 수집
-    const params = collectSearchParams();
-    
     try {
-        // API 호출 (예시)
-        // 실제로는 서버에 요청을 보내야 함
-        await new Promise(resolve => setTimeout(resolve, 1000)); // 로딩 시간 시뮬레이션
+        // 검색 상태 업데이트
+        if (loadingContainer) loadingContainer.classList.remove('hidden');
+        if (resultsContainer) resultsContainer.classList.add('hidden');
+        if (noResults) noResults.classList.add('hidden');
         
-        // 검색 결과 가져오기 (더미 데이터)
+        // 검색 매개변수 수집
+        const params = collectSearchParams();
+        
+        // 빈 검색어 처리
+        if (!params.name && !params.id && 
+            !params.country && !params.program && !params.list && 
+            (!params.types || params.types.length === 0) &&
+            !params.advancedId && !params.advancedCode) {
+            if (loadingContainer) loadingContainer.classList.add('hidden');
+            if (noResults) noResults.classList.remove('hidden');
+            
+            // 검색창 다시 포커싱
+            if (document.getElementById('search-name')) {
+                document.getElementById('search-name').focus();
+            }
+            return;
+        }
+        
+        // 검색어가 있을 때만 검색 실행
         const results = await fetchSearchResults(params);
+        
+        // 로딩 완료 처리
+        if (loadingContainer) loadingContainer.classList.add('hidden');
         
         // 결과 표시
         displayResults(results, params);
-        
-        // 검색 히스토리에 추가
-        addToSearchHistory(params, results.length);
-        
     } catch (error) {
-        console.error('검색 중 오류가 발생했습니다.', error);
-        alert('검색 중 오류가 발생했습니다.');
-    } finally {
+        console.error('검색 중 오류 발생:', error);
+        
+        // 로딩 상태 숨기기
         if (loadingContainer) loadingContainer.classList.add('hidden');
+        
+        // 오류 메시지 표시 (팝업 대신 인라인 메시지로 변경)
+        const searchContainer = document.querySelector('.search-container');
+        if (searchContainer) {
+            // 기존 오류 메시지가 있으면 제거
+            const existingError = searchContainer.querySelector('.search-error');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // 인라인 오류 메시지 추가
+            const errorElement = document.createElement('div');
+            errorElement.className = 'search-error';
+            errorElement.innerHTML = `
+                <div class="error-message">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <span>검색 중 문제가 발생했습니다. 다시 시도해 주세요.</span>
+                </div>
+                <button class="error-close">×</button>
+            `;
+            
+            searchContainer.appendChild(errorElement);
+            
+            // 오류 메시지 닫기 버튼 이벤트
+            const closeButton = errorElement.querySelector('.error-close');
+            if (closeButton) {
+                closeButton.addEventListener('click', () => {
+                    errorElement.remove();
+                });
+            }
+            
+            // 5초 후 자동으로 오류 메시지 제거
+            setTimeout(() => {
+                if (errorElement.parentNode) {
+                    errorElement.remove();
+                }
+            }, 5000);
+        }
     }
 }
 
@@ -818,97 +905,397 @@ ${item.aliases ? item.aliases.join('\n') : '정보 없음'}
 
 // 상세 정보 보기
 function showDetailView(data) {
-    if (!detailSection) return;
+    if (!detailSection || !detailTitle || !detailContentBody) return;
     
-    // 상세 정보 채우기
-    if (detailTitle) detailTitle.textContent = data.name;
-    if (detailType) detailType.textContent = data.type || '정보 없음';
-    if (detailCountry) detailCountry.textContent = data.country || '정보 없음';
+    // 상세 정보 제목 설정
+    detailTitle.textContent = data.name;
     
-    // 날짜 포맷팅
-    const dateStr = data.date_listed 
-        ? new Date(data.date_listed).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+    // 상세 정보 내용 구성
+    const aliases = data.aliases && data.aliases.length > 0 
+        ? data.aliases.join(', ') 
         : '정보 없음';
         
-    if (detailDate) detailDate.textContent = dateStr;
-    if (detailSource) detailSource.textContent = data.source || '정보 없음';
-    if (detailId) detailId.textContent = data.id || '정보 없음';
-    
-    // 상세 설명 내용
-    if (detailContentBody) {
-        // 별칭 정보
-        const aliasesHtml = data.aliases && data.aliases.length > 0
-            ? `<div class="detail-section">
-                <h4>별칭</h4>
-                <ul class="alias-list">
-                    ${data.aliases.map(alias => `<li>${alias}</li>`).join('')}
-                </ul>
-               </div>`
-            : '';
-            
-        // 가상의 주소 정보 추가
-        const addressesHtml = `
-            <div class="detail-section">
-                <h4>관련 주소</h4>
-                <ul class="address-list">
-                    <li>${data.country}의 ${data.type === 'Individual' ? '거주지' : '본사'} 주소</li>
-                    ${data.type === 'Entity' ? '<li>해외 지사 주소</li>' : ''}
-                </ul>
-            </div>
-        `;
+    const dateStr = data.date_listed 
+        ? new Date(data.date_listed).toLocaleDateString('ko-KR', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })
+        : '정보 없음';
         
-        // 가상의 관련 제재 정보 추가
-        const relatedSanctionsHtml = `
-            <div class="detail-section">
-                <h4>관련 제재 정보</h4>
-                <table class="sanctions-table">
-                    <thead>
-                        <tr>
-                            <th>시작일</th>
-                            <th>제재 프로그램</th>
-                            <th>출처</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>${dateStr}</td>
-                            <td>${data.program}</td>
-                            <td>${data.source}</td>
-                        </tr>
-                        ${data.date_listed && new Date(data.date_listed).getFullYear() > 2020 ? 
-                          `<tr>
-                              <td>${new Date(data.date_listed).getFullYear() - 1}년 5월 2일</td>
-                              <td>${data.program}</td>
-                              <td>국제 감시 기구</td>
-                           </tr>` : ''}
-                    </tbody>
-                </table>
-            </div>
-        `;
-        
-        detailContentBody.innerHTML = `
-            <div class="detail-main-info">
-                <p>이 제재 대상은 ${dateStr}에 ${data.source}에 의해 등재되었습니다.</p>
-                <div class="reason-box">
-                    <h4>제재 사유</h4>
-                    <p>${data.reason || '구체적인 제재 사유 정보가 없습니다.'}</p>
+    // 메타데이터 섹션 구성
+    const metadataHTML = `
+        <div class="detail-metadata">
+            <div class="metadata-group">
+                <div class="metadata-item">
+                    <span class="metadata-label">ID</span>
+                    <span class="metadata-value">${data.id}</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">유형</span>
+                    <span class="metadata-value">${data.type}</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">국가</span>
+                    <span class="metadata-value">${data.country}</span>
                 </div>
             </div>
-            
-            ${aliasesHtml}
-            ${addressesHtml}
-            ${relatedSanctionsHtml}
-            
-            <div class="detail-section">
-                <h4>기타 정보</h4>
-                <p>이 정보는 정기적으로 업데이트되며, 최근 업데이트는 ${new Date().toLocaleDateString('ko-KR')}입니다.</p>
-                <p>제공된 정보는 참고용이며, 법적 조치를 취하기 전에 관련 기관의 공식 문서를 확인하세요.</p>
+            <div class="metadata-group">
+                <div class="metadata-item">
+                    <span class="metadata-label">프로그램</span>
+                    <span class="metadata-value">${data.program}</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">제재 출처</span>
+                    <span class="metadata-value">${data.source}</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">제재 날짜</span>
+                    <span class="metadata-value">${dateStr}</span>
+                </div>
             </div>
-        `;
+        </div>
+    `;
+    
+    // 별칭 및 상세 정보 섹션
+    const detailHTML = `
+        <div class="detail-section">
+            <h3 class="detail-section-title">별칭</h3>
+            <div class="detail-aliases">
+                ${aliases}
+            </div>
+        </div>
+        <div class="detail-section">
+            <h3 class="detail-section-title">제재 사유</h3>
+            <div class="detail-reason">
+                ${data.reason || '제재 사유 정보가 없습니다.'}
+            </div>
+        </div>
+    `;
+    
+    // 액션 버튼 섹션
+    const actionsHTML = `
+        <div class="detail-actions">
+            <button class="action-button pdf-report" data-id="${data.id}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                PDF 보고서 다운로드
+            </button>
+            <button class="action-button text-report" data-id="${data.id}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                텍스트 보고서 다운로드
+            </button>
+            <button class="action-button share-report" data-id="${data.id}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="18" cy="5" r="3"></circle>
+                    <circle cx="6" cy="12" r="3"></circle>
+                    <circle cx="18" cy="19" r="3"></circle>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                </svg>
+                보고서 공유
+            </button>
+        </div>
+    `;
+    
+    // 전체 내용 조합
+    detailContentBody.innerHTML = `
+        ${metadataHTML}
+        ${detailHTML}
+        ${actionsHTML}
+    `;
+    
+    // PDF 보고서 다운로드 버튼 이벤트
+    const pdfReportBtn = detailContentBody.querySelector('.pdf-report');
+    if (pdfReportBtn) {
+        pdfReportBtn.addEventListener('click', () => {
+            downloadPdfReport(data);
+        });
+    }
+    
+    // 텍스트 보고서 다운로드 버튼 이벤트
+    const textReportBtn = detailContentBody.querySelector('.text-report');
+    if (textReportBtn) {
+        textReportBtn.addEventListener('click', () => {
+            downloadReport(data);
+        });
+    }
+    
+    // 공유 버튼 이벤트
+    const shareReportBtn = detailContentBody.querySelector('.share-report');
+    if (shareReportBtn) {
+        shareReportBtn.addEventListener('click', () => {
+            shareDetailReport(data);
+        });
     }
     
     // 상세 정보 섹션 표시
     detailSection.classList.add('active');
+}
+
+// PDF 보고서 다운로드 기능
+function downloadPdfReport(item) {
+    try {
+        // PDF 생성을 위한 HTML 템플릿
+        const reportHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>제재 대상 보고서 - ${item.name}</title>
+                <style>
+                    body {
+                        font-family: 'Noto Sans KR', Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #333;
+                        padding: 20px;
+                    }
+                    .report-header {
+                        text-align: center;
+                        margin-bottom: 30px;
+                        padding-bottom: 20px;
+                        border-bottom: 2px solid #ddd;
+                    }
+                    .report-title {
+                        font-size: 24px;
+                        font-weight: bold;
+                        margin-bottom: 10px;
+                        color: #1a365d;
+                    }
+                    .report-date {
+                        font-size: 14px;
+                        color: #666;
+                    }
+                    .section {
+                        margin-bottom: 20px;
+                        border-bottom: 1px solid #eee;
+                        padding-bottom: 20px;
+                    }
+                    .section-title {
+                        font-size: 18px;
+                        font-weight: bold;
+                        margin-bottom: 10px;
+                        color: #1a365d;
+                    }
+                    .metadata {
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 15px;
+                    }
+                    .metadata-item {
+                        margin-bottom: 8px;
+                    }
+                    .metadata-label {
+                        font-weight: bold;
+                        margin-right: 5px;
+                    }
+                    .footer {
+                        margin-top: 30px;
+                        text-align: center;
+                        font-size: 12px;
+                        color: #666;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="report-header">
+                    <div class="report-title">제재 대상 상세 보고서</div>
+                    <div class="report-date">생성일: ${new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">기본 정보</div>
+                    <div class="metadata">
+                        <div class="metadata-item">
+                            <span class="metadata-label">이름:</span>
+                            <span>${item.name}</span>
+                        </div>
+                        <div class="metadata-item">
+                            <span class="metadata-label">ID:</span>
+                            <span>${item.id}</span>
+                        </div>
+                        <div class="metadata-item">
+                            <span class="metadata-label">유형:</span>
+                            <span>${item.type}</span>
+                        </div>
+                        <div class="metadata-item">
+                            <span class="metadata-label">국가:</span>
+                            <span>${item.country}</span>
+                        </div>
+                        <div class="metadata-item">
+                            <span class="metadata-label">프로그램:</span>
+                            <span>${item.program}</span>
+                        </div>
+                        <div class="metadata-item">
+                            <span class="metadata-label">제재 출처:</span>
+                            <span>${item.source}</span>
+                        </div>
+                        <div class="metadata-item">
+                            <span class="metadata-label">제재 날짜:</span>
+                            <span>${item.date_listed ? new Date(item.date_listed).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : '정보 없음'}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">별칭</div>
+                    <div>${item.aliases ? item.aliases.join(', ') : '정보 없음'}</div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">제재 사유</div>
+                    <div>${item.reason || '구체적인 제재 사유 정보가 없습니다.'}</div>
+                </div>
+                
+                <div class="footer">
+                    세계 경제 제재 대상 검색 서비스에서 생성된 보고서입니다.<br>
+                    이 보고서는 참고용으로만 활용하시기 바랍니다.
+                </div>
+            </body>
+            </html>
+        `;
+        
+        // HTML을 PDF로 변환하는 부분 (실제로는 서버에서 처리해야 함)
+        // 여기서는 html2pdf.js 라이브러리를 사용한다고 가정
+        if (typeof html2pdf !== 'undefined') {
+            const options = {
+                margin: 10,
+                filename: `제재대상_${item.id}_보고서.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            
+            // HTML 요소 생성 후 PDF 변환
+            const tempElement = document.createElement('div');
+            tempElement.innerHTML = reportHTML;
+            tempElement.style.position = 'absolute';
+            tempElement.style.left = '-9999px';
+            document.body.appendChild(tempElement);
+            
+            html2pdf().from(tempElement).set(options).save().then(() => {
+                document.body.removeChild(tempElement);
+                showAlert('PDF 보고서가 다운로드 되었습니다.', 'success', mainSection);
+            });
+        } else {
+            // 라이브러리가 없는 경우 대체 다운로드 방법 (텍스트로 대체)
+            console.warn('html2pdf 라이브러리가 로드되지 않았습니다. 텍스트 보고서로 대체합니다.');
+            downloadReport(item);
+            
+            // 라이브러리 로드 시도
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+            document.head.appendChild(script);
+            
+            showAlert('PDF 변환 라이브러리가 로드되지 않아 텍스트 보고서로 대체됩니다.', 'warning', mainSection);
+        }
+    } catch (error) {
+        console.error('PDF 생성 중 오류:', error);
+        showAlert('PDF 생성 중 오류가 발생했습니다. 텍스트 보고서로 대체됩니다.', 'error', mainSection);
+        downloadReport(item);
+    }
+}
+
+// 보고서 공유 기능
+function shareDetailReport(item) {
+    // 공유할 텍스트 및 URL 생성
+    const shareTitle = `제재 대상 보고서: ${item.name} (${item.id})`;
+    const shareText = `
+제재 대상: ${item.name}
+유형: ${item.type}
+국가: ${item.country}
+프로그램: ${item.program}
+제재 출처: ${item.source}
+제재 날짜: ${item.date_listed ? new Date(item.date_listed).toLocaleDateString('ko-KR') : '정보 없음'}
+    `;
+    const shareUrl = window.location.href.split('?')[0] + `?id=${item.id}`;
+    
+    // 실제 서비스에서는 API 연동이 필요, 현재는 브라우저 공유 API 사용
+    if (navigator.share) {
+        navigator.share({
+            title: shareTitle,
+            text: shareText,
+            url: shareUrl
+        })
+        .then(() => console.log('공유 성공'))
+        .catch((error) => {
+            console.log('공유 실패:', error);
+            fallbackShare(shareTitle, shareText, shareUrl);
+        });
+    } else {
+        fallbackShare(shareTitle, shareText, shareUrl);
+    }
+}
+
+// 대체 공유 방법
+function fallbackShare(title, text, url) {
+    // 공유 모달 생성
+    const modalHTML = `
+        <div class="share-modal">
+            <div class="share-modal-content">
+                <div class="share-modal-header">
+                    <h3>보고서 공유</h3>
+                    <button class="share-modal-close">&times;</button>
+                </div>
+                <div class="share-modal-body">
+                    <p>아래 텍스트를 복사하여 공유하세요:</p>
+                    <textarea class="share-textarea" readonly>${title}\n\n${text}\n자세히 보기: ${url}</textarea>
+                    <div class="share-buttons">
+                        <button class="copy-btn">클립보드에 복사</button>
+                        <a href="mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(text + '\n\n자세히 보기: ' + url)}" class="email-btn">이메일로 공유</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 모달 DOM에 추가
+    const modalElement = document.createElement('div');
+    modalElement.innerHTML = modalHTML;
+    document.body.appendChild(modalElement);
+    
+    // 모달 닫기 이벤트
+    const closeButton = modalElement.querySelector('.share-modal-close');
+    if (closeButton) {
+        closeButton.addEventListener('click', () => {
+            document.body.removeChild(modalElement);
+        });
+    }
+    
+    // 클립보드 복사 버튼 이벤트
+    const copyButton = modalElement.querySelector('.copy-btn');
+    const textarea = modalElement.querySelector('.share-textarea');
+    
+    if (copyButton && textarea) {
+        copyButton.addEventListener('click', () => {
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showAlert('클립보드에 복사되었습니다.', 'success', modalElement.querySelector('.share-modal-body'));
+            } catch (err) {
+                console.error('클립보드 복사 실패:', err);
+                showAlert('클립보드 복사에 실패했습니다.', 'error', modalElement.querySelector('.share-modal-body'));
+            }
+        });
+    }
+    
+    // 모달 외부 클릭 시 닫기
+    modalElement.addEventListener('click', (e) => {
+        if (e.target === modalElement.querySelector('.share-modal')) {
+            document.body.removeChild(modalElement);
+        }
+    });
 }
 
 // 검색 히스토리에 추가
@@ -1115,18 +1502,124 @@ function updateSliderProgress() {
     }
 }
 
-// 고급 검색 옵션 토글
+// 고급 검색 토글 기능
 function toggleAdvancedSearch() {
-    if (!advancedSearch || !toggleAdvancedBtn) return;
+    const advancedSearchContainer = document.getElementById('advanced-search');
+    if (!advancedSearchContainer) return;
     
-    advancedSearch.classList.toggle('hidden');
-    toggleAdvancedBtn.classList.toggle('active');
+    const toggleButton = document.querySelector('.toggle-advanced');
+    const isHidden = advancedSearchContainer.classList.contains('hidden');
     
-    // 아이콘 변경
-    const icon = toggleAdvancedBtn.querySelector('.toggle-icon');
-    if (icon) {
-        icon.textContent = advancedSearch.classList.contains('hidden') ? '+' : '×';
+    if (isHidden) {
+        // 고급 검색 표시
+        advancedSearchContainer.classList.remove('hidden');
+        
+        // 버튼 상태 변경
+        if (toggleButton) {
+            toggleButton.classList.add('active');
+            toggleButton.innerHTML = `
+                <span>고급 검색 닫기</span>
+                <i class="toggle-icon">+</i>
+            `;
+        }
+        
+        // 고급 검색 필드가 아직 렌더링되지 않았으면 생성
+        if (advancedSearchContainer.children.length === 0) {
+            renderAdvancedSearchFields();
+        }
+    } else {
+        // 고급 검색 숨기기
+        advancedSearchContainer.classList.add('hidden');
+        
+        // 버튼 상태 변경
+        if (toggleButton) {
+            toggleButton.classList.remove('active');
+            toggleButton.innerHTML = `
+                <span>고급 검색 열기</span>
+                <i class="toggle-icon">+</i>
+            `;
+        }
     }
+}
+
+// 고급 검색 필드 렌더링
+function renderAdvancedSearchFields() {
+    const advancedSearchContainer = document.getElementById('advanced-search');
+    if (!advancedSearchContainer) return;
+    
+    // 고급 검색 필드 생성
+    advancedSearchContainer.innerHTML = `
+        <div class="advanced-row">
+            <div class="advanced-group">
+                <label for="advanced-id">고유 식별자 (ID/코드)</label>
+                <input type="text" id="advanced-id" class="advanced-input" placeholder="고유 번호나 식별 코드 입력">
+                <small class="field-hint">OFAC, UN, EU 등의 식별 코드 검색</small>
+            </div>
+            <div class="advanced-group">
+                <label for="advanced-code">등록 코드/참조 번호</label>
+                <input type="text" id="advanced-code" class="advanced-input" placeholder="등록 번호나 참조 코드 입력">
+                <small class="field-hint">등록 번호, 참조 코드, 여권 번호 등</small>
+            </div>
+        </div>
+        
+        <div class="advanced-row">
+            <div class="advanced-group full-width">
+                <label>추가 검색 옵션</label>
+                <div class="advanced-options">
+                    <div class="advanced-option">
+                        <input type="checkbox" id="search-aliases" checked>
+                        <label for="search-aliases">별명 및 별칭 포함</label>
+                    </div>
+                    <div class="advanced-option">
+                        <input type="checkbox" id="search-fuzzy" checked>
+                        <label for="search-fuzzy">유사 검색 활성화</label>
+                    </div>
+                    <div class="advanced-option">
+                        <input type="checkbox" id="search-history">
+                        <label for="search-history">이력 정보 포함</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="advanced-row">
+            <div class="advanced-group full-width">
+                <div class="media-search-options">
+                    <div class="media-search-title">
+                        <h4>멀티미디어 검색</h4>
+                        <span class="beta-tag">Beta</span>
+                    </div>
+                    <div class="media-search-buttons">
+                        <button class="media-search-btn image-search-btn" disabled>
+                            <i class="fas fa-image"></i> 이미지 검색
+                        </button>
+                        <button class="media-search-btn video-search-btn" disabled>
+                            <i class="fas fa-video"></i> 영상 검색
+                        </button>
+                        <button class="media-search-btn voice-search-btn" disabled>
+                            <i class="fas fa-microphone"></i> 음성 인식
+                        </button>
+                    </div>
+                    <p class="media-search-note">* 곧 제공될 예정입니다</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 고급 검색 토글 버튼에 이벤트 리스너 추가
+    const searchAliasesCheckbox = document.getElementById('search-aliases');
+    const searchFuzzyCheckbox = document.getElementById('search-fuzzy');
+    const searchHistoryCheckbox = document.getElementById('search-history');
+    
+    // 체크박스 변경 시 즉시 검색 수행
+    [searchAliasesCheckbox, searchFuzzyCheckbox, searchHistoryCheckbox].forEach(checkbox => {
+        if (checkbox) {
+            checkbox.addEventListener('change', () => {
+                // 검색 폼이 있을 경우에만 검색 실행
+                if (searchForm) performSearch();
+            });
+        }
+    });
 }
 
 // 이벤트 리스너 설정
