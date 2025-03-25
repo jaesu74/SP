@@ -443,6 +443,7 @@ body::before {
   margin: 0 auto;
   position: relative;
   min-height: calc(100vh - 128px);
+  display: none;
 }
 
 .welcome-message {
@@ -2092,4 +2093,25 @@ input[type="range"]:active::-moz-range-thumb {
     .help-content h3 {
         font-size: 1.25rem;
     }
+}
+
+/* 섹션 표시 스타일 */
+#auth-section {
+    display: flex;
+}
+
+#main-section {
+    display: none;
+}
+
+.user-welcome {
+    display: inline-block;
+    margin-right: 15px;
+    font-size: 14px;
+    color: #f5f5f5;
+}
+
+.user-name {
+    font-weight: bold;
+    color: #fff;
 } 
