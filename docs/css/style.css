@@ -3,7 +3,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 body {
@@ -1821,4 +1821,89 @@ input[type="range"]:active::-moz-range-thumb {
 .similarity-fill[style*="width: 2"], /* 20%~ */
 .similarity-fill[style*="width: 1"] /* 10%~ */ {
     background: linear-gradient(90deg, #ff9800, #f44336);
+}
+
+/* 이용약관, 개인정보처리방침, 도움말 페이지 공통 스타일 */
+.terms-section,
+.privacy-section,
+.help-section {
+    min-height: 100vh;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+.terms-title,
+.privacy-title,
+.help-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    color: var(--primary-color);
+}
+
+.terms-content,
+.privacy-content,
+.help-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: var(--card-background);
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.terms-content h3,
+.privacy-content h3,
+.help-content h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 2rem 0 1rem;
+    color: var(--primary-color);
+}
+
+.terms-content p,
+.privacy-content p,
+.help-content p {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    color: var(--text-color);
+}
+
+.terms-content ul,
+.privacy-content ul,
+.help-content ul {
+    list-style-type: disc;
+    margin-left: 2rem;
+    margin-bottom: 1rem;
+}
+
+.terms-content li,
+.privacy-content li,
+.help-content li {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+}
+
+/* 반응형 스타일 */
+@media (max-width: 768px) {
+    .terms-content,
+    .privacy-content,
+    .help-content {
+        padding: 1rem;
+    }
+    
+    .terms-title,
+    .privacy-title,
+    .help-title {
+        font-size: 1.75rem;
+    }
+    
+    .terms-content h3,
+    .privacy-content h3,
+    .help-content h3 {
+        font-size: 1.25rem;
+    }
 } 
