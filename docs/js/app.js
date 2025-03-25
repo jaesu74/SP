@@ -140,10 +140,15 @@ function checkLoginStatus() {
         // 로그인 상태
         const user = JSON.parse(userInfo);
         document.getElementById('user-name').textContent = user.name;
-        showSection('main-section');
+        // 메인 섹션 표시
+        document.getElementById('main-section').style.display = 'block';
+        document.getElementById('login-section').style.display = 'none';
+        console.log('로그인 상태 - 메인 섹션 표시');
     } else {
         // 비로그인 상태
-        showSection('login-section');
+        document.getElementById('main-section').style.display = 'none';
+        document.getElementById('login-section').style.display = 'block';
+        console.log('비로그인 상태 - 로그인 섹션 표시');
     }
 }
 
@@ -172,7 +177,9 @@ function handleLogin(email, password) {
         
         // 메인 화면으로 즉시 전환
         document.getElementById('user-name').textContent = userInfo.name;
-        showSection('main-section');
+        document.getElementById('main-section').style.display = 'block';
+        document.getElementById('login-section').style.display = 'none';
+        console.log('로그인 성공 - 메인 섹션 표시');
     } else {
         // 로그인 실패
         showAlert('로그인 실패. 이메일 또는 비밀번호가 일치하지 않습니다.', 'error');
@@ -190,7 +197,9 @@ function handleLogout() {
     showAlert('로그아웃되었습니다.', 'info');
     
     // 로그인 화면으로 즉시 전환
-    showSection('login-section');
+    document.getElementById('login-section').style.display = 'block';
+    document.getElementById('main-section').style.display = 'none';
+    console.log('로그아웃 - 로그인 섹션 표시');
 }
 
 /**
@@ -209,23 +218,30 @@ function showSection(sectionId) {
         
         // 섹션이 메인 섹션인 경우 추가 초기화 작업
         if (sectionId === 'main-section') {
-            // 검색 입력창 초기화
-            const searchInput = document.getElementById('search-input');
-            if (searchInput) searchInput.value = '';
-            
-            // 결과 영역 초기화
-            const resultsArea = document.getElementById('results-area');
-            if (resultsArea) resultsArea.style.display = 'none';
-            
-            // 로딩 인디케이터 숨기기
-            const loading = document.getElementById('loading');
-            if (loading) loading.style.display = 'none';
+            initMainSection();
         }
         
         console.log(`섹션 전환: ${sectionId}`);
     } else {
         console.error(`섹션을 찾을 수 없음: ${sectionId}`);
     }
+}
+
+/**
+ * 메인 섹션 초기화
+ */
+function initMainSection() {
+    // 검색 입력창 초기화
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.value = '';
+    
+    // 결과 영역 초기화
+    const resultsArea = document.getElementById('results-area');
+    if (resultsArea) resultsArea.style.display = 'none';
+    
+    // 로딩 인디케이터 숨기기
+    const loading = document.getElementById('loading');
+    if (loading) loading.style.display = 'none';
 }
 
 /**

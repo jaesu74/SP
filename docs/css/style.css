@@ -172,7 +172,13 @@ ul, ol {
   box-shadow: 0 5px 15px var(--shadow-color);
   overflow: hidden;
   position: relative;
-  top: -50px; /* 화면 중앙보다 약간 위쪽에 위치하도록 조정 */
+  top: -7vh;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .login-header {
