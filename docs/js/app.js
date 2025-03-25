@@ -8,31 +8,28 @@ const TEST_EMAIL = 'jaesu@kakao.com';
 const TEST_PASSWORD = '1234';
 
 // 애플리케이션 초기화
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('앱 초기화');
-    initApp();
-});
+document.addEventListener('DOMContentLoaded', initApp);
 
 /**
  * 애플리케이션 초기화 함수
  */
 function initApp() {
+    console.log('앱 초기화');
+    
     // 로그인 폼 이벤트 리스너
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            handleLogin(email, password);
+            handleLogin(
+                document.getElementById('email').value,
+                document.getElementById('password').value
+            );
         });
     }
 
     // 로그아웃 버튼 이벤트 리스너
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', handleLogout);
-    }
+    document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
 
     // 비밀번호 토글 버튼
     const togglePasswordBtn = document.querySelector('.toggle-password');
@@ -62,15 +59,12 @@ function initApp() {
     }
 
     // 고급 검색 토글 버튼
-    const advancedToggle = document.getElementById('advanced-toggle');
-    if (advancedToggle) {
-        advancedToggle.addEventListener('click', function() {
-            const advancedSearch = document.getElementById('advanced-search');
-            advancedSearch.classList.toggle('active');
-            this.querySelector('i').classList.toggle('fa-sliders-h');
-            this.querySelector('i').classList.toggle('fa-times');
-        });
-    }
+    document.getElementById('advanced-toggle')?.addEventListener('click', function() {
+        const advancedSearch = document.getElementById('advanced-search');
+        advancedSearch.classList.toggle('active');
+        this.querySelector('i').classList.toggle('fa-sliders-h');
+        this.querySelector('i').classList.toggle('fa-times');
+    });
 
     // 필터 버튼 이벤트 리스너
     const filterBtns = document.querySelectorAll('.filter-btn');
@@ -83,28 +77,21 @@ function initApp() {
             
             // 검색 결과가 있으면 필터링 적용
             const resultsArea = document.getElementById('results-area');
-            if (!resultsArea.classList.contains('hidden')) {
+            if (!resultsArea.classList.contains('hidden') && resultsArea.style.display !== 'none') {
                 applyFilters();
             }
         });
     });
 
     // 상세 정보 모달 닫기 버튼
-    const detailClose = document.getElementById('detail-close');
-    if (detailClose) {
-        detailClose.addEventListener('click', function() {
-            document.getElementById('detail-modal').classList.remove('active');
-        });
-    }
-
-    // 인쇄 버튼
-    document.getElementById('detail-print')?.addEventListener('click', function() {
-        printDetail();
+    document.getElementById('detail-close')?.addEventListener('click', function() {
+        document.getElementById('detail-modal').classList.remove('active');
     });
 
-    // PDF 다운로드 버튼
+    // 인쇄/다운로드 버튼
+    document.getElementById('detail-print')?.addEventListener('click', printDetail);
     document.getElementById('detail-download')?.addEventListener('click', function() {
-        downloadDetailPDF();
+        alert('PDF 다운로드 기능은 개발 중입니다.');
     });
 
     // 이용약관 및 개인정보처리방침 링크
@@ -166,6 +153,7 @@ function checkLoginStatus() {
 function handleLogin(email, password) {
     console.log('로그인 시도:', email);
     
+    // 테스트 계정 체크
     if (email === TEST_EMAIL && password === TEST_PASSWORD) {
         // 로그인 성공
         const userInfo = {
@@ -182,11 +170,9 @@ function handleLogin(email, password) {
         // 성공 알림 표시
         showAlert('로그인 성공! 환영합니다.', 'success');
         
-        // 메인 화면으로 전환
-        setTimeout(() => {
-            document.getElementById('user-name').textContent = userInfo.name;
-            showSection('main-section');
-        }, 1000);
+        // 메인 화면으로 즉시 전환
+        document.getElementById('user-name').textContent = userInfo.name;
+        showSection('main-section');
     } else {
         // 로그인 실패
         showAlert('로그인 실패. 이메일 또는 비밀번호가 일치하지 않습니다.', 'error');
@@ -203,10 +189,8 @@ function handleLogout() {
     // 알림 표시
     showAlert('로그아웃되었습니다.', 'info');
     
-    // 로그인 화면으로 전환
-    setTimeout(() => {
-        showSection('login-section');
-    }, 1000);
+    // 로그인 화면으로 즉시 전환
+    showSection('login-section');
 }
 
 /**
@@ -572,13 +556,6 @@ function printDetail() {
         printWindow.print();
         printWindow.close();
     };
-}
-
-/**
- * 상세 정보 PDF 다운로드
- */
-function downloadDetailPDF() {
-    alert('PDF 다운로드 기능은 개발 중입니다.');
 }
 
 /**

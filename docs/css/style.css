@@ -171,6 +171,8 @@ ul, ol {
   border-radius: var(--border-radius);
   box-shadow: 0 5px 15px var(--shadow-color);
   overflow: hidden;
+  position: relative;
+  top: -50px; /* 화면 중앙보다 약간 위쪽에 위치하도록 조정 */
 }
 
 .login-header {
@@ -783,15 +785,13 @@ ul, ol {
     flex-direction: column;
   }
   
-  #search-input {
+  #search-input, .search-btn {
     width: 100%;
-    margin-bottom: 10px;
     border-radius: var(--border-radius);
   }
   
-  .search-btn {
-    width: 100%;
-    border-radius: var(--border-radius);
+  #search-input {
+    margin-bottom: 10px;
   }
   
   .filter-options {
@@ -808,7 +808,7 @@ ul, ol {
     margin-top: 10px;
   }
   
-  .advanced-row {
+  .advanced-row, .form-group, .results-list, .footer-content {
     flex-direction: column;
   }
   
@@ -819,10 +819,6 @@ ul, ol {
   
   .results-list {
     grid-template-columns: 1fr;
-  }
-  
-  .footer-content {
-    flex-direction: column;
   }
   
   .detail-meta {
