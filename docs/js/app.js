@@ -110,17 +110,30 @@ function initApp() {
     // 이용약관 및 개인정보처리방침 링크
     document.getElementById('terms-link')?.addEventListener('click', function(e) {
         e.preventDefault();
-        alert('이용약관 준비 중입니다.');
+        showPageSection('terms-section');
     });
 
     document.getElementById('privacy-link')?.addEventListener('click', function(e) {
         e.preventDefault();
-        alert('개인정보처리방침 준비 중입니다.');
+        showPageSection('privacy-section');
     });
 
     document.getElementById('help-link')?.addEventListener('click', function(e) {
         e.preventDefault();
-        alert('도움말 준비 중입니다.');
+        showPageSection('help-section');
+    });
+
+    // 뒤로가기 버튼
+    document.getElementById('terms-back-btn')?.addEventListener('click', function() {
+        hidePageSection('terms-section');
+    });
+
+    document.getElementById('privacy-back-btn')?.addEventListener('click', function() {
+        hidePageSection('privacy-section');
+    });
+
+    document.getElementById('help-back-btn')?.addEventListener('click', function() {
+        hidePageSection('help-section');
     });
 
     // 저장된 로그인 상태 확인
@@ -209,6 +222,25 @@ function showSection(sectionId) {
     const section = document.getElementById(sectionId);
     if (section) {
         section.style.display = 'block';
+        
+        // 섹션이 메인 섹션인 경우 추가 초기화 작업
+        if (sectionId === 'main-section') {
+            // 검색 입력창 초기화
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) searchInput.value = '';
+            
+            // 결과 영역 초기화
+            const resultsArea = document.getElementById('results-area');
+            if (resultsArea) resultsArea.style.display = 'none';
+            
+            // 로딩 인디케이터 숨기기
+            const loading = document.getElementById('loading');
+            if (loading) loading.style.display = 'none';
+        }
+        
+        console.log(`섹션 전환: ${sectionId}`);
+    } else {
+        console.error(`섹션을 찾을 수 없음: ${sectionId}`);
     }
 }
 
@@ -585,4 +617,55 @@ function showAlert(message, type) {
             }
         }, 300);
     }, 5000);
+}
+
+/**
+ * 페이지 섹션 표시
+ */
+function showPageSection(sectionId) {
+    // 현재 화면 저장
+    const currentMainDisplay = document.getElementById('main-section').style.display;
+    const currentLoginDisplay = document.getElementById('login-section').style.display;
+    
+    // 섹션 표시
+    const section = document.getElementById(sectionId);
+    if (section) {
+        // 페이지 섹션 데이터 설정
+        section.dataset.previousMain = currentMainDisplay;
+        section.dataset.previousLogin = currentLoginDisplay;
+        
+        // 현재 페이지 숨기기
+        document.getElementById('main-section').style.display = 'none';
+        document.getElementById('login-section').style.display = 'none';
+        
+        // 페이지 섹션 표시
+        section.style.display = 'block';
+        
+        // 스크롤 맨 위로
+        window.scrollTo(0, 0);
+    }
+}
+
+/**
+ * 페이지 섹션 숨기기
+ */
+function hidePageSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (section) {
+        // 페이지 섹션 숨기기
+        section.style.display = 'none';
+        
+        // 이전 화면으로 복귀
+        const previousMain = section.dataset.previousMain;
+        const previousLogin = section.dataset.previousLogin;
+        
+        if (previousMain === 'block') {
+            document.getElementById('main-section').style.display = 'block';
+        } else if (previousLogin === 'block') {
+            document.getElementById('login-section').style.display = 'block';
+        } else {
+            // 기본값: 로그인 상태에 따라 결정
+            checkLoginStatus();
+        }
+    }
 } 
