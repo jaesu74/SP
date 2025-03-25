@@ -17,7 +17,7 @@
             <img src="images/logo.png" alt="로고" class="logo-img">
             <h1>세계 경제 제재 대상 검색</h1>
         </div>
-        <div class="user-info hidden">
+        <div class="user-info">
             <span class="user-name"></span>
             <button class="logout-button">로그아웃</button>
         </div>
@@ -29,7 +29,7 @@
     <div class="y2k-element"></div>
     
     <!-- 인증 섹션 (로그인/회원가입) -->
-    <section id="auth-section" class="hidden">
+    <section id="auth-section">
         <!-- 로그인 컨테이너 -->
         <div id="login-container" class="auth-container">
             <div class="auth-header">
@@ -50,11 +50,11 @@
             <div class="auth-footer">
                 계정이 없으신가요? <a id="show-register" class="auth-link">회원가입</a>
             </div>
-            <div id="login-alerts" class="alerts-container"></div>
+            <div class="alert-container"></div>
         </div>
         
         <!-- 회원가입 컨테이너 -->
-        <div id="register-container" class="auth-container hidden">
+        <div id="register-container" class="auth-container" style="display: none;">
             <div class="auth-header">
                 <h1>회원가입</h1>
                 <p>새 계정을 생성하세요</p>
@@ -105,12 +105,12 @@
             <div class="auth-footer">
                 이미 계정이 있으신가요? <a id="show-login" class="auth-link">로그인</a>
             </div>
-            <div id="register-alerts" class="alerts-container"></div>
+            <div class="alert-container"></div>
         </div>
     </section>
     
     <!-- 메인 섹션 (검색 결과) -->
-    <section id="main-section" class="hidden">
+    <section id="main-section" style="display: none;">
         <div class="header">
             <div class="header-logo">
                 <img src="images/logo.png" alt="로고">
