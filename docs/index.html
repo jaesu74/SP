@@ -2,355 +2,169 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>세계 경제 제재 대상 검색 서비스</title>
+    <title>WVL - 세계 경제 제재 대상 검색</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="icon" href="images/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <!-- 상단 바 -->
-    <header class="header">
-        <div class="header-logo">
-            <img src="images/logo.png" alt="로고" class="logo-img">
-            <h1>세계 경제 제재 대상 검색</h1>
-        </div>
-        <div class="user-info">
-            <span class="user-name"></span>
-            <button class="logout-button">로그아웃</button>
-        </div>
-    </header>
-
-    <!-- Y2K 배경 소스 -->
-    <div class="y2k-element"></div>
-    <div class="y2k-element"></div>
-    <div class="y2k-element"></div>
-    
-    <!-- 로그인/회원가입 섹션 -->
-    <section id="auth-section" class="section">
-        <div class="auth-container">
-            <div class="auth-header">
-                <img src="images/logo-white.png" alt="로고" class="auth-logo">
+    <!-- 로그인 섹션 -->
+    <section id="login-section">
+        <div class="login-container">
+            <div class="login-header">
+                <img src="images/logo-white.png" alt="로고" class="logo">
                 <h2>WVL 제재 조회 시스템</h2>
                 <p>전세계 경제 제재 대상을 검색하세요</p>
             </div>
-
-            <div class="auth-form-container">
-                <!-- 로그인 폼 -->
-                <div id="login-container" class="auth-form">
-                    <h3>로그인</h3>
-                    <div class="alert-container"></div>
-                    <form id="login-form">
-                        <div class="form-group">
-                            <label for="login-email">이메일</label>
-                            <input type="email" id="login-email" placeholder="이메일을 입력하세요" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="login-password">비밀번호</label>
-                            <input type="password" id="login-password" placeholder="비밀번호를 입력하세요" required>
-                            <i class="fas fa-eye password-toggle"></i>
-                        </div>
-                        <button type="submit" class="auth-btn">로그인</button>
-                    </form>
-                    
-                    <div class="auth-separator">또는</div>
-                    
-                    <div class="social-auth">
-                        <button class="social-btn google">
-                            <i class="fab fa-google"></i>
-                        </button>
-                        <button class="social-btn facebook">
-                            <i class="fab fa-facebook-f"></i>
-                        </button>
-                        <button class="social-btn kakao">
-                            <i class="fas fa-comment"></i>
-                        </button>
+            <div class="login-body">
+                <div class="alert-container"></div>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="email">이메일</label>
+                        <input type="email" id="email" placeholder="이메일을 입력하세요" required>
                     </div>
-                    
-                    <div class="auth-links">
-                        계정이 없으신가요? <a id="show-register" class="auth-link">회원가입</a>
+                    <div class="form-group">
+                        <label for="password">비밀번호</label>
+                        <input type="password" id="password" placeholder="비밀번호를 입력하세요" required>
+                        <i class="fas fa-eye toggle-password"></i>
                     </div>
-                </div>
-                
-                <!-- 회원가입 폼 -->
-                <div id="register-container" class="auth-form">
-                    <h3>회원가입</h3>
-                    <div class="alert-container"></div>
-                    <form id="register-form">
-                        <div class="form-group">
-                            <label for="register-email">이메일</label>
-                            <input type="email" id="register-email" placeholder="이메일을 입력하세요" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="register-password">비밀번호</label>
-                            <input type="password" id="register-password" placeholder="비밀번호를 입력하세요" required>
-                            <i class="fas fa-eye password-toggle"></i>
-                        </div>
-                        <div class="form-group">
-                            <label for="register-password-confirm">비밀번호 확인</label>
-                            <input type="password" id="register-password-confirm" placeholder="비밀번호를 다시 입력하세요" required>
-                        </div>
-                        
-                        <div class="terms-checkbox">
-                            <label>
-                                <input type="checkbox" id="terms-agree" required>
-                                <a id="register-terms-link" class="auth-link">이용약관</a> 및 <a id="register-privacy-link" class="auth-link">개인정보처리방침</a>에 동의합니다.
-                            </label>
-                        </div>
-                        
-                        <button type="submit" class="auth-btn">회원가입</button>
-                    </form>
-                    
-                    <div class="auth-links">
-                        이미 계정이 있으신가요? <a id="show-login" class="auth-link">로그인</a>
-                    </div>
+                    <button type="submit" class="btn-primary">로그인</button>
+                </form>
+                <div class="login-footer">
+                    <p>테스트 계정: jaesu@kakao.com / 1234</p>
                 </div>
             </div>
         </div>
     </section>
-    
-    <!-- 메인 섹션 (검색 결과) -->
-    <section id="main-section" style="display: none;">
-        <div class="header">
+
+    <!-- 메인 섹션 -->
+    <section id="main-section">
+        <header class="main-header">
             <div class="header-logo">
                 <img src="images/logo.png" alt="로고">
                 <h1>제재 대상 검색 서비스</h1>
             </div>
             <div class="user-info">
-                <span class="user-welcome">안녕하세요, <span class="user-name">사용자</span>님!</span>
-                <button class="logout-button">로그아웃</button>
+                <span>안녕하세요, <span id="user-name">사용자</span>님!</span>
+                <button id="logout-btn" class="btn-secondary">로그아웃</button>
             </div>
-        </div>
+        </header>
 
-        <div class="search-container">
+        <div class="container">
             <div class="alert-container"></div>
-            <h2 class="search-title">제재 대상 검색</h2>
-            <form id="search-form" class="search-form">
-                <div class="search-group">
-                    <input type="text" id="search-name" class="search-input" placeholder="이름, 기관명 또는 키워드로 검색">
-                    <button type="submit" class="search-button">검색</button>
-                </div>
-                
-                <div class="filter-options-header">
-                    <span class="filter-label">유형 필터:</span>
-                    <button type="button" class="toggle-advanced">
-                        <span>고급 검색 열기</span>
-                        <i class="toggle-icon">+</i>
-                    </button>
-                </div>
-                
-                <div class="filter-options">
-                    <div class="filter-option active" data-filter="all">모든 유형</div>
-                    <div class="filter-option" data-filter="Individual">개인</div>
-                    <div class="filter-option" data-filter="Entity">기업/기관</div>
-                    <div class="filter-option" data-filter="Vessel">선박</div>
-                    <div class="filter-option" data-filter="Aircraft">항공기</div>
-                </div>
-                
-                <!-- 고급 검색 영역 -->
-                <div id="advanced-search" class="advanced-search hidden"></div>
-            </form>
-        </div>
-
-        <div id="loading-container" class="loading-container hidden">
-            <div class="loading-spinner"></div>
-        </div>
-
-        <div id="results-container" class="results-container hidden">
-            <h2 class="results-title">검색 결과 <span id="results-count" class="results-count">(0)</span></h2>
-            <div id="results-list" class="result-list"></div>
-        </div>
-        
-        <div id="no-results" class="no-results hidden">
-            <h3>검색 결과가 없습니다</h3>
-            <p>다른 키워드로 검색하거나 필터 옵션을 변경해 보세요.</p>
-        </div>
-    </section>
-
-    <!-- 상세 정보 섹션 -->
-    <section id="detail-section" class="hidden">
-        <div class="detail-content">
-            <div class="detail-header">
-                <h2 id="detail-title" class="detail-title"></h2>
-                <button id="detail-close" class="detail-close">&times;</button>
+            
+            <!-- 검색 영역 -->
+            <div class="search-area">
+                <h2>제재 대상 검색</h2>
+                <form id="search-form">
+                    <div class="search-input-group">
+                        <input type="text" id="search-input" placeholder="이름, 기관명, 키워드 등을 입력하세요" required>
+                        <button type="submit" class="search-btn">
+                            <i class="fas fa-search"></i> 검색
+                        </button>
+                    </div>
+                    
+                    <div class="filter-options">
+                        <div class="filter-group">
+                            <label>필터:</label>
+                            <button type="button" class="filter-btn" data-filter="all">모든 유형</button>
+                            <button type="button" class="filter-btn" data-filter="individual">개인</button>
+                            <button type="button" class="filter-btn" data-filter="entity">기업/기관</button>
+                            <button type="button" class="filter-btn" data-filter="vessel">선박</button>
+                            <button type="button" class="filter-btn" data-filter="aircraft">항공기</button>
+                        </div>
+                        <button type="button" id="advanced-toggle" class="btn-text">
+                            <i class="fas fa-sliders-h"></i> 고급 검색
+                        </button>
+                    </div>
+                    
+                    <div id="advanced-search" class="advanced-search">
+                        <!-- 고급 검색 옵션 -->
+                        <div class="advanced-row">
+                            <div class="form-group">
+                                <label for="country">국가</label>
+                                <select id="country">
+                                    <option value="">모든 국가</option>
+                                    <option value="NK">북한</option>
+                                    <option value="RU">러시아</option>
+                                    <option value="IR">이란</option>
+                                    <option value="SY">시리아</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="program">제재 프로그램</label>
+                                <select id="program">
+                                    <option value="">모든 프로그램</option>
+                                    <option value="DPRK">북한 제재</option>
+                                    <option value="RUSSIA">러시아 제재</option>
+                                    <option value="IRAN">이란 제재</option>
+                                    <option value="SYRIA">시리아 제재</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </form>
             </div>
             
-            <div id="detail-metadata" class="detail-metadata">
-                <!-- 메타데이터가 동적으로 추가됩니다 -->
-                <div class="metadata-item">
-                    <span class="metadata-label">형태</span>
-                    <span id="detail-type" class="metadata-value">-</span>
-                </div>
-                <div class="metadata-item">
-                    <span class="metadata-label">국가</span>
-                    <span id="detail-country" class="metadata-value">-</span>
-                </div>
-                <div class="metadata-item">
-                    <span class="metadata-label">제재 작성일</span>
-                    <span id="detail-date" class="metadata-value">-</span>
-                </div>
-                <div class="metadata-item">
-                    <span class="metadata-label">제재 출처</span>
-                    <span id="detail-source" class="metadata-value">-</span>
-                </div>
-                <div class="metadata-item">
-                    <span class="metadata-label">개별 ID</span>
-                    <span id="detail-id" class="metadata-value">-</span>
-                </div>
+            <!-- 로딩 인디케이터 -->
+            <div id="loading" class="loading-container">
+                <div class="spinner"></div>
+                <p>검색 중...</p>
             </div>
             
-            <div id="detail-content-body" class="detail-content-body"></div>
-            
-            <div id="detail-actions" class="detail-actions">
-                <button class="action-button">보고서 다운로드</button>
-                <button class="action-button primary">제재 정보 공유</button>
+            <!-- 검색 결과 영역 -->
+            <div id="results-area" class="results-area">
+                <div class="results-header">
+                    <h3>검색 결과: <span id="results-count">0</span>건</h3>
+                </div>
+                <div id="results-list" class="results-list"></div>
+                <div id="no-results" class="no-results">
+                    <i class="fas fa-search"></i>
+                    <p>검색 결과가 없습니다.</p>
+                    <p>다른 검색어나 필터를 시도해보세요.</p>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- 검색 기록 섹션 -->
-    <section id="history-section" class="hidden">
-        <div class="header">
-            <div class="header-logo">
-                <img src="images/logo.png" alt="로고">
-                <h1>제재 대상 검색 서비스</h1>
+    <!-- 상세 정보 모달 -->
+    <div id="detail-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="detail-title">제재 대상 상세 정보</h2>
+                <button id="detail-close" class="close-btn">&times;</button>
             </div>
-            <div class="user-info">
-                <span id="history-welcome-message" class="user-name">영국니</span>
-                <button id="history-logout-button" class="logout-button">로그아웃</button>
-            </div>
-        </div>
-
-        <div class="history-container">
-            <h2 class="history-title">검색기록</h2>
-            <div id="history-list" class="history-list">
-                <!-- 검색기록이 동적으로 추가됩니다 -->
-            </div>
-            <div class="history-actions">
-                <button id="back-to-search" class="action-button">검색으로 돌아가기</button>
-                <button id="clear-history" class="action-button">기록 초기화</button>
-            </div>
-        </div>
-    </section>
-
-    <!-- 이용약관 섹션 -->
-    <section id="terms-section" class="page-section hidden">
-        <div class="section-header">
-            <h2>이용약관</h2>
-            <button class="back-button">← 돌아가기</button>
-        </div>
-        <div class="section-content">
-            <div class="terms-content">
-                <h3>제1조 (목적)</h3>
-                <p>본 약관은 세계 경제 제재 대상 검색 서비스(이하 "서비스")의 이용조건 및 절차, 회사와 이용자의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.</p>
-                
-                <h3>제2조 (정의)</h3>
-                <p>본 약관에서 사용하는 용어의 정의는 다음과 같습니다:</p>
-                <ul>
-                    <li>"서비스"란 회사가 제공하는 세계 경제 제재 대상 검색 서비스를 말합니다.</li>
-                    <li>"이용자"란 회사의 서비스를 이용하는 회원을 말합니다.</li>
-                </ul>
-                
-                <h3>제3조 (약관의 효력 및 변경)</h3>
-                <p>1. 본 약관은 서비스를 이용하고자 하는 모든 이용자에 대하여 그 효력을 발생합니다.</p>
-                <p>2. 회사는 필요한 경우 약관을 변경할 수 있으며, 변경된 약관은 웹사이트에 공지함으로써 효력이 발생합니다.</p>
-                
-                <h3>제4조 (서비스 이용)</h3>
-                <p>1. 이용자는 서비스를 이용하기 위해 회원가입을 해야 합니다.</p>
-                <p>2. 이용자는 서비스 이용에 필요한 정보를 정확하게 제공해야 합니다.</p>
-                
-                <h3>제5조 (회원의 의무)</h3>
-                <p>1. 이용자는 서비스 이용에 필요한 정보를 정확하게 제공해야 합니다.</p>
-                <p>2. 이용자는 서비스 이용 시 관련 법령과 본 약관을 준수해야 합니다.</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- 개인정보처리방침 섹션 -->
-    <section id="privacy-section" class="page-section hidden">
-        <div class="section-header">
-            <h2>개인정보처리방침</h2>
-            <button class="back-button">← 돌아가기</button>
-        </div>
-        <div class="section-content">
-            <div class="privacy-content">
-                <h3>1. 개인정보의 수집 및 이용 목적</h3>
-                <p>회사는 다음의 목적을 위하여 개인정보를 수집 및 이용합니다:</p>
-                <ul>
-                    <li>서비스 제공 및 운영</li>
-                    <li>회원 관리 및 서비스 이용에 따른 본인확인</li>
-                    <li>서비스 이용 기록 분석 및 통계</li>
-                </ul>
-                
-                <h3>2. 수집하는 개인정보 항목</h3>
-                <p>회사는 서비스 제공을 위해 다음과 같은 개인정보를 수집합니다:</p>
-                <ul>
-                    <li>필수항목: 이메일 주소, 비밀번호</li>
-                    <li>선택항목: 이름, 전화번호</li>
-                    <li>자동수집항목: IP 주소, 쿠키, 서비스 이용 기록</li>
-                </ul>
-                
-                <h3>3. 개인정보의 보유 및 이용기간</h3>
-                <p>회사는 이용자의 개인정보를 회원 탈퇴 시까지 보유하며, 탈퇴 시 즉시 파기합니다.</p>
-                
-                <h3>4. 개인정보의 파기</h3>
-                <p>회사는 이용자의 개인정보를 보유기간의 경과, 처리목적 달성 등 개인정보가 불필요하게 되었을 때에는 지체 없이 파기합니다.</p>
-            </div>
-        </div>
-    </section>
-    
-    <!-- 도움말 섹션 -->
-    <section id="help-section" class="page-section hidden">
-        <div class="section-header">
-            <h2>도움말</h2>
-            <button class="back-button">← 돌아가기</button>
-        </div>
-        <div class="section-content">
-            <div class="help-content">
-                <h3>1. 서비스 이용 방법</h3>
-                <div class="help-item">
-                    <h4>기본 검색</h4>
-                    <p>메인 화면의 검색창에 검색어를 입력하고 검색 버튼을 클릭하세요.</p>
+            <div class="modal-body">
+                <div class="detail-info">
+                    <div class="detail-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">유형:</span>
+                            <span id="detail-type" class="meta-value">-</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">국가:</span>
+                            <span id="detail-country" class="meta-value">-</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">제재 일자:</span>
+                            <span id="detail-date" class="meta-value">-</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">출처:</span>
+                            <span id="detail-source" class="meta-value">-</span>
+                        </div>
+                    </div>
+                    <div id="detail-content" class="detail-content"></div>
+                    <div class="detail-actions">
+                        <button id="detail-print" class="btn-secondary"><i class="fas fa-print"></i> 인쇄</button>
+                        <button id="detail-download" class="btn-secondary"><i class="fas fa-file-pdf"></i> PDF 다운로드</button>
+                    </div>
                 </div>
-                
-                <div class="help-item">
-                    <h4>고급 검색</h4>
-                    <p>"고급 검색" 버튼을 클릭하여 추가 검색 옵션을 사용할 수 있습니다.</p>
-                    <ul>
-                        <li>유형별 필터링</li>
-                        <li>국가별 필터링</li>
-                        <li>제재 프로그램별 필터링</li>
-                        <li>유사도 설정</li>
-                    </ul>
-                </div>
-                
-                <div class="help-item">
-                    <h4>검색 결과 확인</h4>
-                    <p>검색 결과는 카드 형태로 표시되며, 각 항목에 대한 상세 정보를 확인할 수 있습니다.</p>
-                </div>
-                
-                <h3>2. 자주 묻는 질문</h3>
-                <div class="faq-item">
-                    <h4>Q: 검색 결과가 너무 많을 때 어떻게 하면 좋나요?</h4>
-                    <p>A: 고급 검색 옵션을 사용하여 검색 범위를 좁히거나, 필터를 적용하여 원하는 결과만 볼 수 있습니다.</p>
-                </div>
-                
-                <div class="faq-item">
-                    <h4>Q: 검색 결과를 저장할 수 있나요?</h4>
-                    <p>A: 각 검색 결과의 "보고서 다운로드" 버튼을 클릭하여 PDF 형식으로 저장할 수 있습니다.</p>
-                </div>
-                
-                <h3>3. 문의하기</h3>
-                <p>서비스 이용 중 문제가 발생하거나 문의사항이 있으시면 다음 연락처로 문의해 주세요:</p>
-                <ul>
-                    <li>이메일: support@wvl.co.kr</li>
-                    <li>전화: 02-1234-5678</li>
-                </ul>
             </div>
         </div>
-    </section>
+    </div>
 
     <!-- 푸터 -->
     <footer class="footer">
@@ -358,7 +172,7 @@
             <div class="footer-content">
                 <div class="footer-logo">
                     <img src="images/logo-white.png" alt="로고">
-                    <h2>WVL</h2>
+                    <h3>WVL</h3>
                 </div>
                 <div class="footer-info">
                     <p>주식회사 팩션 (Faction Co.,Ltd) | 대표이사: 김재수</p>
@@ -367,12 +181,11 @@
                     <p>개인정보관리책임자: 김민수 | 이메일: info@faction.co.kr | 전화: 02-123-4567</p>
                     <p>&copy; 2024 주식회사 팩션. All rights reserved.</p>
                 </div>
-                <div class="footer-nav">
+                <div class="footer-links">
                     <ul>
                         <li><a href="#" id="terms-link">이용약관</a></li>
                         <li><a href="#" id="privacy-link">개인정보처리방침</a></li>
                         <li><a href="#" id="help-link">도움말</a></li>
-                        <li><a href="mailto:info@faction.co.kr">문의하기</a></li>
                     </ul>
                 </div>
             </div>
