@@ -6,178 +6,237 @@
 // 상수
 const TEST_EMAIL = 'jaesu@kakao.com';
 const TEST_PASSWORD = '1234';
+const MAIN_SECTION_ID = 'main-section';
+const LOGIN_SECTION_ID = 'login-section';
 
 // 애플리케이션 초기화
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('앱 초기화');
+window.addEventListener('DOMContentLoaded', function() {
+    console.log('앱 초기화 시작');
     
     // 페이지 섹션들의 초기 상태 설정
     document.querySelectorAll('.page-section').forEach(section => {
         section.style.display = 'none';
     });
     
-    // 초기 로그인 상태 확인
-    setTimeout(checkLoginStatus, 100);
+    // 초기에 모든 섹션 숨기기
+    hideAllSections();
     
     // 이벤트 리스너 설정
     setupEventListeners();
+    
+    // 로딩 인디케이터 숨기기
+    const loading = document.getElementById('loading');
+    if (loading) loading.style.display = 'none';
+    
+    // 로그인 상태 확인
+    setTimeout(checkLoginStatus, 200);
+    
+    console.log('앱 초기화 완료');
 });
+
+/**
+ * 모든 섹션 숨기기
+ */
+function hideAllSections() {
+    const mainSection = document.getElementById(MAIN_SECTION_ID);
+    const loginSection = document.getElementById(LOGIN_SECTION_ID);
+    
+    if (mainSection) mainSection.style.display = 'none';
+    if (loginSection) loginSection.style.display = 'none';
+    
+    document.querySelectorAll('.page-section').forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    console.log('모든 섹션 숨김 처리 완료');
+}
 
 /**
  * 이벤트 리스너 설정
  */
 function setupEventListeners() {
-    // 로그인 폼 이벤트 리스너
-    const loginForm = document.getElementById('login-form');
-    if (loginForm) {
-        loginForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            handleLogin(email, password);
+    try {
+        console.log('이벤트 리스너 설정 시작');
+        
+        // 로그인 폼 이벤트 리스너
+        const loginForm = document.getElementById('login-form');
+        if (loginForm) {
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                handleLogin(email, password);
+            });
+            console.log('로그인 폼 이벤트 리스너 설정 완료');
+        } else {
+            console.warn('로그인 폼 요소를 찾을 수 없음');
+        }
+
+        // 로그아웃 버튼 이벤트 리스너
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', handleLogout);
+            console.log('로그아웃 버튼 이벤트 리스너 설정 완료');
+        }
+
+        // 비밀번호 토글 버튼
+        const togglePasswordBtn = document.querySelector('.toggle-password');
+        if (togglePasswordBtn) {
+            togglePasswordBtn.addEventListener('click', function() {
+                const passwordInput = document.getElementById('password');
+                if (passwordInput) {
+                    if (passwordInput.type === 'password') {
+                        passwordInput.type = 'text';
+                        this.classList.replace('fa-eye', 'fa-eye-slash');
+                    } else {
+                        passwordInput.type = 'password';
+                        this.classList.replace('fa-eye-slash', 'fa-eye');
+                    }
+                }
+            });
+        }
+
+        // 검색 폼 이벤트 리스너
+        const searchForm = document.getElementById('search-form');
+        if (searchForm) {
+            searchForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const searchInput = document.getElementById('search-input');
+                if (searchInput && searchInput.value.trim()) {
+                    performSearch(searchInput.value);
+                }
+            });
+        }
+
+        // 고급 검색 토글 버튼
+        const advancedToggle = document.getElementById('advanced-toggle');
+        if (advancedToggle) {
+            advancedToggle.addEventListener('click', function() {
+                const advancedSearch = document.getElementById('advanced-search');
+                if (advancedSearch) {
+                    advancedSearch.classList.toggle('active');
+                    
+                    const icon = this.querySelector('i');
+                    if (icon) {
+                        icon.classList.toggle('fa-sliders-h');
+                        icon.classList.toggle('fa-times');
+                    }
+                }
+            });
+        }
+
+        // 필터 버튼 이벤트 리스너
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // 기존 활성 버튼 제거
+                const activeBtn = document.querySelector('.filter-btn.active');
+                if (activeBtn) {
+                    activeBtn.classList.remove('active');
+                }
+                
+                // 클릭한 버튼 활성화
+                this.classList.add('active');
+                
+                // 검색 결과가 있으면 필터링 적용
+                const resultsArea = document.getElementById('results-area');
+                if (resultsArea && resultsArea.style.display !== 'none') {
+                    applyFilters();
+                }
+            });
         });
-    }
 
-    // 로그아웃 버튼 이벤트 리스너
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', handleLogout);
-    }
+        // 상세 정보 모달 닫기 버튼
+        const detailClose = document.getElementById('detail-close');
+        if (detailClose) {
+            detailClose.addEventListener('click', function() {
+                const detailModal = document.getElementById('detail-modal');
+                if (detailModal) {
+                    detailModal.classList.remove('active');
+                }
+            });
+        }
 
-    // 비밀번호 토글 버튼
-    const togglePasswordBtn = document.querySelector('.toggle-password');
-    if (togglePasswordBtn) {
-        togglePasswordBtn.addEventListener('click', function() {
-            const passwordInput = document.getElementById('password');
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                this.classList.replace('fa-eye', 'fa-eye-slash');
-            } else {
-                passwordInput.type = 'password';
-                this.classList.replace('fa-eye-slash', 'fa-eye');
-            }
-        });
-    }
+        // 인쇄/다운로드 버튼
+        const detailPrint = document.getElementById('detail-print');
+        if (detailPrint) {
+            detailPrint.addEventListener('click', printDetail);
+        }
+        
+        const detailDownload = document.getElementById('detail-download');
+        if (detailDownload) {
+            detailDownload.addEventListener('click', function() {
+                alert('PDF 다운로드 기능은 개발 중입니다.');
+            });
+        }
 
-    // 검색 폼 이벤트 리스너
-    const searchForm = document.getElementById('search-form');
-    if (searchForm) {
-        searchForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const searchTerm = document.getElementById('search-input').value;
-            if (searchTerm.trim()) {
-                performSearch(searchTerm);
-            }
-        });
-    }
+        // 이용약관 및 개인정보처리방침 링크
+        setupPageSectionLinks();
 
-    // 고급 검색 토글 버튼
-    const advancedToggle = document.getElementById('advanced-toggle');
-    if (advancedToggle) {
-        advancedToggle.addEventListener('click', function() {
-            const advancedSearch = document.getElementById('advanced-search');
-            advancedSearch.classList.toggle('active');
-            
-            const icon = this.querySelector('i');
-            if (icon) {
-                icon.classList.toggle('fa-sliders-h');
-                icon.classList.toggle('fa-times');
-            }
-        });
+        // 첫 번째 필터 버튼 활성화
+        if (filterBtns.length > 0) {
+            filterBtns[0].classList.add('active');
+        }
+        
+        console.log('이벤트 리스너 설정 완료');
+    } catch (error) {
+        console.error('이벤트 리스너 설정 중 오류 발생:', error);
     }
+}
 
-    // 필터 버튼 이벤트 리스너
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            // 기존 활성 버튼 제거
-            const activeBtn = document.querySelector('.filter-btn.active');
-            if (activeBtn) {
-                activeBtn.classList.remove('active');
-            }
-            
-            // 클릭한 버튼 활성화
-            this.classList.add('active');
-            
-            // 검색 결과가 있으면 필터링 적용
-            const resultsArea = document.getElementById('results-area');
-            if (resultsArea && resultsArea.style.display !== 'none') {
-                applyFilters();
-            }
-        });
-    });
+/**
+ * 페이지 섹션 링크 설정
+ */
+function setupPageSectionLinks() {
+    try {
+        // 이용약관 및 개인정보처리방침 링크
+        const termsLink = document.getElementById('terms-link');
+        if (termsLink) {
+            termsLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                showPageSection('terms-section');
+            });
+        }
 
-    // 상세 정보 모달 닫기 버튼
-    const detailClose = document.getElementById('detail-close');
-    if (detailClose) {
-        detailClose.addEventListener('click', function() {
-            document.getElementById('detail-modal').classList.remove('active');
-        });
-    }
+        const privacyLink = document.getElementById('privacy-link');
+        if (privacyLink) {
+            privacyLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                showPageSection('privacy-section');
+            });
+        }
 
-    // 인쇄/다운로드 버튼
-    const detailPrint = document.getElementById('detail-print');
-    if (detailPrint) {
-        detailPrint.addEventListener('click', printDetail);
-    }
-    
-    const detailDownload = document.getElementById('detail-download');
-    if (detailDownload) {
-        detailDownload.addEventListener('click', function() {
-            alert('PDF 다운로드 기능은 개발 중입니다.');
-        });
-    }
+        const helpLink = document.getElementById('help-link');
+        if (helpLink) {
+            helpLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                showPageSection('help-section');
+            });
+        }
 
-    // 이용약관 및 개인정보처리방침 링크
-    const termsLink = document.getElementById('terms-link');
-    if (termsLink) {
-        termsLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            showPageSection('terms-section');
-        });
-    }
+        // 뒤로가기 버튼
+        const termsBackBtn = document.getElementById('terms-back-btn');
+        if (termsBackBtn) {
+            termsBackBtn.addEventListener('click', function() {
+                hidePageSection('terms-section');
+            });
+        }
 
-    const privacyLink = document.getElementById('privacy-link');
-    if (privacyLink) {
-        privacyLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            showPageSection('privacy-section');
-        });
-    }
+        const privacyBackBtn = document.getElementById('privacy-back-btn');
+        if (privacyBackBtn) {
+            privacyBackBtn.addEventListener('click', function() {
+                hidePageSection('privacy-section');
+            });
+        }
 
-    const helpLink = document.getElementById('help-link');
-    if (helpLink) {
-        helpLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            showPageSection('help-section');
-        });
-    }
-
-    // 뒤로가기 버튼
-    const termsBackBtn = document.getElementById('terms-back-btn');
-    if (termsBackBtn) {
-        termsBackBtn.addEventListener('click', function() {
-            hidePageSection('terms-section');
-        });
-    }
-
-    const privacyBackBtn = document.getElementById('privacy-back-btn');
-    if (privacyBackBtn) {
-        privacyBackBtn.addEventListener('click', function() {
-            hidePageSection('privacy-section');
-        });
-    }
-
-    const helpBackBtn = document.getElementById('help-back-btn');
-    if (helpBackBtn) {
-        helpBackBtn.addEventListener('click', function() {
-            hidePageSection('help-section');
-        });
-    }
-
-    // 첫 번째 필터 버튼 활성화
-    if (filterBtns.length > 0) {
-        filterBtns[0].classList.add('active');
+        const helpBackBtn = document.getElementById('help-back-btn');
+        if (helpBackBtn) {
+            helpBackBtn.addEventListener('click', function() {
+                hidePageSection('help-section');
+            });
+        }
+    } catch (error) {
+        console.error('페이지 섹션 링크 설정 중 오류 발생:', error);
     }
 }
 
@@ -186,37 +245,59 @@ function setupEventListeners() {
  */
 function checkLoginStatus() {
     try {
+        console.log('로그인 상태 확인 시작');
+        
+        // 화면 기본 상태 설정
+        hideAllSections();
+        
         const userInfo = localStorage.getItem('userInfo');
-        console.log('로그인 상태 확인:', userInfo ? 'true' : 'false');
+        console.log('저장된 사용자 정보:', userInfo ? '있음' : '없음');
+        
+        const mainSection = document.getElementById(MAIN_SECTION_ID);
+        const loginSection = document.getElementById(LOGIN_SECTION_ID);
+        
+        if (!mainSection || !loginSection) {
+            console.error('필수 섹션 요소를 찾을 수 없음');
+            return;
+        }
         
         if (userInfo) {
             // 로그인 상태
-            const user = JSON.parse(userInfo);
-            const userNameElement = document.getElementById('user-name');
-            if (userNameElement) {
-                userNameElement.textContent = user.name;
+            try {
+                const user = JSON.parse(userInfo);
+                const userNameElement = document.getElementById('user-name');
+                if (userNameElement) {
+                    userNameElement.textContent = user.name;
+                }
+                
+                // 메인 섹션 표시
+                mainSection.style.display = 'block';
+                loginSection.style.display = 'none';
+                
+                console.log('로그인 상태 - 메인 섹션 표시됨');
+            } catch (parseError) {
+                console.error('사용자 정보 파싱 오류:', parseError);
+                localStorage.removeItem('userInfo'); // 잘못된 데이터 제거
+                
+                // 비로그인 상태로 전환
+                mainSection.style.display = 'none';
+                loginSection.style.display = 'block';
             }
-            
-            // 메인 섹션 표시
-            const mainSection = document.getElementById('main-section');
-            const loginSection = document.getElementById('login-section');
-            
-            if (mainSection) mainSection.style.display = 'block';
-            if (loginSection) loginSection.style.display = 'none';
-            
-            console.log('로그인 상태 - 메인 섹션 표시');
         } else {
             // 비로그인 상태
-            const mainSection = document.getElementById('main-section');
-            const loginSection = document.getElementById('login-section');
+            mainSection.style.display = 'none';
+            loginSection.style.display = 'block';
             
-            if (mainSection) mainSection.style.display = 'none';
-            if (loginSection) loginSection.style.display = 'block';
-            
-            console.log('비로그인 상태 - 로그인 섹션 표시');
+            console.log('비로그인 상태 - 로그인 섹션 표시됨');
         }
     } catch (error) {
         console.error('로그인 상태 확인 중 오류 발생:', error);
+        
+        // 오류 발생 시 로그인 화면 표시
+        const loginSection = document.getElementById(LOGIN_SECTION_ID);
+        if (loginSection) {
+            loginSection.style.display = 'block';
+        }
     }
 }
 
@@ -224,11 +305,19 @@ function checkLoginStatus() {
  * 로그인 처리
  */
 function handleLogin(email, password) {
-    console.log('로그인 시도:', email);
-    
     try {
+        console.log('로그인 시도:', email);
+        
+        // 입력값 검증
+        if (!email || !password) {
+            showAlert('이메일과 비밀번호를 입력해주세요.', 'error');
+            return;
+        }
+        
         // 테스트 계정 체크
         if (email === TEST_EMAIL && password === TEST_PASSWORD) {
+            console.log('로그인 성공: 테스트 계정 인증 완료');
+            
             // 로그인 성공
             const userInfo = {
                 id: 'user123',
@@ -244,27 +333,32 @@ function handleLogin(email, password) {
             // 성공 알림 표시
             showAlert('로그인 성공! 환영합니다.', 'success');
             
-            // 유저 정보 업데이트
+            // 메인 화면으로 즉시 전환
+            const mainSection = document.getElementById(MAIN_SECTION_ID);
+            const loginSection = document.getElementById(LOGIN_SECTION_ID);
+            
+            // 사용자 이름 표시
             const userNameElement = document.getElementById('user-name');
             if (userNameElement) {
                 userNameElement.textContent = userInfo.name;
             }
             
-            // 메인 화면으로 즉시 전환
-            const mainSection = document.getElementById('main-section');
-            const loginSection = document.getElementById('login-section');
-            
             if (mainSection) mainSection.style.display = 'block';
             if (loginSection) loginSection.style.display = 'none';
             
-            console.log('로그인 성공 - 메인 섹션 표시');
+            console.log('로그인 성공 - 메인 섹션으로 전환 완료');
+            
+            return true;
         } else {
             // 로그인 실패
+            console.log('로그인 실패: 인증 정보 불일치');
             showAlert('로그인 실패. 이메일 또는 비밀번호가 일치하지 않습니다.', 'error');
+            return false;
         }
     } catch (error) {
         console.error('로그인 처리 중 오류 발생:', error);
         showAlert('로그인 과정에서 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+        return false;
     }
 }
 
@@ -273,6 +367,8 @@ function handleLogin(email, password) {
  */
 function handleLogout() {
     try {
+        console.log('로그아웃 시도');
+        
         // 로컬 스토리지에서 사용자 정보 삭제
         localStorage.removeItem('userInfo');
         
@@ -280,15 +376,18 @@ function handleLogout() {
         showAlert('로그아웃되었습니다.', 'info');
         
         // 로그인 화면으로 즉시 전환
-        const loginSection = document.getElementById('login-section');
-        const mainSection = document.getElementById('main-section');
+        const loginSection = document.getElementById(LOGIN_SECTION_ID);
+        const mainSection = document.getElementById(MAIN_SECTION_ID);
         
         if (loginSection) loginSection.style.display = 'block';
         if (mainSection) mainSection.style.display = 'none';
         
-        console.log('로그아웃 - 로그인 섹션 표시');
+        console.log('로그아웃 완료 - 로그인 섹션으로 전환 완료');
+        
+        return true;
     } catch (error) {
         console.error('로그아웃 처리 중 오류 발생:', error);
+        return false;
     }
 }
 
@@ -671,10 +770,10 @@ function showAlert(message, type) {
     // 현재 활성화된 섹션의 알림 컨테이너 찾기
     let container;
     
-    if (document.getElementById('login-section').style.display !== 'none') {
-        container = document.querySelector('#login-section .alert-container');
+    if (document.getElementById(LOGIN_SECTION_ID).style.display !== 'none') {
+        container = document.querySelector(`#${LOGIN_SECTION_ID} .alert-container`);
     } else {
-        container = document.querySelector('#main-section .alert-container');
+        container = document.querySelector(`#${MAIN_SECTION_ID} .alert-container`);
     }
     
     if (!container) {
@@ -707,8 +806,8 @@ function showAlert(message, type) {
  */
 function showPageSection(sectionId) {
     // 현재 화면 저장
-    const currentMainDisplay = document.getElementById('main-section').style.display;
-    const currentLoginDisplay = document.getElementById('login-section').style.display;
+    const currentMainDisplay = document.getElementById(MAIN_SECTION_ID).style.display;
+    const currentLoginDisplay = document.getElementById(LOGIN_SECTION_ID).style.display;
     
     // 섹션 표시
     const section = document.getElementById(sectionId);
@@ -718,8 +817,8 @@ function showPageSection(sectionId) {
         section.dataset.previousLogin = currentLoginDisplay;
         
         // 현재 페이지 숨기기
-        document.getElementById('main-section').style.display = 'none';
-        document.getElementById('login-section').style.display = 'none';
+        document.getElementById(MAIN_SECTION_ID).style.display = 'none';
+        document.getElementById(LOGIN_SECTION_ID).style.display = 'none';
         
         // 페이지 섹션 표시
         section.style.display = 'block';
@@ -743,9 +842,9 @@ function hidePageSection(sectionId) {
         const previousLogin = section.dataset.previousLogin;
         
         if (previousMain === 'block') {
-            document.getElementById('main-section').style.display = 'block';
+            document.getElementById(MAIN_SECTION_ID).style.display = 'block';
         } else if (previousLogin === 'block') {
-            document.getElementById('login-section').style.display = 'block';
+            document.getElementById(LOGIN_SECTION_ID).style.display = 'block';
         } else {
             // 기본값: 로그인 상태에 따라 결정
             checkLoginStatus();
