@@ -7,11 +7,15 @@
 }
 
 body {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  font-family: 'Noto Sans KR', sans-serif;
+  margin: 0;
+  padding: 0;
   color: #333;
-  line-height: 1.6;
+  background-color: #f0f4f9;
+  background-image: url('../images/paper-texture.png');
+  background-repeat: repeat;
   position: relative;
+  min-height: 100vh;
   overflow-x: hidden;
 }
 

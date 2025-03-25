@@ -19,23 +19,27 @@ let y2kElements;
 
 // 세션 체크 및 초기 라우팅
 function checkSession() {
-    console.log('세션 체크 중...');
+    console.log('세션 체크 시작');
+    
     try {
         // 로컬 스토리지에서 사용자 정보 확인
         const userInfo = JSON.parse(localStorage.getItem('userInfo'));
         const token = localStorage.getItem('token');
+        
+        console.log('저장된 사용자 정보:', userInfo);
+        console.log('저장된 토큰:', token);
         
         if (userInfo && token) {
             // 유효한 사용자 정보가 있으면 메인 화면으로
             currentUser = userInfo;
             console.log('사용자 정보 찾음:', currentUser);
             
-            // 사용자 정보 업데이트 및 메인 화면 표시
+            // 메인 화면으로 이동
             updateUserInfo(currentUser);
             showMainSection();
         } else {
-            // 로그인 정보가 없으면 인증 화면으로
-            console.log('로그인 정보 없음, 인증 화면으로 이동');
+            // 사용자 정보가 없으면 로그인 화면으로
+            console.log('저장된 사용자 정보 없음, 로그인 화면 표시');
             showAuthSection();
         }
     } catch (error) {
@@ -111,14 +115,14 @@ function showRegister() {
 
 // 로그인 처리
 function loginUser(userData) {
+    console.log('로그인 시도:', userData);
+    
     // 로그인 버튼 비활성화 및 로딩 표시
     const loginButton = document.querySelector('#login-form button[type="submit"]');
     if (loginButton) {
         loginButton.disabled = true;
         loginButton.textContent = '로그인 중...';
     }
-    
-    console.log('로그인 시도:', userData.email);
     
     // 테스트 계정 확인
     if (userData.email === 'jaesu@kakao.com' && userData.password === '1234') {
@@ -146,8 +150,17 @@ function loginUser(userData) {
         showAlert('환영합니다, ' + userInfo.name + '님!', 'success', mainSection);
     } else {
         console.log('로그인 실패');
+        
+        // 로그인 버튼 원래 상태로 복원
+        if (loginButton) {
+            loginButton.disabled = false;
+            loginButton.textContent = '로그인';
+        }
+        
         // 로그인 실패 알림
-        showAlert('로그인 실패: 이메일 또는 비밀번호가 일치하지 않습니다.<br>테스트 계정: jaesu@kakao.com / 1234', 'error', document.querySelector('#login-container'));
+        const loginContainer = document.querySelector('#login-container');
+        showAlert('로그인 실패: 이메일 또는 비밀번호가 일치하지 않습니다.<br>테스트 계정: jaesu@kakao.com / 1234', 'error', loginContainer);
+        return;
     }
     
     // 로그인 버튼 원래 상태로 복원
@@ -1436,20 +1449,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // DOM 요소 초기화
     initializeDOMElements();
     
+    // Y2K 배경 요소 초기화
+    initY2KElements();
+    
     // 세션 체크
     checkSession();
     
     // 이벤트 리스너 등록
     setupEventListeners();
     
-    // 로그인 폼 초기화
-    const loginEmail = document.getElementById('login-email');
-    const loginPassword = document.getElementById('login-password');
-    
-    if (loginEmail && loginPassword) {
-        loginEmail.value = '';
-        loginPassword.value = '';
-    }
+    console.log('앱 초기화 완료');
 });
 
 // DOM 요소 초기화
@@ -1512,7 +1521,9 @@ function initializeDOMElements() {
 
 // 이벤트 리스너 설정
 function setupEventListeners() {
-    // 로그인/회원가입 토글
+    console.log('이벤트 리스너 설정');
+    
+    // 로그인/회원가입 전환 링크
     if (showLoginLink) {
         showLoginLink.addEventListener('click', () => {
             document.querySelector('.auth-container').classList.remove('show-register');
@@ -1540,10 +1551,11 @@ function setupEventListeners() {
         });
     });
     
-    // 로그인 폼 제출 처리
+    // 로그인 폼 제출 이벤트
     if (loginForm) {
-        loginForm.addEventListener('submit', (e) => {
+        loginForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            console.log('로그인 폼 제출');
             
             const emailInput = document.getElementById('login-email');
             const passwordInput = document.getElementById('login-password');
@@ -1560,6 +1572,11 @@ function setupEventListeners() {
             
             loginUser(userData);
         });
+    }
+    
+    // 로그아웃 버튼
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', logoutUser);
     }
     
     // 검색 폼 제출 이벤트
