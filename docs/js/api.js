@@ -1,215 +1,335 @@
 /**
- * WVL Sanctions API
- * 제재 데이터 API 호출 및 처리 담당
+ * api.js - 제재 데이터 API 및 데이터 처리 함수
+ * 
+ * EU, US, UN의 제재 데이터를 가져오고 검색, 필터링하는 기능을 제공합니다.
  */
 
-// API URL 설정 (로컬 파일 경로 또는 서버 URL)
-const API_BASE_URL = './data';
-const SANCTIONS_DATA_FILE = `${API_BASE_URL}/sanctions.json`;
-
-// 캐시 설정
-const CACHE_TIMEOUT = 3600000; // 1시간 (밀리초)
-let sanctionsDataCache = null;
-let lastCacheTime = 0;
+// 캐시 및 상태 관리
+const apiState = {
+    sanctions: null,
+    lastFetched: null,
+    isLoading: false,
+    error: null
+};
 
 /**
- * 제재 데이터 가져오기
- * @returns {Promise<Array>} 제재 데이터 배열
+ * 제재 데이터를 가져옵니다.
+ * @param {boolean} forceRefresh 캐시된 데이터가 있더라도 강제로 새로고침할지 여부
+ * @returns {Promise<Object>} 제재 데이터 객체
  */
-async function fetchSanctionsData() {
-  // 캐시 확인
-  const now = Date.now();
-  if (sanctionsDataCache && (now - lastCacheTime < CACHE_TIMEOUT)) {
-    return sanctionsDataCache;
-  }
-
-  try {
-    const response = await fetch(SANCTIONS_DATA_FILE);
-    if (!response.ok) {
-      throw new Error(`API 요청 실패: ${response.status}`);
+async function fetchSanctionsData(forceRefresh = false) {
+    // 이미 로딩 중이면 대기
+    if (apiState.isLoading) {
+        return new Promise((resolve) => {
+            const checkLoaded = setInterval(() => {
+                if (!apiState.isLoading) {
+                    clearInterval(checkLoaded);
+                    resolve(apiState.sanctions);
+                }
+            }, 100);
+        });
     }
 
-    const data = await response.json();
-    
-    // 캐시 업데이트
-    sanctionsDataCache = data;
-    lastCacheTime = now;
-    
-    // 콘솔에 메타데이터 표시
-    console.log(`제재 데이터 로드 완료: ${data.meta.totalEntries}건, 마지막 업데이트: ${new Date(data.meta.lastUpdated).toLocaleString()}`);
-    
-    return data;
-  } catch (error) {
-    console.error('제재 데이터 로드 중 오류 발생:', error);
-    throw error;
-  }
+    // 캐시된 데이터가 있고 30분 이내면 캐시 사용
+    const now = new Date();
+    if (!forceRefresh && 
+        apiState.sanctions && 
+        apiState.lastFetched && 
+        (now - apiState.lastFetched) < 30 * 60 * 1000) {
+        return apiState.sanctions;
+    }
+
+    try {
+        apiState.isLoading = true;
+        apiState.error = null;
+        
+        // EU, US, UN 제재 데이터 로드
+        const [euResponse, usResponse, unResponse] = await Promise.all([
+            fetch('data/eu_sanctions.json'),
+            fetch('data/us_sanctions.json'),
+            fetch('data/un_sanctions.json')
+        ]);
+        
+        if (!euResponse.ok || !usResponse.ok || !unResponse.ok) {
+            throw new Error(`데이터를 가져오는데 실패했습니다: ${euResponse.status}, ${usResponse.status}, ${unResponse.status}`);
+        }
+        
+        const [euData, usData, unData] = await Promise.all([
+            euResponse.json(),
+            usResponse.json(),
+            unResponse.json()
+        ]);
+        
+        // 데이터 병합
+        const combinedData = {
+            data: [...euData, ...usData, ...unData]
+        };
+        
+        // 데이터 처리 및 캐시 업데이트
+        apiState.sanctions = combinedData;
+        apiState.lastFetched = now;
+        
+        console.log(`제재 데이터 로드 완료: ${combinedData.data.length}개 항목`);
+        return combinedData;
+    } catch (error) {
+        console.error('제재 데이터 로드 오류:', error);
+        apiState.error = error.message;
+        
+        // 오류 발생 시 기존 캐시된 데이터 반환
+        return apiState.sanctions;
+    } finally {
+        apiState.isLoading = false;
+    }
 }
 
 /**
- * 제재 대상 검색
+ * 제재 데이터를 검색합니다.
  * @param {string} query 검색어
- * @param {Object} options 검색 옵션 (필터, 국가, 프로그램 등)
+ * @param {Object} filters 필터 옵션 (소스, 유형, 국가 등)
+ * @param {Object} options 정렬 및 페이징 옵션
  * @returns {Promise<Array>} 검색 결과 배열
  */
-async function searchSanctions(query, options = {}) {
-  try {
-    const sanctionsData = await fetchSanctionsData();
-    const items = sanctionsData.data;
+async function searchSanctions(query = '', filters = {}, options = {}) {
+    const data = await fetchSanctionsData();
     
-    if (!items || !Array.isArray(items)) {
-      console.error('올바른 제재 데이터 형식이 아닙니다');
-      return [];
+    if (!data || !data.data) {
+        return [];
+    }
+
+    let results = [...data.data];
+    
+    // 검색어로 필터링
+    if (query && query.trim() !== '') {
+        const searchTerms = query.toLowerCase().split(' ').filter(term => term.length > 0);
+        
+        results = results.filter(sanction => {
+            // 이름 검색
+            const nameMatch = searchTerms.some(term => 
+                sanction.name.toLowerCase().includes(term)
+            );
+            
+            // 별칭 검색
+            const aliasMatch = sanction.details.aliases && 
+                sanction.details.aliases.some(alias => 
+                    searchTerms.some(term => alias.toLowerCase().includes(term))
+                );
+            
+            return nameMatch || aliasMatch;
+        });
     }
     
-    // 검색어 처리
-    const searchTerm = query ? query.toLowerCase().trim() : '';
+    // 필터 적용
+    if (filters.sources && filters.sources.length > 0) {
+        results = results.filter(sanction => {
+            const sources = sanction.source.split(',');
+            return filters.sources.some(source => sources.includes(source));
+        });
+    }
     
-    // 필터링 함수
-    const filterItem = (item) => {
-      // 검색어 필터링
-      if (searchTerm) {
-        const nameMatch = item.name && item.name.toLowerCase().includes(searchTerm);
-        const countryMatch = item.country && item.country.toLowerCase().includes(searchTerm);
-        const aliasMatch = item.details && item.details.aliases && 
-          item.details.aliases.some(alias => alias.toLowerCase().includes(searchTerm));
-          
-        // 상세 정보에서 검색 (address, otherInformation 등)
-        const detailsMatch = item.details && 
-          JSON.stringify(item.details).toLowerCase().includes(searchTerm);
+    if (filters.types && filters.types.length > 0) {
+        results = results.filter(sanction => 
+            filters.types.includes(sanction.type)
+        );
+    }
+    
+    if (filters.countries && filters.countries.length > 0) {
+        results = results.filter(sanction => 
+            sanction.country && filters.countries.includes(sanction.country)
+        );
+    }
+    
+    if (filters.programs && filters.programs.length > 0) {
+        results = results.filter(sanction => 
+            sanction.programs.some(program => 
+                filters.programs.includes(program)
+            )
+        );
+    }
+    
+    // 가중치 점수 계산 및 정렬
+    results.forEach(sanction => {
+        let score = 0;
         
-        if (!(nameMatch || countryMatch || aliasMatch || detailsMatch)) {
-          return false;
+        // 검색어 일치도
+        if (query && query.trim() !== '') {
+            const searchTerms = query.toLowerCase().split(' ').filter(term => term.length > 0);
+            
+            // 이름에 검색어가 포함되면 가중치 추가
+            if (searchTerms.some(term => sanction.name.toLowerCase().includes(term))) {
+                score += 10;
+                
+                // 정확히 일치하면 추가 가중치
+                if (searchTerms.some(term => sanction.name.toLowerCase() === term)) {
+                    score += 20;
+                }
+            }
+            
+            // 별칭에 검색어가 포함되면 가중치 추가
+            if (sanction.details.aliases && 
+                sanction.details.aliases.some(alias => 
+                    searchTerms.some(term => alias.toLowerCase().includes(term))
+                )) {
+                score += 5;
+            }
         }
-      }
-      
-      // 국가 필터링
-      if (options.country && options.country !== '') {
-        if (!item.country || !item.country.toLowerCase().includes(options.country.toLowerCase())) {
-          return false;
+        
+        // 다수 소스에서 제재 대상이면 가중치 추가
+        if (sanction.source.includes(',')) {
+            score += sanction.source.split(',').length * 5;
         }
-      }
-      
-      // 유형 필터링
-      if (options.types && options.types.length > 0 && options.types[0] !== 'all') {
-        // 타입이 options.types 배열에 포함되어 있지 않으면 필터링
-        const itemType = getEntityType(item);
-        if (!options.types.includes(itemType)) {
-          return false;
-        }
-      }
-      
-      // 프로그램 필터링
-      if (options.program && options.program !== '') {
-        if (!item.programs || !item.programs.some(prog => 
-          prog.toLowerCase().includes(options.program.toLowerCase()))) {
-          return false;
-        }
-      }
-      
-      return true;
-    };
-    
-    // 필터링 적용
-    const results = items.filter(filterItem);
-    
-    // 결과 정렬 (관련성 점수, 이름순)
-    results.sort((a, b) => {
-      // 먼저 매치 점수로 정렬
-      const scoreA = a.matchScore || 0;
-      const scoreB = b.matchScore || 0;
-      
-      if (scoreB !== scoreA) {
-        return scoreB - scoreA;
-      }
-      
-      // 점수가 같으면 이름으로 정렬
-      return a.name.localeCompare(b.name);
+        
+        sanction.matchScore = score;
     });
     
+    // 정렬
+    const sortField = options.sortBy || 'matchScore';
+    const sortDirection = options.sortDirection || 'desc';
+    
+    results.sort((a, b) => {
+        if (sortField === 'name') {
+            return sortDirection === 'asc' 
+                ? a.name.localeCompare(b.name) 
+                : b.name.localeCompare(a.name);
+        } else if (sortField === 'matchScore') {
+            return sortDirection === 'asc' 
+                ? a.matchScore - b.matchScore 
+                : b.matchScore - a.matchScore;
+        }
+        
+        return 0;
+    });
+    
+    // 페이징
+    if (options.page && options.pageSize) {
+        const startIndex = (options.page - 1) * options.pageSize;
+        results = results.slice(startIndex, startIndex + options.pageSize);
+    }
+    
     return results;
-  } catch (error) {
-    console.error('검색 중 오류 발생:', error);
-    return [];
-  }
 }
 
 /**
- * 제재 대상 ID로 상세 정보 조회
+ * 제재 데이터 소스들의 목록을 가져옵니다.
+ * @returns {Promise<Array>} 소스 목록
+ */
+async function getSanctionsSources() {
+    const data = await fetchSanctionsData();
+    
+    if (!data || !data.meta) {
+        return [];
+    }
+    
+    // 모든 제재 대상의 소스 필드에서 고유한 소스 추출
+    const sources = new Set();
+    data.data.forEach(sanction => {
+        sanction.source.split(',').forEach(source => {
+            sources.add(source.trim());
+        });
+    });
+    
+    return Array.from(sources);
+}
+
+/**
+ * 제재 프로그램 목록을 가져옵니다.
+ * @returns {Promise<Array>} 프로그램 목록
+ */
+async function getSanctionsPrograms() {
+    const data = await fetchSanctionsData();
+    
+    if (!data || !data.data) {
+        return [];
+    }
+    
+    // 모든 제재 대상의 프로그램 필드에서 고유한 프로그램 추출
+    const programs = new Set();
+    data.data.forEach(sanction => {
+        if (sanction.programs && Array.isArray(sanction.programs)) {
+            sanction.programs.forEach(program => {
+                programs.add(program);
+            });
+        }
+    });
+    
+    return Array.from(programs);
+}
+
+/**
+ * 제재 대상 국가 목록을 가져옵니다.
+ * @returns {Promise<Array>} 국가 목록
+ */
+async function getSanctionsCountries() {
+    const data = await fetchSanctionsData();
+    
+    if (!data || !data.data) {
+        return [];
+    }
+    
+    // 모든 제재 대상의 국가 필드에서 고유한 국가 추출
+    const countries = new Set();
+    data.data.forEach(sanction => {
+        if (sanction.country && sanction.country.trim() !== '') {
+            countries.add(sanction.country);
+        }
+    });
+    
+    return Array.from(countries);
+}
+
+/**
+ * 제재 대상 유형 목록을 가져옵니다.
+ * @returns {Promise<Array>} 유형 목록
+ */
+async function getSanctionsTypes() {
+    const data = await fetchSanctionsData();
+    
+    if (!data || !data.data) {
+        return [];
+    }
+    
+    // 모든 제재 대상의 유형 필드에서 고유한 유형 추출
+    const types = new Set();
+    data.data.forEach(sanction => {
+        if (sanction.type) {
+            types.add(sanction.type);
+        }
+    });
+    
+    return Array.from(types);
+}
+
+/**
+ * ID로 제재 대상 상세 정보를 가져옵니다.
  * @param {string} id 제재 대상 ID
  * @returns {Promise<Object>} 제재 대상 상세 정보
  */
-async function getSanctionDetails(id) {
-  try {
-    const sanctionsData = await fetchSanctionsData();
-    return sanctionsData.data.find(item => item.id === id) || null;
-  } catch (error) {
-    console.error('상세 정보 조회 중 오류 발생:', error);
-    return null;
-  }
-}
-
-/**
- * 최근 제재 대상 가져오기
- * @param {number} limit 가져올 항목 수
- * @param {string} type 유형 필터 (개인, 기업/기관, 선박, 항공기)
- * @returns {Promise<Array>} 최근 제재 대상 배열
- */
-async function getRecentSanctions(limit = 10, type = null) {
-  try {
-    const sanctionsData = await fetchSanctionsData();
-    let results = sanctionsData.data;
+async function getSanctionById(id) {
+    const data = await fetchSanctionsData();
     
-    // 유형 필터링
-    if (type && type !== 'all') {
-      results = results.filter(item => getEntityType(item) === type);
+    if (!data || !data.data) {
+        return null;
     }
     
-    // 최신순 정렬 (나중에 추가된 데이터가 앞에 오도록)
-    results.sort((a, b) => {
-      // sanctions 배열이 있고, startDate가 있다면 그것으로 정렬
-      const getLatestDate = (item) => {
-        if (item.details && item.details.sanctions && item.details.sanctions.length > 0) {
-          return new Date(item.details.sanctions[0].startDate || '1900-01-01').getTime();
-        }
-        return 0;
-      };
-      
-      return getLatestDate(b) - getLatestDate(a);
-    });
-    
-    // 제한된 수의 결과 반환
-    return results.slice(0, limit);
-  } catch (error) {
-    console.error('최근 제재 데이터 조회 중 오류 발생:', error);
-    return [];
-  }
+    return data.data.find(sanction => sanction.id === id) || null;
 }
 
 /**
- * 엔티티 유형 변환
- * @param {Object} item 제재 항목
- * @returns {string} 유형 (individual, entity, vessel, aircraft)
+ * 이름으로 제재 대상을 검색합니다.
+ * @param {string} name 검색할 이름
+ * @returns {Promise<Array>} 검색 결과 배열
  */
-function getEntityType(item) {
-  if (!item.type) return 'entity';
-  
-  const type = item.type.toLowerCase();
-  if (type.includes('개인') || type.includes('individual') || type === 'person') {
-    return 'individual';
-  } else if (type.includes('선박') || type.includes('vessel') || type.includes('ship')) {
-    return 'vessel';
-  } else if (type.includes('항공') || type.includes('aircraft')) {
-    return 'aircraft';
-  } else {
-    return 'entity'; // 기업/기관 기본값
-  }
+async function getSanctionsByName(name) {
+    return searchSanctions(name);
 }
 
-// 모듈 내보내기
+// API 함수 내보내기
 export {
-  fetchSanctionsData,
-  searchSanctions,
-  getSanctionDetails,
-  getRecentSanctions,
-  getEntityType
+    fetchSanctionsData,
+    searchSanctions,
+    getSanctionsSources,
+    getSanctionsPrograms,
+    getSanctionsCountries,
+    getSanctionsTypes,
+    getSanctionById,
+    getSanctionsByName
 }; 

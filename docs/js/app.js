@@ -421,6 +421,71 @@ async function showRecentSanctions() {
   }
 }
 
+// 한글 초성 변환 함수
+function getChoseong(str) {
+    const cho = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+    let result = "";
+    for (let i = 0; i < str.length; i++) {
+        const code = str.charCodeAt(i) - 44032;
+        if (code > -1 && code < 11172) {
+            result += cho[Math.floor(code / 588)];
+        } else {
+            result += str[i];
+        }
+    }
+    return result;
+}
+
+// 한글 검색 함수
+function searchKorean(query, text) {
+    // 원본 텍스트와 초성 모두 검색
+    const textChoseong = getChoseong(text);
+    const queryChoseong = getChoseong(query);
+    
+    return text.includes(query) || 
+           textChoseong.includes(queryChoseong) ||
+           textChoseong.includes(query);
+}
+
+// 검색 함수 수정
+function searchSanctions(query) {
+    const results = [];
+    const searchQuery = query.toLowerCase();
+    
+    // 모든 제재 데이터 검색
+    Object.values(sanctionsData).forEach(countryData => {
+        countryData.forEach(sanction => {
+            // 이름으로 검색
+            if (searchKorean(searchQuery, sanction.name.toLowerCase())) {
+                results.push(sanction);
+                return;
+            }
+            
+            // 별칭으로 검색
+            if (sanction.details && sanction.details.aliases) {
+                for (const alias of sanction.details.aliases) {
+                    if (searchKorean(searchQuery, alias.toLowerCase())) {
+                        results.push(sanction);
+                        break;
+                    }
+                }
+            }
+            
+            // 주소로 검색
+            if (sanction.details && sanction.details.addresses) {
+                for (const address of sanction.details.addresses) {
+                    if (searchKorean(searchQuery, address.toLowerCase())) {
+                        results.push(sanction);
+                        break;
+                    }
+                }
+            }
+        });
+    });
+    
+    return results;
+}
+
 // 접근성을 위해 전역으로 일부 함수 노출
 window.WVL = {
   showDetailById,
