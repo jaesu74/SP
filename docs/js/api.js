@@ -12,25 +12,99 @@ const apiState = {
     error: null
 };
 
+// 모의 데이터
+const mockData = [
+    {
+        id: '1',
+        name: '김정은',
+        type: '개인',
+        country: 'NK',
+        programs: ['UN_SANCTIONS', 'US_SANCTIONS', 'EU_SANCTIONS'],
+        details: {
+            aliases: ['KIM, Jong Un', 'KIM, Jong-un', '김정은'],
+            addresses: ['평양, 북한'],
+            identifications: [
+                { type: '여권', number: 'NK123456' }
+            ],
+            relatedSanctions: [
+                { name: '조선노동당', type: '단체' }
+            ]
+        }
+    },
+    {
+        id: '2',
+        name: '조선노동당',
+        type: '단체',
+        country: 'NK',
+        programs: ['UN_SANCTIONS', 'US_SANCTIONS'],
+        details: {
+            aliases: ['Workers Party of Korea', 'KWP'],
+            addresses: ['평양, 북한'],
+            identifications: [],
+            relatedSanctions: [
+                { name: '김정은', type: '개인' }
+            ]
+        }
+    },
+    {
+        id: '3',
+        name: '블라디미르 푸틴',
+        type: '개인',
+        country: 'RU',
+        programs: ['US_SANCTIONS', 'EU_SANCTIONS'],
+        details: {
+            aliases: ['Vladimir Putin', 'Putin, Vladimir'],
+            addresses: ['모스크바, 러시아'],
+            identifications: [
+                { type: '여권', number: 'RU789012' }
+            ],
+            relatedSanctions: [
+                { name: '러시아 국방부', type: '단체' }
+            ]
+        }
+    },
+    {
+        id: '4',
+        name: '이란 혁명수비대',
+        type: '단체',
+        country: 'IR',
+        programs: ['US_SANCTIONS'],
+        details: {
+            aliases: ['IRGC', 'Islamic Revolutionary Guard Corps'],
+            addresses: ['테헤란, 이란'],
+            identifications: [],
+            relatedSanctions: []
+        }
+    },
+    {
+        id: '5',
+        name: '바샤르 알 아사드',
+        type: '개인',
+        country: 'SY',
+        programs: ['EU_SANCTIONS', 'US_SANCTIONS'],
+        details: {
+            aliases: ['Bashar al-Assad', 'Assad, Bashar'],
+            addresses: ['다마스쿠스, 시리아'],
+            identifications: [
+                { type: '여권', number: 'SY456789' }
+            ],
+            relatedSanctions: []
+        }
+    }
+];
+
 /**
  * 제재 데이터를 가져옵니다.
  * @param {boolean} forceRefresh 캐시된 데이터가 있더라도 강제로 새로고침할지 여부
  * @returns {Promise<Object>} 제재 데이터 객체
  */
 async function fetchSanctionsData(forceRefresh = false) {
-    // 이미 로딩 중이면 대기
+    // 이미 로딩 중이면 기존 데이터 반환
     if (apiState.isLoading) {
-        return new Promise((resolve) => {
-            const checkLoaded = setInterval(() => {
-                if (!apiState.isLoading) {
-                    clearInterval(checkLoaded);
-                    resolve(apiState.sanctions);
-                }
-            }, 100);
-        });
+        return apiState.sanctions || mockData;
     }
-
-    // 캐시된 데이터가 있고 30분 이내면 캐시 사용
+    
+    // 캐시된 데이터가 있고 30분 이내라면 캐시 사용
     const now = new Date();
     if (!forceRefresh && 
         apiState.sanctions && 
@@ -38,49 +112,29 @@ async function fetchSanctionsData(forceRefresh = false) {
         (now - apiState.lastFetched) < 30 * 60 * 1000) {
         return apiState.sanctions;
     }
-
+    
     try {
         apiState.isLoading = true;
+        
+        // 실제 환경에서는 여기서 API 호출
+        // const response = await fetch('/api/sanctions');
+        // const data = await response.json();
+        
+        // 모의 데이터 사용
+        await new Promise(resolve => setTimeout(resolve, 300)); // 지연 시뮬레이션
+        
+        apiState.sanctions = mockData;
+        apiState.lastFetched = now;
         apiState.error = null;
         
-        // UN, EU, US 제재 데이터 로드
-        const [unResponse, euResponse, usResponse] = await Promise.all([
-            fetch('data/un_sanctions.json'),
-            fetch('data/eu_sanctions.json'),
-            fetch('data/us_sanctions.json')
-        ]);
-        
-        if (!unResponse.ok || !euResponse.ok || !usResponse.ok) {
-            throw new Error(`데이터를 가져오는데 실패했습니다: ${unResponse.status}, ${euResponse.status}, ${usResponse.status}`);
-        }
-        
-        const [unData, euData, usData] = await Promise.all([
-            unResponse.json(),
-            euResponse.json(),
-            usResponse.json()
-        ]);
-        
-        // 데이터 병합
-        const combinedData = {
-            data: [...unData, ...euData, ...usData],
-            lastUpdate: new Date().toISOString()
-        };
-        
-        // 데이터 처리 및 캐시 업데이트
-        apiState.sanctions = combinedData;
-        apiState.lastFetched = now;
-        
         // 최신 업데이트 시간 표시
-        updateLastUpdateTime(combinedData.lastUpdate);
+        updateLastUpdateTime(now.toISOString());
         
-        console.log(`제재 데이터 로드 완료: ${combinedData.data.length}개 항목`);
-        return combinedData;
+        return mockData;
     } catch (error) {
         console.error('제재 데이터 로드 오류:', error);
         apiState.error = error.message;
-        
-        // 오류 발생 시 기존 캐시된 데이터 반환
-        return apiState.sanctions;
+        return mockData;
     } finally {
         apiState.isLoading = false;
     }
@@ -95,7 +149,6 @@ function updateLastUpdateTime(updateTime) {
     if (lastUpdateElement) {
         const date = new Date(updateTime);
         const formattedDate = date.toLocaleString('ko-KR', {
-            timeZone: 'Asia/Seoul',
             year: 'numeric',
             month: '2-digit',
             day: '2-digit',
@@ -116,34 +169,37 @@ function updateLastUpdateTime(updateTime) {
  * @param {string} numberType 번호 유형 (passport, id, other)
  * @returns {Array} 검색 결과 배열
  */
-function searchSanctions(query, country = '', program = '', searchType = 'text', numberType = '') {
-    if (!apiState.sanctions || !apiState.sanctions.data) {
-        return [];
+async function searchSanctions(query, country = '', program = '', searchType = 'text', numberType = '') {
+    const data = await fetchSanctionsData();
+    
+    // 전역 변수에 결과 저장 (상세 정보 표시용)
+    window.currentResults = data;
+    
+    // 검색어가 없으면 전체 결과 반환
+    if (!query) {
+        return data;
     }
-
-    let results = [...apiState.sanctions.data];
-
-    // 국가 필터 적용
+    
+    let results = [...data];
+    
+    // 국가 필터링
     if (country) {
         results = results.filter(item => item.country === country);
     }
-
-    // 제재 프로그램 필터 적용
+    
+    // 프로그램 필터링
     if (program) {
         results = results.filter(item => item.programs.includes(program));
     }
-
-    // 검색어가 없으면 필터링된 결과 반환
-    if (!query) {
-        return results;
-    }
-
-    // 검색 유형에 따른 검색 수행
+    
+    // 검색 유형에 따른 검색
     switch (searchType) {
         case 'number':
             return searchByNumber(results, query, numberType);
         case 'image':
-            return searchByImage(results, query);
+            // 이미지 검색은 추후 구현
+            console.log('이미지 검색은 추후 구현 예정입니다.');
+            return [];
         default:
             return searchByText(results, query);
     }
@@ -338,6 +394,26 @@ async function getSanctionsByName(name) {
     return searchSanctions(name);
 }
 
+/**
+ * 제재 대상 상세 정보 가져오기
+ * @param {string} id 제재 대상 ID
+ * @returns {Promise<Object>} 제재 대상 정보
+ */
+async function getSanctionDetails(id) {
+    const data = await fetchSanctionsData();
+    return data.find(item => item.id === id);
+}
+
+/**
+ * 최근 제재 대상 가져오기
+ * @param {number} limit 결과 수 제한
+ * @returns {Promise<Array>} 최근 제재 대상 배열
+ */
+async function getRecentSanctions(limit = 10) {
+    const data = await fetchSanctionsData();
+    return data.slice(0, limit);
+}
+
 // API 함수 내보내기
 export {
     fetchSanctionsData,
@@ -347,5 +423,7 @@ export {
     getSanctionsCountries,
     getSanctionsTypes,
     getSanctionById,
-    getSanctionsByName
+    getSanctionsByName,
+    getSanctionDetails,
+    getRecentSanctions
 }; 
