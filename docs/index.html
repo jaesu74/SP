@@ -46,6 +46,30 @@
                 </div>
             </div>
         </div>
+        
+        <!-- 푸터 링크 그룹 -->
+        <div class="footer-links-group">
+            <div class="footer-link-category">
+                <h3>회사 정보</h3>
+                <a href="#" id="footer-about">회사 소개</a>
+                <a href="#" id="footer-contact">문의하기</a>
+                <a href="#" id="footer-news">뉴스 및 공지</a>
+            </div>
+            
+            <div class="footer-link-category">
+                <h3>고객 지원</h3>
+                <a href="#" id="footer-help">도움말</a>
+                <a href="#" id="footer-faq">자주 묻는 질문</a>
+                <a href="#" id="footer-contact">고객센터</a>
+            </div>
+            
+            <div class="footer-link-category">
+                <h3>법적 정보</h3>
+                <a href="#" id="footer-terms">이용약관</a>
+                <a href="#" id="footer-privacy">개인정보처리방침</a>
+                <a href="#" id="footer-license">라이선스</a>
+            </div>
+        </div>
     </section>
 
     <!-- 메인 섹션 -->
@@ -63,73 +87,140 @@
         <div class="container">
             <div class="alert-container"></div>
             
-            <!-- 검색 영역 -->
-            <div class="search-area">
-                <h2>제재 대상 검색</h2>
-                <form id="search-form">
-                    <div class="search-input-group">
-                        <input type="text" id="search-input" placeholder="이름, 기관명, 키워드 등을 입력하세요" required>
-                        <button type="submit" class="search-btn">
-                            검색
-                        </button>
+            <!-- 검색 섹션 업데이트 -->
+            <div class="search-section">
+                <div class="container">
+                    <h2>제재 정보 검색</h2>
+                    <div class="search-bar">
+                        <input type="text" id="search-input" placeholder="이름, 별칭, 국가 또는 유형으로 검색...">
+                        <button id="search-button" onclick="performSearch()">검색</button>
                     </div>
-                    
-                    <button type="button" id="advanced-toggle" class="btn-text">
-                        <i class="fas fa-sliders-h"></i> 고급 검색
-                    </button>
-                    
-                    <div id="advanced-search" class="advanced-search">
-                        <!-- 고급 검색 옵션 -->
-                        <div class="advanced-row">
-                            <div class="form-group">
-                                <label for="search-type">검색 유형</label>
-                                <select id="search-type">
-                                    <option value="text">텍스트 검색</option>
-                                    <option value="number">번호 검색</option>
-                                    <option value="image">이미지 검색</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="number-type">번호 유형</label>
-                                <select id="number-type">
-                                    <option value="passport">여권번호</option>
-                                    <option value="id">주민번호</option>
-                                    <option value="other">기타 번호</option>
-                                </select>
-                            </div>
+
+                    <!-- 검색 유형 선택 -->
+                    <div class="search-options">
+                        <div class="search-type-options">
+                            <label class="search-option active">
+                                <input type="radio" name="search-type" value="text" checked>
+                                <span>텍스트 검색</span>
+                            </label>
+                            <label class="search-option">
+                                <input type="radio" name="search-type" value="number">
+                                <span>번호 검색</span>
+                            </label>
+                            <label class="search-option">
+                                <input type="radio" name="search-type" value="image">
+                                <span>이미지 검색</span>
+                            </label>
                         </div>
-                        <div class="advanced-row">
-                            <div class="form-group">
-                                <label for="country">국가</label>
-                                <select id="country">
-                                    <option value="">모든 국가</option>
-                                    <option value="NK">북한</option>
-                                    <option value="RU">러시아</option>
-                                    <option value="IR">이란</option>
-                                    <option value="SY">시리아</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="program">제재 프로그램</label>
-                                <select id="program">
-                                    <option value="">모든 프로그램</option>
-                                    <option value="UN_SANCTIONS">UN 제재</option>
-                                    <option value="EU_SANCTIONS">EU 제재</option>
-                                    <option value="US_SANCTIONS">US 제재</option>
-                                </select>
-                            </div>
+                        
+                        <!-- 번호 유형 옵션 (기본적으로 숨김) -->
+                        <div class="number-type-options" style="display: none;">
+                            <label class="search-option active">
+                                <input type="radio" name="number-type" value="passport" checked>
+                                <span>여권 번호</span>
+                            </label>
+                            <label class="search-option">
+                                <input type="radio" name="number-type" value="id">
+                                <span>ID 번호</span>
+                            </label>
+                            <label class="search-option">
+                                <input type="radio" name="number-type" value="other">
+                                <span>기타 번호</span>
+                            </label>
                         </div>
                     </div>
-                </form>
+                    
+                    <!-- 고급 검색 토글 -->
+                    <div class="advanced-search-toggle">
+                        <button id="advanced-search-button">고급 검색 <i class="fas fa-angle-down"></i></button>
+                    </div>
+                    
+                    <!-- 고급 검색 옵션 (기본적으로 숨김) -->
+                    <div class="advanced-search-options" style="display: none;">
+                        <div class="search-filters">
+                            <div class="filter-group">
+                                <h3>국가별 필터</h3>
+                                <div class="filter-options country-options">
+                                    <div class="filter-option country" data-value="북한">
+                                        <span>북한</span>
+                                    </div>
+                                    <div class="filter-option country" data-value="러시아">
+                                        <span>러시아</span>
+                                    </div>
+                                    <div class="filter-option country" data-value="이란">
+                                        <span>이란</span>
+                                    </div>
+                                    <div class="filter-option country" data-value="시리아">
+                                        <span>시리아</span>
+                                    </div>
+                                    <div class="filter-option country" data-value="기타">
+                                        <span>기타</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <h3>프로그램별 필터</h3>
+                                <div class="filter-options program-options">
+                                    <div class="filter-option program" data-value="UN">
+                                        <span>UN 제재</span>
+                                    </div>
+                                    <div class="filter-option program" data-value="US">
+                                        <span>미국 제재</span>
+                                    </div>
+                                    <div class="filter-option program" data-value="EU">
+                                        <span>EU 제재</span>
+                                    </div>
+                                    <div class="filter-option program" data-value="KR">
+                                        <span>한국 제재</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 날짜 범위 필터 -->
+                            <div class="filter-group">
+                                <h3>날짜 범위</h3>
+                                <div class="date-range-filter">
+                                    <div class="date-input">
+                                        <label for="start-date">시작일</label>
+                                        <input type="date" id="start-date">
+                                    </div>
+                                    <div class="date-input">
+                                        <label for="end-date">종료일</label>
+                                        <input type="date" id="end-date">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- 검색 결과 영역 -->
-            <div class="search-results">
-                <div class="results-header">
-                    <h3>검색 결과</h3>
-                    <div class="results-count">총 <span id="results-count">0</span>건</div>
+            <!-- 결과 카운트 및 정렬 옵션 -->
+            <div class="results-header">
+                <div class="container">
+                    <div class="results-count">
+                        <span id="results-count">0</span> 개의 결과
+                    </div>
+                    <div class="sort-options">
+                        <label for="sort-select">정렬:</label>
+                        <select id="sort-select">
+                            <option value="relevance">관련성</option>
+                            <option value="date-desc">최신순</option>
+                            <option value="date-asc">오래된순</option>
+                            <option value="name-asc">이름 (가나다순)</option>
+                        </select>
+                    </div>
                 </div>
-                <div id="results-list" class="results-list"></div>
+            </div>
+
+            <!-- 결과 컨테이너 -->
+            <div class="results-section">
+                <div class="container">
+                    <div id="results-container" class="results-grid">
+                        <!-- 검색 결과가 여기에 표시됩니다 -->
+                    </div>
+                </div>
             </div>
 
             <!-- 최신 업데이트 정보 -->
@@ -156,6 +247,47 @@
                 <button id="detail-download" class="btn-secondary">
                     <i class="fas fa-download"></i> PDF 다운로드
                 </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 회원가입 모달 -->
+    <div id="register-modal" class="modal register-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>회원가입</h2>
+                <button id="register-close" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert-container"></div>
+                <form id="register-form" class="register-form">
+                    <div class="form-group">
+                        <label for="register-name">이름</label>
+                        <input type="text" id="register-name" placeholder="이름을 입력하세요" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">이메일</label>
+                        <input type="email" id="register-email" placeholder="이메일을 입력하세요" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">비밀번호</label>
+                        <input type="password" id="register-password" placeholder="비밀번호를 입력하세요" required>
+                        <i class="fas fa-eye toggle-password"></i>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password-confirm">비밀번호 확인</label>
+                        <input type="password" id="register-password-confirm" placeholder="비밀번호를 다시 입력하세요" required>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="terms-agree" required>
+                            <a href="#" id="terms-link">이용약관</a> 및 <a href="#" id="privacy-link">개인정보처리방침</a>에 동의합니다.
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="register-submit" class="btn-primary">회원가입</button>
             </div>
         </div>
     </div>

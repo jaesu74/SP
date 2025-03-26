@@ -96,7 +96,7 @@ const mockData = [
 /**
  * 제재 데이터를 가져옵니다.
  * @param {boolean} forceRefresh 캐시된 데이터가 있더라도 강제로 새로고침할지 여부
- * @returns {Promise<Object>} 제재 데이터 객체
+ * @returns {Promise<Array>} 제재 데이터 배열
  */
 async function fetchSanctionsData(forceRefresh = false) {
     // 이미 로딩 중이면 기존 데이터 반환
@@ -161,13 +161,57 @@ function updateLastUpdateTime(updateTime) {
 }
 
 /**
- * 제재 데이터를 검색합니다.
+ * 검색 유연성 향상을 위한 함수 추가
+ * 
+ * 유사어 사전 - 검색어 확장에 사용
+ */
+const similarTerms = {
+    // 인물 관련
+    '김정은': ['김정운', 'kim jong un', 'kim jong-un', '북한 지도자'],
+    '푸틴': ['블라디미르 푸틴', 'vladimir putin', 'putin', '러시아 대통령'],
+    '아사드': ['바샤르 알 아사드', 'bashar al-assad', 'assad', '시리아 대통령'],
+    
+    // 단체 관련
+    '노동당': ['조선노동당', 'kwp', 'workers party', '북한 노동당'],
+    '혁명수비대': ['이란 혁명수비대', 'irgc', 'revolutionary guard'],
+    
+    // 국가 관련
+    '북한': ['north korea', 'dprk', '조선민주주의인민공화국', 'nk'],
+    '러시아': ['russia', 'russian federation', 'ru'],
+    '이란': ['iran', 'islamic republic of iran', 'ir'],
+    '시리아': ['syria', 'syrian arab republic', 'sy'],
+    
+    // 제재 프로그램 관련
+    'un': ['un sanctions', '유엔', '유엔 제재', '국제연합'],
+    'eu': ['eu sanctions', '유럽연합', '유럽 제재'],
+    'us': ['us sanctions', '미국', '미국 제재', 'ofac']
+};
+
+/**
+ * 검색 결과가 없을 때 추천할 유사 검색어
+ */
+const suggestedTerms = {
+    '김정운': '김정은',
+    '김정일': '김정은',
+    'jong': '김정은',
+    'kju': '김정은',
+    'putin': '푸틴',
+    'assad': '아사드',
+    'north korea': '북한',
+    'dprk': '북한',
+    'kwp': '노동당',
+    'irgc': '혁명수비대',
+    'russia': '러시아'
+};
+
+/**
+ * 제재 데이터를 검색합니다. 검색 유연성 향상
  * @param {string} query 검색어
  * @param {string} country 국가 필터
  * @param {string} program 제재 프로그램 필터
  * @param {string} searchType 검색 유형 (text, number, image)
  * @param {string} numberType 번호 유형 (passport, id, other)
- * @returns {Array} 검색 결과 배열
+ * @returns {Promise<Object>} 검색 결과 객체
  */
 async function searchSanctions(query, country = '', program = '', searchType = 'text', numberType = '') {
     const data = await fetchSanctionsData();
@@ -177,68 +221,121 @@ async function searchSanctions(query, country = '', program = '', searchType = '
     
     // 검색어가 없으면 전체 결과 반환
     if (!query) {
-        return data;
+        return {
+            results: data,
+            hasExactMatches: true,
+            hasSimilarMatches: false,
+            suggestions: null
+        };
     }
     
-    let results = [...data];
-    
-    // 국가 필터링
-    if (country) {
-        results = results.filter(item => item.country === country);
-    }
-    
-    // 프로그램 필터링
-    if (program) {
-        results = results.filter(item => item.programs.includes(program));
-    }
+    let searchResults;
     
     // 검색 유형에 따른 검색
     switch (searchType) {
         case 'number':
-            return searchByNumber(results, query, numberType);
+            // 번호 검색은 기존 방식 유지하되 결과 형식 통일
+            const numberResults = searchByNumber(data, query, numberType);
+            searchResults = {
+                results: numberResults,
+                hasExactMatches: numberResults.length > 0,
+                hasSimilarMatches: false,
+                suggestions: null
+            };
+            break;
         case 'image':
             // 이미지 검색은 추후 구현
             console.log('이미지 검색은 추후 구현 예정입니다.');
-            return [];
+            searchResults = {
+                results: [],
+                hasExactMatches: false,
+                hasSimilarMatches: false,
+                suggestions: null
+            };
+            break;
         default:
-            return searchByText(results, query);
+            // 텍스트 검색 (유사어 검색 지원)
+            searchResults = searchByText(data, query);
     }
+    
+    // 국가 필터링
+    if (country) {
+        searchResults.results = searchResults.results.filter(item => item.country === country);
+    }
+    
+    // 프로그램 필터링
+    if (program) {
+        searchResults.results = searchResults.results.filter(item => item.programs.includes(program));
+    }
+    
+    return searchResults;
 }
 
 /**
- * 텍스트 기반 검색을 수행합니다.
+ * 텍스트 기반 검색을 수행합니다. (유사어 검색 지원)
  * @param {Array} data 검색할 데이터 배열
  * @param {string} query 검색어
- * @returns {Array} 검색 결과 배열
+ * @returns {Object} 검색 결과와 관련 정보를 포함한 객체
  */
 function searchByText(data, query) {
-    const searchTerms = query.toLowerCase().split(/\s+/);
+    const lowerQuery = query.toLowerCase();
+    const exactMatches = [];
+    const similarMatches = [];
+    let suggestions = null;
     
-    return data.filter(item => {
-        // 이름 검색
-        if (item.name.toLowerCase().includes(query.toLowerCase())) {
-            return true;
+    // 유사어 확장을 위한 검색어 집합
+    const searchTerms = new Set([lowerQuery]);
+    
+    // 검색어의 유사어 추가
+    Object.keys(similarTerms).forEach(term => {
+        if (term.toLowerCase().includes(lowerQuery) || 
+            similarTerms[term].some(similar => similar.toLowerCase().includes(lowerQuery))) {
+            // 주요 용어나 유사어가 검색어를 포함하면 모든 유사어 추가
+            searchTerms.add(term.toLowerCase());
+            similarTerms[term].forEach(similar => searchTerms.add(similar.toLowerCase()));
         }
-        
-        // 별칭 검색
-        if (item.details.aliases.some(alias => 
-            alias.toLowerCase().includes(query.toLowerCase()))) {
-            return true;
-        }
-        
-        // 주소 검색
-        if (item.details.addresses.some(addr => 
-            addr.toLowerCase().includes(query.toLowerCase()))) {
-            return true;
-        }
-        
-        // 모든 검색어가 포함되어 있는지 확인
-        return searchTerms.every(term => 
-            item.name.toLowerCase().includes(term) ||
-            item.details.aliases.some(alias => alias.toLowerCase().includes(term)) ||
-            item.details.addresses.some(addr => addr.toLowerCase().includes(term))
-        );
     });
+    
+    // 검색 실행
+    data.forEach(item => {
+        // 정확한 일치 확인
+        if (item.name.toLowerCase().includes(lowerQuery) || 
+            item.details.aliases.some(alias => alias.toLowerCase().includes(lowerQuery))) {
+            exactMatches.push(item);
+            return;
+        }
+        
+        // 유사어 일치 확인
+        const hasMatch = Array.from(searchTerms).some(term => {
+            return (
+                item.name.toLowerCase().includes(term) ||
+                item.details.aliases.some(alias => alias.toLowerCase().includes(term)) ||
+                item.details.addresses.some(address => address.toLowerCase().includes(term))
+            );
+        });
+        
+        if (hasMatch) {
+            similarMatches.push(item);
+        }
+    });
+    
+    // 검색 결과가 없으면 추천 검색어 제안
+    if (exactMatches.length === 0 && similarMatches.length === 0) {
+        const possibleSuggestions = Object.keys(suggestedTerms)
+            .filter(term => term.includes(lowerQuery) || lowerQuery.includes(term))
+            .map(term => suggestedTerms[term]);
+        
+        if (possibleSuggestions.length > 0) {
+            suggestions = [...new Set(possibleSuggestions)];
+        }
+    }
+    
+    return {
+        results: [...exactMatches, ...similarMatches],
+        hasExactMatches: exactMatches.length > 0,
+        hasSimilarMatches: similarMatches.length > 0,
+        suggestions
+    };
 }
 
 /**
@@ -252,146 +349,15 @@ function searchByNumber(data, query, numberType) {
     const normalizedQuery = query.replace(/[^0-9]/g, '');
     
     return data.filter(item => {
-        // 신분증 정보 검색
         return item.details.identifications.some(id => {
-            if (numberType === 'passport' && id.type.toLowerCase().includes('passport')) {
+            if (!numberType || numberType === 'all') {
                 return id.number.replace(/[^0-9]/g, '').includes(normalizedQuery);
             }
-            if (numberType === 'id' && id.type.toLowerCase().includes('id')) {
-                return id.number.replace(/[^0-9]/g, '').includes(normalizedQuery);
-            }
-            if (numberType === 'other') {
-                return id.number.replace(/[^0-9]/g, '').includes(normalizedQuery);
-            }
-            return false;
+            
+            return id.type.toLowerCase().includes(numberType.toLowerCase()) &&
+                   id.number.replace(/[^0-9]/g, '').includes(normalizedQuery);
         });
     });
-}
-
-/**
- * 이미지 기반 검색을 수행합니다.
- * @param {Array} data 검색할 데이터 배열
- * @param {string} query 이미지 데이터
- * @returns {Array} 검색 결과 배열
- */
-function searchByImage(data, query) {
-    // 이미지 검색 기능은 추후 구현 예정
-    console.log('이미지 검색 기능은 추후 구현될 예정입니다.');
-    return [];
-}
-
-/**
- * 제재 데이터 소스들의 목록을 가져옵니다.
- * @returns {Promise<Array>} 소스 목록
- */
-async function getSanctionsSources() {
-    const data = await fetchSanctionsData();
-    
-    if (!data || !data.meta) {
-        return [];
-    }
-    
-    // 모든 제재 대상의 소스 필드에서 고유한 소스 추출
-    const sources = new Set();
-    data.data.forEach(sanction => {
-        sanction.source.split(',').forEach(source => {
-            sources.add(source.trim());
-        });
-    });
-    
-    return Array.from(sources);
-}
-
-/**
- * 제재 프로그램 목록을 가져옵니다.
- * @returns {Promise<Array>} 프로그램 목록
- */
-async function getSanctionsPrograms() {
-    const data = await fetchSanctionsData();
-    
-    if (!data || !data.data) {
-        return [];
-    }
-    
-    // 모든 제재 대상의 프로그램 필드에서 고유한 프로그램 추출
-    const programs = new Set();
-    data.data.forEach(sanction => {
-        if (sanction.programs && Array.isArray(sanction.programs)) {
-            sanction.programs.forEach(program => {
-                programs.add(program);
-            });
-        }
-    });
-    
-    return Array.from(programs);
-}
-
-/**
- * 제재 대상 국가 목록을 가져옵니다.
- * @returns {Promise<Array>} 국가 목록
- */
-async function getSanctionsCountries() {
-    const data = await fetchSanctionsData();
-    
-    if (!data || !data.data) {
-        return [];
-    }
-    
-    // 모든 제재 대상의 국가 필드에서 고유한 국가 추출
-    const countries = new Set();
-    data.data.forEach(sanction => {
-        if (sanction.country && sanction.country.trim() !== '') {
-            countries.add(sanction.country);
-        }
-    });
-    
-    return Array.from(countries);
-}
-
-/**
- * 제재 대상 유형 목록을 가져옵니다.
- * @returns {Promise<Array>} 유형 목록
- */
-async function getSanctionsTypes() {
-    const data = await fetchSanctionsData();
-    
-    if (!data || !data.data) {
-        return [];
-    }
-    
-    // 모든 제재 대상의 유형 필드에서 고유한 유형 추출
-    const types = new Set();
-    data.data.forEach(sanction => {
-        if (sanction.type) {
-            types.add(sanction.type);
-        }
-    });
-    
-    return Array.from(types);
-}
-
-/**
- * ID로 제재 대상 상세 정보를 가져옵니다.
- * @param {string} id 제재 대상 ID
- * @returns {Promise<Object>} 제재 대상 상세 정보
- */
-async function getSanctionById(id) {
-    const data = await fetchSanctionsData();
-    
-    if (!data || !data.data) {
-        return null;
-    }
-    
-    return data.data.find(sanction => sanction.id === id) || null;
-}
-
-/**
- * 이름으로 제재 대상을 검색합니다.
- * @param {string} name 검색할 이름
- * @returns {Promise<Array>} 검색 결과 배열
- */
-async function getSanctionsByName(name) {
-    return searchSanctions(name);
 }
 
 /**
@@ -414,16 +380,38 @@ async function getRecentSanctions(limit = 10) {
     return data.slice(0, limit);
 }
 
+/**
+ * 추천 검색어 가져오기
+ * @param {string} query 검색어
+ * @returns {Array<string>} 추천 검색어 목록
+ */
+function getSuggestedSearchTerms(query) {
+    const lowerQuery = query.toLowerCase();
+    const suggestions = [];
+    
+    // 직접적인 추천 검색어 확인
+    Object.keys(suggestedTerms).forEach(term => {
+        if (term.includes(lowerQuery) || lowerQuery.includes(term)) {
+            suggestions.push(suggestedTerms[term]);
+        }
+    });
+    
+    // 유사어 사전에서 검색어 확인
+    Object.keys(similarTerms).forEach(term => {
+        if (term.toLowerCase().includes(lowerQuery)) {
+            suggestions.push(term);
+        } else if (similarTerms[term].some(similar => similar.toLowerCase().includes(lowerQuery))) {
+            suggestions.push(term);
+        }
+    });
+    
+    return [...new Set(suggestions)];
+}
+
 // API 함수 내보내기
 export {
     fetchSanctionsData,
     searchSanctions,
-    getSanctionsSources,
-    getSanctionsPrograms,
-    getSanctionsCountries,
-    getSanctionsTypes,
-    getSanctionById,
-    getSanctionsByName,
     getSanctionDetails,
     getRecentSanctions
 }; 

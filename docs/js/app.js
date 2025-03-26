@@ -7,6 +7,11 @@ import { fetchSanctionsData, searchSanctions, getSanctionDetails } from './api.j
 
 // 전역 변수
 let currentResults = [];
+let activeFilters = {
+    countries: new Set(),
+    programs: new Set()
+};
+let users = JSON.parse(localStorage.getItem('users')) || [];
 
 // DOM이 로드된 후 초기화
 document.addEventListener('DOMContentLoaded', initializeApp);
@@ -22,17 +27,45 @@ function initializeApp() {
     
     // 이벤트 리스너 등록
     setupEventListeners();
+    
+    // 필터 및 검색 옵션 설정
+    setupFilterOptions();
+    setupSearchOptions();
+    setupAutocomplete();
+    
+    // 초기 데이터 로드
+    loadInitialData();
+}
+
+/**
+ * 디바운스 함수 - 연속 호출 방지
+ */
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), wait);
+    };
+}
+
+// localStorage에서 사용자 정보 가져오기 공통 함수
+function getUserFromStorage() {
+    return {
+        isLoggedIn: localStorage.getItem('isLoggedIn') === 'true',
+        email: localStorage.getItem('userEmail'),
+        name: localStorage.getItem('userName')
+    };
 }
 
 /**
  * 로그인 상태 확인
  */
 function checkLoginStatus() {
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    const userEmail = localStorage.getItem('userEmail');
+    const { isLoggedIn, email } = getUserFromStorage();
     
-    if (isLoggedIn && userEmail) {
-        showMainSection(userEmail);
+    if (isLoggedIn && email) {
+        showMainSection(email);
     } else {
         showLoginSection();
     }
@@ -50,15 +83,13 @@ function showMainSection(email) {
     if (mainSection) mainSection.style.display = 'block';
     
     // 사용자 이름 표시
-    const userName = email.split('@')[0];
+    const { name } = getUserFromStorage();
+    const userName = name || email.split('@')[0];
     const userNameElement = document.getElementById('user-name');
-    if (userNameElement) userNameElement.textContent = userName || '사용자';
+    if (userNameElement) userNameElement.textContent = userName;
     
     // 푸터 스타일 조정
     adjustFooterForMainSection();
-    
-    // 초기 데이터 로드
-    loadInitialData();
 }
 
 /**
@@ -82,23 +113,245 @@ function showLoginSection() {
 }
 
 /**
- * 푸터 스타일 로그인 페이지용으로 조정
+ * 필터 옵션 설정 (다중 선택 UI로 변경)
  */
-function adjustFooterForLoginSection() {
-    const footer = document.querySelector('.main-footer');
-    if (footer) {
-        footer.classList.add('login-footer');
+function setupFilterOptions() {
+    const countrySelect = document.getElementById('country');
+    const programSelect = document.getElementById('program');
+    
+    if (countrySelect) {
+        // 국가 선택 드롭다운을 다중 선택 목록으로 대체
+        const countryOptions = `
+            <div class="filter-options country-options">
+                <div class="filter-option" data-value="">모든 국가</div>
+                <div class="filter-option" data-value="NK">북한</div>
+                <div class="filter-option" data-value="RU">러시아</div>
+                <div class="filter-option" data-value="IR">이란</div>
+                <div class="filter-option" data-value="SY">시리아</div>
+            </div>
+        `;
+        
+        // 새로운 필터 컨테이너 생성
+        const countryFilterContainer = document.createElement('div');
+        countryFilterContainer.className = 'filter-container';
+        countryFilterContainer.innerHTML = `
+            <label>국가</label>
+            <div class="filter-selected">모든 국가</div>
+            ${countryOptions}
+        `;
+        
+        // 기존 select 요소 대체
+        countrySelect.parentNode.replaceChild(countryFilterContainer, countrySelect);
+    }
+    
+    if (programSelect) {
+        // 프로그램 선택 드롭다운을 다중 선택 목록으로 대체
+        const programOptions = `
+            <div class="filter-options program-options">
+                <div class="filter-option" data-value="">모든 프로그램</div>
+                <div class="filter-option" data-value="UN_SANCTIONS">UN 제재</div>
+                <div class="filter-option" data-value="EU_SANCTIONS">EU 제재</div>
+                <div class="filter-option" data-value="US_SANCTIONS">US 제재</div>
+            </div>
+        `;
+        
+        // 새로운 필터 컨테이너 생성
+        const programFilterContainer = document.createElement('div');
+        programFilterContainer.className = 'filter-container';
+        programFilterContainer.innerHTML = `
+            <label>제재 프로그램</label>
+            <div class="filter-selected">모든 프로그램</div>
+            ${programOptions}
+        `;
+        
+        // 기존 select 요소 대체
+        programSelect.parentNode.replaceChild(programFilterContainer, programSelect);
+    }
+    
+    // 필터 옵션 클릭 이벤트 처리
+    const filterContainers = document.querySelectorAll('.filter-container');
+    filterContainers.forEach(container => {
+        // 선택된 항목 표시 영역에 클릭 이벤트 추가
+        const selectedDisplay = container.querySelector('.filter-selected');
+        if (selectedDisplay) {
+            selectedDisplay.addEventListener('click', () => {
+                // 옵션 목록 표시/숨김
+                const options = container.querySelector('.filter-options');
+                options.classList.toggle('show');
+            });
+        }
+        
+        // 옵션 항목 클릭 이벤트 추가
+        const options = container.querySelectorAll('.filter-option');
+        options.forEach(option => {
+            option.addEventListener('click', () => {
+                const value = option.getAttribute('data-value');
+                const isCountryFilter = container.querySelector('.country-options') !== null;
+                const isProgramFilter = container.querySelector('.program-options') !== null;
+                
+                // 모든 필터 선택 시 다른 선택 해제
+                if (!value) {
+                    if (isCountryFilter) {
+                        activeFilters.countries.clear();
+                        updateFilterDisplay(container, '모든 국가', true);
+                    } else if (isProgramFilter) {
+                        activeFilters.programs.clear();
+                        updateFilterDisplay(container, '모든 프로그램', true);
+                    }
+                } else {
+                    if (isCountryFilter) {
+                        // 모든 국가 옵션이 선택된 상태인지 확인
+                        const allSelected = activeFilters.countries.size === 0;
+                        
+                        if (allSelected) {
+                            // 모든 국가가 선택된 상태라면 새로운 선택으로 대체
+                            activeFilters.countries.add(value);
+                        } else {
+                            // 이미 선택된 항목이면 제거, 아니면 추가
+                            if (activeFilters.countries.has(value)) {
+                                activeFilters.countries.delete(value);
+                                // 모든 필터가 제거되면 '모든 국가' 선택
+                                if (activeFilters.countries.size === 0) {
+                                    updateFilterDisplay(container, '모든 국가', true);
+                                } else {
+                                    updateFilterDisplay(container, getSelectedFiltersText(activeFilters.countries), false);
+                                }
+                            } else {
+                                activeFilters.countries.add(value);
+                                updateFilterDisplay(container, getSelectedFiltersText(activeFilters.countries), false);
+                            }
+                        }
+                    } else if (isProgramFilter) {
+                        // 모든 프로그램 옵션이 선택된 상태인지 확인
+                        const allSelected = activeFilters.programs.size === 0;
+                        
+                        if (allSelected) {
+                            // 모든 프로그램이 선택된 상태라면 새로운 선택으로 대체
+                            activeFilters.programs.add(value);
+                        } else {
+                            // 이미 선택된 항목이면 제거, 아니면 추가
+                            if (activeFilters.programs.has(value)) {
+                                activeFilters.programs.delete(value);
+                                // 모든 필터가 제거되면 '모든 프로그램' 선택
+                                if (activeFilters.programs.size === 0) {
+                                    updateFilterDisplay(container, '모든 프로그램', true);
+                                } else {
+                                    updateFilterDisplay(container, getSelectedFiltersText(activeFilters.programs), false);
+                                }
+                            } else {
+                                activeFilters.programs.add(value);
+                                updateFilterDisplay(container, getSelectedFiltersText(activeFilters.programs), false);
+                            }
+                        }
+                    }
+                }
+                
+                // 옵션 선택 시 옵션 목록 숨김
+                container.querySelector('.filter-options').classList.remove('show');
+                
+                // 옵션 스타일 업데이트
+                updateOptionStyles(container);
+            });
+        });
+    });
+    
+    // 외부 클릭 시 옵션 목록 닫기
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.filter-container')) {
+            document.querySelectorAll('.filter-options').forEach(options => {
+                options.classList.remove('show');
+            });
+        }
+    });
+}
+
+/**
+ * 필터 표시 텍스트 업데이트
+ * @param {HTMLElement} container 필터 컨테이너
+ * @param {string} text 표시할 텍스트
+ * @param {boolean} isAll 모든 항목 선택 여부
+ */
+function updateFilterDisplay(container, text, isAll) {
+    const selectedDisplay = container.querySelector('.filter-selected');
+    if (selectedDisplay) {
+        selectedDisplay.textContent = text;
+        selectedDisplay.setAttribute('data-all', isAll ? 'true' : 'false');
     }
 }
 
 /**
- * 푸터 스타일 메인 페이지용으로 조정
+ * 선택된 옵션 스타일 업데이트
+ * @param {HTMLElement} container 필터 컨테이너
  */
+function updateOptionStyles(container) {
+    const options = container.querySelectorAll('.filter-option');
+    const isCountryFilter = container.querySelector('.country-options') !== null;
+    const isProgramFilter = container.querySelector('.program-options') !== null;
+    
+    options.forEach(option => {
+        const value = option.getAttribute('data-value');
+        option.classList.remove('selected');
+        
+        // 선택된 옵션에 selected 클래스 추가
+        if (!value) {
+            // '모든 X' 옵션은 다른 선택이 없을 때만 선택됨
+            if ((isCountryFilter && activeFilters.countries.size === 0) ||
+                (isProgramFilter && activeFilters.programs.size === 0)) {
+                option.classList.add('selected');
+            }
+        } else {
+            // 개별 옵션은 선택 목록에 있을 때 선택됨
+            if ((isCountryFilter && activeFilters.countries.has(value)) ||
+                (isProgramFilter && activeFilters.programs.has(value))) {
+                option.classList.add('selected');
+            }
+        }
+    });
+}
+
+/**
+ * 선택된 필터 텍스트 가져오기
+ * @param {Set} filterSet 선택된 필터 Set
+ * @returns {string} 선택된 필터 텍스트
+ */
+function getSelectedFiltersText(filterSet) {
+    if (filterSet.size === 0) return '';
+    
+    // 선택된 필터 텍스트 매핑
+    const filterMap = {
+        // 국가
+        'NK': '북한',
+        'RU': '러시아',
+        'IR': '이란',
+        'SY': '시리아',
+        // 프로그램
+        'UN_SANCTIONS': 'UN',
+        'EU_SANCTIONS': 'EU',
+        'US_SANCTIONS': 'US'
+    };
+    
+    // 필터셋 내용을 배열로 변환하고 이름으로 매핑
+    const selectedTexts = Array.from(filterSet).map(key => filterMap[key] || key);
+    
+    // 선택항목이 많으면 축약
+    if (selectedTexts.length > 2) {
+        return `${selectedTexts[0]}, ${selectedTexts[1]} 외 ${selectedTexts.length - 2}개`;
+    } else {
+        return selectedTexts.join(', ');
+    }
+}
+
+/**
+ * 푸터 스타일 로그인/메인 페이지용으로 조정
+ */
+function adjustFooterForLoginSection() {
+    const footer = document.querySelector('.main-footer');
+    if (footer) footer.classList.add('login-footer');
+}
+
 function adjustFooterForMainSection() {
     const footer = document.querySelector('.main-footer');
-    if (footer) {
-        footer.classList.remove('login-footer');
-    }
+    if (footer) footer.classList.remove('login-footer');
 }
 
 /**
@@ -120,7 +373,24 @@ function setupEventListeners() {
     // 검색 폼 제출
     const searchForm = document.getElementById('search-form');
     if (searchForm) {
-        searchForm.addEventListener('submit', handleSearch);
+        searchForm.addEventListener('submit', performSearch);
+    }
+    
+    // 검색 버튼 클릭
+    const searchButton = document.getElementById('search-button');
+    if (searchButton) {
+        searchButton.addEventListener('click', performSearch);
+    }
+    
+    // 엔터 키 검색 실행
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                performSearch();
+            }
+        });
     }
     
     // 고급 검색 토글
@@ -141,17 +411,59 @@ function setupEventListeners() {
         });
     }
     
-    // 비밀번호 표시 토글
-    const togglePassword = document.querySelector('.toggle-password');
-    const passwordInput = document.getElementById('password');
-    if (togglePassword && passwordInput) {
-        togglePassword.addEventListener('click', () => {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            togglePassword.classList.toggle('fa-eye');
-            togglePassword.classList.toggle('fa-eye-slash');
+    // 회원가입 모달 표시
+    const registerLink = document.getElementById('register-link');
+    const registerModal = document.getElementById('register-modal');
+    if (registerLink && registerModal) {
+        registerLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            registerModal.classList.add('show');
         });
     }
+    
+    // 회원가입 모달 닫기
+    const registerClose = document.getElementById('register-close');
+    if (registerClose && registerModal) {
+        registerClose.addEventListener('click', () => {
+            registerModal.classList.remove('show');
+        });
+    }
+    
+    // 회원가입 폼 제출
+    const registerSubmit = document.getElementById('register-submit');
+    if (registerSubmit) {
+        registerSubmit.addEventListener('click', handleRegister);
+    }
+    
+    // 약관 링크 이벤트
+    const termsLink = document.getElementById('terms-link');
+    const privacyLink = document.getElementById('privacy-link');
+    
+    if (termsLink) {
+        termsLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showInfoModal('footer-terms');
+        });
+    }
+    
+    if (privacyLink) {
+        privacyLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showInfoModal('footer-privacy');
+        });
+    }
+    
+    // 비밀번호 표시 토글
+    const togglePasswordElements = document.querySelectorAll('.toggle-password');
+    togglePasswordElements.forEach(toggle => {
+        toggle.addEventListener('click', () => {
+            const passwordInput = toggle.previousElementSibling;
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            toggle.classList.toggle('fa-eye');
+            toggle.classList.toggle('fa-eye-slash');
+        });
+    });
     
     // 푸터 링크
     setupFooterLinks();
@@ -321,9 +633,26 @@ async function handleLogin(e) {
             // 로그인 성공
             localStorage.setItem('isLoggedIn', 'true');
             localStorage.setItem('userEmail', email);
+            localStorage.setItem('userName', '재수');
             
             // 메인 페이지로 전환
             showMainSection(email);
+            
+            // 성공 메시지
+            showAlert('로그인 성공!', 'success');
+            return;
+        }
+        
+        // 등록된 사용자 확인
+        const user = users.find(user => user.email === email && user.password === password);
+        if (user) {
+            // 로그인 성공
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('userEmail', user.email);
+            localStorage.setItem('userName', user.name);
+            
+            // 메인 페이지로 전환
+            showMainSection(user.email);
             
             // 성공 메시지
             showAlert('로그인 성공!', 'success');
@@ -352,85 +681,221 @@ function handleLogout() {
 }
 
 /**
- * 검색 처리
- * @param {Event} e 이벤트 객체
+ * 검색 처리 - 통합된 검색 함수
+ * @param {Event} e 이벤트 객체 (선택적)
  */
-async function handleSearch(e) {
-    e.preventDefault();
+async function performSearch(e) {
+    if (e) e.preventDefault();
     
     const query = document.getElementById('search-input').value.trim();
-    const country = document.getElementById('country').value;
-    const program = document.getElementById('program').value;
-    const searchType = document.getElementById('search-type').value;
-    const numberType = document.getElementById('number-type').value;
+    const searchType = document.querySelector('input[name="search-type"]:checked')?.value || 
+                       document.getElementById('search-type')?.value || 'text';
     
-    if (!query) {
+    const numberType = searchType === 'number' ? 
+                      (document.querySelector('input[name="number-type"]:checked')?.value || 
+                       document.getElementById('number-type')?.value || '') : '';
+    
+    if (!query && !e) {
+        // 초기 로드 시에는 빈 쿼리 허용 (모든 결과 표시)
+    } else if (!query) {
         showAlert('검색어를 입력해주세요.', 'error');
         return;
     }
     
+    // 검색 중 UI 표시
+    const resultsContainer = document.getElementById('results-container') || document.getElementById('results-list');
+    if (resultsContainer) {
+        resultsContainer.innerHTML = '<div class="loading-spinner"></div>';
+    }
+    
     try {
-        // 검색 수행
-        const results = await searchSanctions(query, country, program, searchType, numberType);
+        // 선택된 필터 가져오기
+        const selectedCountries = Array.from(document.querySelectorAll('.filter-option.country.selected'))
+            .map(el => el.dataset.value);
+        const selectedPrograms = Array.from(document.querySelectorAll('.filter-option.program.selected'))
+            .map(el => el.dataset.value);
+        
+        // API 함수 호출
+        const country = selectedCountries.length > 0 ? selectedCountries[0] : '';
+        const program = selectedPrograms.length > 0 ? selectedPrograms[0] : '';
+        
+        let searchResult = await searchSanctions(query, country, program, searchType, numberType);
+        
+        // 이전 방식 호환 - 다중 필터 적용
+        if (activeFilters.countries.size > 0) {
+            searchResult.results = searchResult.results.filter(item => 
+                Array.from(activeFilters.countries).some(c => item.country === c)
+            );
+        }
+        
+        if (activeFilters.programs.size > 0) {
+            searchResult.results = searchResult.results.filter(item => 
+                item.programs.some(program => activeFilters.programs.has(program))
+            );
+        }
         
         // 전역 변수에 결과 저장
-        currentResults = results;
-        
-        // 결과 표시
-        displayResults(results);
+        currentResults = searchResult.results;
         
         // 결과 수 업데이트
-        document.getElementById('results-count').textContent = results.length;
+        updateResultsCount(searchResult.results.length);
+        
+        // 검색 결과가 있는 경우
+        if (searchResult.results.length > 0) {
+            displayResults(searchResult.results);
+            
+            // 유사 검색어로 찾은 결과가 있는 경우 알림
+            if (searchResult.hasSimilarMatches && !searchResult.hasExactMatches) {
+                showAlert('정확한 일치 결과는 없지만 유사한 검색어로 결과를 찾았습니다.', 'info');
+            }
+        } else {
+            // 검색 결과가 없는 경우
+            if (resultsContainer) {
+                resultsContainer.innerHTML = `
+                    <div class="no-results">
+                        <h3>검색 결과가 없습니다</h3>
+                        <p>다른 검색어를 시도하거나 필터를 조정해보세요.</p>
+                    </div>
+                `;
+            }
+            
+            // 추천 검색어가 있는 경우
+            if (searchResult.suggestions && searchResult.suggestions.length > 0) {
+                displaySearchSuggestions(searchResult.suggestions);
+            }
+        }
     } catch (error) {
         console.error('검색 오류:', error);
+        if (resultsContainer) {
+            resultsContainer.innerHTML = `
+                <div class="error-message">
+                    <h3>검색 중 오류가 발생했습니다</h3>
+                    <p>나중에 다시 시도해주세요.</p>
+                </div>
+            `;
+        }
         showAlert('검색 중 오류가 발생했습니다.', 'error');
     }
 }
 
 /**
- * 검색 결과 표시
- * @param {Array} results 검색 결과 배열
+ * 결과 카운트 업데이트
+ * @param {number} count 결과 수
  */
-function displayResults(results) {
-    const resultsList = document.getElementById('results-list');
-    
-    if (!resultsList) return;
-    
-    if (!results.length) {
-        resultsList.innerHTML = '<div class="no-results">검색 결과가 없습니다.</div>';
-        return;
-    }
-    
-    resultsList.innerHTML = results.map((result, index) => `
-        <div class="result-item" data-id="${index}">
-            <div class="result-header">
-                <h3>${result.name}</h3>
-                <span class="result-type">${result.type}</span>
-            </div>
-            <div class="result-body">
-                <p class="result-country">국가: ${result.country}</p>
-                <p class="result-programs">제재 프로그램: ${result.programs.join(', ')}</p>
-            </div>
-            <div class="result-footer">
-                <button class="btn-detail" onclick="showDetail(${index})">
-                    상세 정보
-                </button>
-            </div>
-        </div>
-    `).join('');
+function updateResultsCount(count) {
+    const countElements = document.querySelectorAll('#results-count');
+    countElements.forEach(element => {
+        if (element) element.textContent = count;
+    });
 }
 
 /**
- * 상세 정보 표시
- * @param {number} index 결과 인덱스
+ * 검색 결과 표시 - 통합된 함수
+ * @param {Array} results 검색 결과 배열
  */
-function showDetail(index) {
-    if (!currentResults || !currentResults[index]) {
-        showAlert('상세 정보를 찾을 수 없습니다.', 'error');
+function displayResults(results) {
+    // 새로운 UI (grid 레이아웃)용 결과 표시
+    const resultsContainer = document.getElementById('results-container');
+    // 이전 UI (list 레이아웃)용 결과 표시 호환성
+    const resultsList = document.getElementById('results-list');
+    
+    // 타겟 컨테이너 결정
+    const targetContainer = resultsContainer || resultsList;
+    if (!targetContainer) return;
+    
+    // 검색 결과가 없는 경우
+    if (!results || !results.length) {
+        targetContainer.innerHTML = '<div class="no-results">검색 결과가 없습니다.</div>';
         return;
     }
     
-    const result = currentResults[index];
+    // UI 타입에 따라 다른 형태의 결과 표시
+    if (resultsContainer) {
+        // 그리드 레이아웃 (새 UI)
+        resultsContainer.innerHTML = '';
+        
+        results.forEach((item, index) => {
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            card.dataset.id = item.id;
+            card.dataset.type = item.type;
+            card.dataset.relevance = results.length - index; // 간단한 관련성 점수
+            
+            // 생성 날짜 또는 기본값
+            card.dataset.date = item.date || '2023-01-01';
+            
+            card.innerHTML = `
+                <h3>${item.name}</h3>
+                <div class="result-meta">
+                    <div class="result-meta-item">
+                        <i class="fas fa-user-circle"></i>
+                        <span>${item.type || '개인'}</span>
+                    </div>
+                    <div class="result-meta-item">
+                        <i class="fas fa-flag"></i>
+                        <span>${item.country || '미상'}</span>
+                    </div>
+                </div>
+                <p class="result-description">${item.description || item.details?.aliases?.join(', ') || '상세 정보가 없습니다.'}</p>
+                <div class="result-programs">
+                    ${(item.programs || []).map(program => `
+                        <span class="program-tag">${program}</span>
+                    `).join('')}
+                </div>
+                <button class="view-details-button" onclick="showDetail('${item.id}')">상세 정보 보기</button>
+            `;
+            
+            resultsContainer.appendChild(card);
+        });
+    } else {
+        // 리스트 레이아웃 (이전 UI)
+        resultsList.innerHTML = results.map((result, index) => `
+            <div class="result-item" data-id="${index}">
+                <div class="result-header">
+                    <h3>${result.name}</h3>
+                    <span class="result-type">${result.type}</span>
+                </div>
+                <div class="result-body">
+                    <p class="result-country">국가: ${result.country}</p>
+                    <p class="result-programs">제재 프로그램: ${result.programs.join(', ')}</p>
+                </div>
+                <div class="result-footer">
+                    <button class="btn-detail" onclick="showDetail(${index})">
+                        상세 정보
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
+/**
+ * 상세 정보 표시 - 통합된 함수
+ * @param {string|number} id 결과 ID 또는 인덱스
+ */
+function showDetail(id) {
+    let result;
+    
+    // ID가 숫자인 경우 인덱스로 처리 (이전 방식)
+    if (!isNaN(id)) {
+        if (!currentResults || !currentResults[id]) {
+            showAlert('상세 정보를 찾을 수 없습니다.', 'error');
+            return;
+        }
+        result = currentResults[id];
+    } else {
+        // ID가 문자열인 경우 ID로 검색 (새 방식)
+        if (!currentResults) {
+            showAlert('검색 결과가 없습니다.', 'error');
+            return;
+        }
+        result = currentResults.find(item => item.id === id);
+        if (!result) {
+            showAlert('상세 정보를 찾을 수 없습니다.', 'error');
+            return;
+        }
+    }
+    
     const detailContent = document.getElementById('detail-content');
     const detailModal = document.getElementById('detail-modal');
     
@@ -486,7 +951,8 @@ function showDetail(index) {
  */
 async function loadInitialData() {
     try {
-        await fetchSanctionsData();
+        // 초기 데이터 로드 - 빈 검색으로 모든 결과 가져오기
+        await performSearch();
         console.log('초기 데이터 로드 완료');
     } catch (error) {
         console.error('초기 데이터 로드 오류:', error);
@@ -495,32 +961,278 @@ async function loadInitialData() {
 }
 
 /**
- * 알림 표시
- * @param {string} message 메시지
- * @param {string} type 알림 유형
+ * 검색 결과가 없을 때 추천 검색어 표시
+ * @param {Array<string>} suggestions 추천 검색어 배열
  */
-function showAlert(message, type = 'info') {
-    const alertContainers = document.querySelectorAll('.alert-container');
+function displaySearchSuggestions(suggestions) {
+    const container = document.createElement('div');
+    container.className = 'search-suggestions';
     
-    if (!alertContainers.length) return;
+    const heading = document.createElement('h4');
+    heading.textContent = '다음 검색어는 어떠세요?';
+    container.appendChild(heading);
     
-    // 현재 보이는 alert-container에 알림 추가
-    const visibleContainer = Array.from(alertContainers).find(container => {
-        const parent = container.closest('section');
-        return parent && window.getComputedStyle(parent).display !== 'none';
-    }) || alertContainers[0];
+    const list = document.createElement('ul');
+    suggestions.forEach(suggestion => {
+        const item = document.createElement('li');
+        const link = document.createElement('a');
+        link.textContent = suggestion;
+        link.href = '#';
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('search-input').value = suggestion;
+            performSearch();
+        });
+        item.appendChild(link);
+        list.appendChild(item);
+    });
     
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${type}`;
-    alert.textContent = message;
+    container.appendChild(list);
     
-    visibleContainer.appendChild(alert);
-    
-    // 3초 후 알림 제거
-    setTimeout(() => {
-        alert.remove();
-    }, 3000);
+    // 결과 컨테이너에 추천어 추가
+    const resultsContainer = document.getElementById('results-container') || document.getElementById('results-list');
+    if (resultsContainer) {
+        resultsContainer.appendChild(container);
+    }
 }
 
-// 전역 함수로 노출 (HTML 이벤트 처리용)
-window.showDetail = showDetail;
+/**
+ * 검색어 자동완성 기능
+ */
+function setupAutocomplete() {
+    const searchInput = document.getElementById('search-input');
+    const autocompleteContainer = document.createElement('div');
+    autocompleteContainer.className = 'autocomplete-container';
+    autocompleteContainer.style.display = 'none';
+    
+    // 자동완성 컨테이너 추가
+    searchInput.parentNode.appendChild(autocompleteContainer);
+    
+    // 입력 이벤트에 자동완성 기능 연결
+    searchInput.addEventListener('input', debounce(async () => {
+        const query = searchInput.value.trim();
+        
+        if (query.length < 2) {
+            autocompleteContainer.style.display = 'none';
+            return;
+        }
+        
+        // 검색어 추천 가져오기
+        const suggestions = getSuggestedSearchTerms(query);
+        
+        if (suggestions.length > 0) {
+            // 자동완성 목록 표시
+            autocompleteContainer.innerHTML = '';
+            autocompleteContainer.style.display = 'block';
+            
+            suggestions.forEach(suggestion => {
+                const item = document.createElement('div');
+                item.className = 'autocomplete-item';
+                item.textContent = suggestion;
+                
+                // 클릭 이벤트 추가
+                item.addEventListener('click', () => {
+                    searchInput.value = suggestion;
+                    autocompleteContainer.style.display = 'none';
+                    performSearch();
+                });
+                
+                autocompleteContainer.appendChild(item);
+            });
+        } else {
+            autocompleteContainer.style.display = 'none';
+        }
+    }, 300));
+    
+    // 외부 클릭 시 자동완성 숨기기
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !autocompleteContainer.contains(e.target)) {
+            autocompleteContainer.style.display = 'none';
+        }
+    });
+}
+
+/**
+ * 고급 검색 토글 및 검색 유형 선택 이벤트 핸들러 설정
+ */
+function setupSearchOptions() {
+    // 고급 검색 토글
+    const advancedSearchButton = document.getElementById('advanced-search-button');
+    const advancedSearchOptions = document.querySelector('.advanced-search-options');
+    
+    if (advancedSearchButton && advancedSearchOptions) {
+        advancedSearchButton.addEventListener('click', () => {
+            const isVisible = advancedSearchOptions.style.display !== 'none';
+            advancedSearchOptions.style.display = isVisible ? 'none' : 'block';
+            
+            // 아이콘 회전
+            const icon = advancedSearchButton.querySelector('i');
+            if (icon) {
+                icon.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
+                icon.style.transition = 'transform 0.3s';
+            }
+        });
+    }
+    
+    // 검색 유형 라디오 버튼 이벤트 리스너
+    const searchTypeInputs = document.querySelectorAll('input[name="search-type"]');
+    const numberTypeOptions = document.querySelector('.number-type-options');
+    
+    if (searchTypeInputs.length && numberTypeOptions) {
+        searchTypeInputs.forEach(input => {
+            input.addEventListener('change', () => {
+                // 활성 클래스 이동
+                document.querySelectorAll('.search-type-options .search-option').forEach(option => {
+                    option.classList.remove('active');
+                });
+                input.closest('.search-option').classList.add('active');
+                
+                // 번호 유형 옵션 표시 여부
+                numberTypeOptions.style.display = input.value === 'number' ? 'flex' : 'none';
+            });
+        });
+    }
+    
+    // 번호 유형 라디오 버튼 이벤트 리스너
+    const numberTypeInputs = document.querySelectorAll('input[name="number-type"]');
+    if (numberTypeInputs.length) {
+        numberTypeInputs.forEach(input => {
+            input.addEventListener('change', () => {
+                // 활성 클래스 이동
+                document.querySelectorAll('.number-type-options .search-option').forEach(option => {
+                    option.classList.remove('active');
+                });
+                input.closest('.search-option').classList.add('active');
+            });
+        });
+    }
+    
+    // 정렬 옵션 변경 이벤트
+    const sortSelect = document.getElementById('sort-select');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', () => {
+            // 현재 표시된 결과 재정렬
+            const currentResults = [...document.querySelectorAll('.result-card')].map(card => {
+                return {
+                    element: card,
+                    name: card.querySelector('h3').textContent,
+                    date: card.dataset.date || '2000-01-01',
+                    relevance: parseInt(card.dataset.relevance || '0')
+                };
+            });
+            
+            // 정렬 로직
+            currentResults.sort((a, b) => {
+                switch (sortSelect.value) {
+                    case 'date-desc':
+                        return new Date(b.date) - new Date(a.date);
+                    case 'date-asc':
+                        return new Date(a.date) - new Date(b.date);
+                    case 'name-asc':
+                        return a.name.localeCompare(b.name, 'ko');
+                    default: // relevance
+                        return b.relevance - a.relevance;
+                }
+            });
+            
+            // 화면에 재배치
+            const resultsContainer = document.getElementById('results-container');
+            if (resultsContainer) {
+                resultsContainer.innerHTML = '';
+                currentResults.forEach(item => {
+                    resultsContainer.appendChild(item.element);
+                });
+            }
+        });
+    }
+}
+
+/**
+ * 회원가입 처리
+ * @param {Event} e 이벤트 객체
+ */
+function handleRegister(e) {
+    e.preventDefault();
+    
+    // 입력값 가져오기
+    const nameInput = document.getElementById('register-name');
+    const emailInput = document.getElementById('register-email');
+    const passwordInput = document.getElementById('register-password');
+    const passwordConfirmInput = document.getElementById('register-password-confirm');
+    const termsAgree = document.getElementById('terms-agree');
+    
+    // 입력값 검증
+    if (!nameInput.value.trim()) {
+        showAlert('이름을 입력해주세요.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        return;
+    }
+    
+    if (!emailInput.value.trim()) {
+        showAlert('이메일을 입력해주세요.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        return;
+    }
+    
+    // 이메일 형식 검증
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailInput.value)) {
+        showAlert('유효한 이메일 주소를 입력해주세요.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        return;
+    }
+    
+    if (!passwordInput.value) {
+        showAlert('비밀번호를 입력해주세요.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        return;
+    }
+    
+    if (passwordInput.value.length < 4) {
+        showAlert('비밀번호는 4자 이상이어야 합니다.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        return;
+    }
+    
+    if (passwordInput.value !== passwordConfirmInput.value) {
+        showAlert('비밀번호가 일치하지 않습니다.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        return;
+    }
+    
+    if (!termsAgree.checked) {
+        showAlert('이용약관 및 개인정보처리방침에 동의해주세요.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        return;
+    }
+    
+    // 이메일 중복 검사
+    const existingUser = users.find(user => user.email === emailInput.value);
+    if (existingUser) {
+        showAlert('이미 등록된 이메일입니다.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        return;
+    }
+    
+    // 회원 정보 저장
+    const newUser = {
+        id: Date.now().toString(),
+        name: nameInput.value,
+        email: emailInput.value,
+        password: passwordInput.value,
+        createdAt: new Date().toISOString()
+    };
+    
+    users.push(newUser);
+    localStorage.setItem('users', JSON.stringify(users));
+    
+    // 회원가입 성공 메시지
+    showAlert('회원가입이 완료되었습니다. 로그인해주세요.', 'success', { target: '#register-modal .alert-container', isStatic: true });
+    
+    // 폼 초기화 및 모달 닫기
+    setTimeout(() => {
+        const registerModal = document.getElementById('register-modal');
+        if (registerModal) {
+            registerModal.classList.remove('show');
+            
+            // 폼 초기화
+            nameInput.value = '';
+            emailInput.value = '';
+            passwordInput.value = '';
+            passwordConfirmInput.value = '';
+            termsAgree.checked = false;
+        }
+    }, 2000);
+}
