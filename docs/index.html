@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WVL - EU/US 제재 대상 검색</title>
+    <title>세계 경제 제재 검색 서비스</title>
     <!-- 구글 폰트 로드 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,12 +15,12 @@
     <!-- 로그인 섹션 -->
     <section id="login-section">
         <div class="page-title-header">
-            <h1>EU/US 제재 대상 검색 서비스</h1>
+            <h1>세계 경제 제재 검색 서비스</h1>
         </div>
         <div class="login-container">
             <div class="login-header">
                 <h2>WVL 제재 조회 시스템</h2>
-                <p>EU와 US의 제재 대상을 검색하세요</p>
+                <p>UN, EU, US의 제재 대상을 검색하세요</p>
             </div>
             <div class="login-body">
                 <div class="alert-container"></div>
@@ -38,16 +38,21 @@
                 </form>
                 <div class="login-footer">
                     <p>테스트 계정: jaesu@kakao.com / 1234</p>
+                    <div class="login-links">
+                        <a href="#" id="register-link">회원가입</a>
+                        <a href="#" id="help-link">도움말</a>
+                        <a href="#" id="about-link">회사소개</a>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- 메인 섹션 -->
-    <section id="main-section">
+    <section id="main-section" style="display: none;">
         <header class="main-header">
             <div class="header-logo">
-                <h1>WVL - EU/US 제재 대상 검색 서비스</h1>
+                <h1>세계 경제 제재 검색 서비스</h1>
             </div>
             <div class="user-info">
                 <span>안녕하세요, <span id="user-name">사용자</span>님!</span>
@@ -69,22 +74,30 @@
                         </button>
                     </div>
                     
-                    <div class="filter-options">
-                        <div class="filter-group">
-                            <label>필터:</label>
-                            <button type="button" class="filter-btn" data-filter="all">모든 유형</button>
-                            <button type="button" class="filter-btn" data-filter="individual">개인</button>
-                            <button type="button" class="filter-btn" data-filter="entity">기업/기관</button>
-                            <button type="button" class="filter-btn" data-filter="vessel">선박</button>
-                            <button type="button" class="filter-btn" data-filter="aircraft">항공기</button>
-                        </div>
-                        <button type="button" id="advanced-toggle" class="btn-text">
-                            <i class="fas fa-sliders-h"></i> 고급 검색
-                        </button>
-                    </div>
+                    <button type="button" id="advanced-toggle" class="btn-text">
+                        <i class="fas fa-sliders-h"></i> 고급 검색
+                    </button>
                     
                     <div id="advanced-search" class="advanced-search">
                         <!-- 고급 검색 옵션 -->
+                        <div class="advanced-row">
+                            <div class="form-group">
+                                <label for="search-type">검색 유형</label>
+                                <select id="search-type">
+                                    <option value="text">텍스트 검색</option>
+                                    <option value="number">번호 검색</option>
+                                    <option value="image">이미지 검색</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="number-type">번호 유형</label>
+                                <select id="number-type">
+                                    <option value="passport">여권번호</option>
+                                    <option value="id">주민번호</option>
+                                    <option value="other">기타 번호</option>
+                                </select>
+                            </div>
+                        </div>
                         <div class="advanced-row">
                             <div class="form-group">
                                 <label for="country">국가</label>
@@ -109,180 +122,45 @@
                     </div>
                 </form>
             </div>
-            
-            <!-- 로딩 인디케이터 -->
-            <div id="loading" class="loading-container">
-                <div class="spinner"></div>
-                <p>검색 중...</p>
-            </div>
-            
+
             <!-- 검색 결과 영역 -->
-            <div id="results-area" class="results-area">
+            <div class="search-results">
                 <div class="results-header">
-                    <h3>검색 결과: <span id="results-count">0</span>건</h3>
+                    <h3>검색 결과</h3>
+                    <div class="results-count">총 <span id="results-count">0</span>건</div>
                 </div>
                 <div id="results-list" class="results-list"></div>
-                <div id="no-results" class="no-results">
-                    <p>검색 결과가 없습니다.</p>
-                    <p>다른 검색어나 필터를 시도해보세요.</p>
-                </div>
+            </div>
+
+            <!-- 최신 업데이트 정보 -->
+            <div class="update-info">
+                <p>마지막 업데이트: <span id="last-update">2025-03-26 12:00 LT</span></p>
             </div>
         </div>
     </section>
 
     <!-- 상세 정보 모달 -->
-    <div id="detail-modal">
+    <div id="detail-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="detail-title" class="modal-title">제재 대상 상세 정보</h2>
-                <button id="detail-close" class="close-btn"><i class="fas fa-times"></i></button>
+                <h2>제재 대상 상세 정보</h2>
+                <button id="detail-close" class="close-btn">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="detail-info">
-                    <div class="detail-meta">
-                        <div class="meta-item">
-                            <span class="meta-label">유형:</span>
-                            <span id="detail-type" class="meta-value">-</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">국가:</span>
-                            <span id="detail-country" class="meta-value">-</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">제재 일자:</span>
-                            <span id="detail-date" class="meta-value">-</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">출처:</span>
-                            <span id="detail-source" class="meta-value">-</span>
-                        </div>
-                    </div>
-                    <div id="detail-content" class="detail-content"></div>
-                </div>
-                <div class="modal-actions">
-                    <button id="detail-print" class="modal-btn secondary"><i class="fas fa-print"></i> 인쇄</button>
-                    <button id="detail-download" class="modal-btn secondary"><i class="fas fa-file-pdf"></i> PDF 다운로드</button>
-                </div>
+                <div id="detail-content"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="detail-print" class="btn-secondary">
+                    <i class="fas fa-print"></i> 인쇄
+                </button>
+                <button id="detail-download" class="btn-secondary">
+                    <i class="fas fa-download"></i> PDF 다운로드
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- 푸터 -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-company">
-                    <h3>WVL</h3>
-                </div>
-                <div class="footer-info">
-                    <p>주식회사 팩션 (Faction Co.,Ltd) | 대표이사: 김재수</p>
-                    <p>경기도 고양시 향기로 182 현대테라타워향동 T1008호</p>
-                    <p>사업자등록번호: 123-45-67890 | 통신판매업신고: 제2024-경기고양-1234호</p>
-                    <p>개인정보관리책임자: 김민수 | 이메일: info@faction.co.kr | 전화: 02-123-4567</p>
-                    <p>&copy; 2024 주식회사 팩션. All rights reserved.</p>
-                </div>
-                <div class="footer-links">
-                    <ul>
-                        <li><a href="#" id="terms-link">이용약관</a></li>
-                        <li><a href="#" id="privacy-link">개인정보처리방침</a></li>
-                        <li><a href="#" id="help-link">도움말</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </footer>
-
-    <!-- 페이지 섹션 (이용약관, 개인정보처리방침, 도움말) -->
-    <section id="terms-section" class="page-section">
-        <div class="container">
-            <div class="page-header">
-                <button id="terms-back-btn" class="back-btn"><i class="fas fa-arrow-left"></i> 뒤로 가기</button>
-                <h2 class="page-title">이용약관</h2>
-            </div>
-            <div class="page-content">
-                <div class="content-card">
-                    <h3>제 1조 (목적)</h3>
-                    <p>이 약관은 주식회사 팩션(이하 "회사")이 제공하는 제재 대상 검색 서비스(이하 "서비스")의 이용 조건 및 절차, 회사와 회원 간의 권리, 의무 및 책임사항 등을 규정함을 목적으로 합니다.</p>
-                    
-                    <h3>제 2조 (용어의 정의)</h3>
-                    <p>이 약관에서 사용하는 용어의 정의는 다음과 같습니다.</p>
-                    <ol>
-                        <li>"회원"이란 회사와 서비스 이용계약을 체결하고 회사가 제공하는 서비스를 이용하는 개인 또는 법인을 말합니다.</li>
-                        <li>"아이디(ID)"란 회원의 식별과 서비스 이용을 위하여 회원이 정하고 회사가 승인하는 문자와
-                        숫자의 조합을 말합니다.</li>
-                        <li>"비밀번호"란 회원이 부여 받은 아이디와 일치된 회원임을 확인하고 회원의 정보 보호를 위해 회원 자신이 정한 문자와 숫자의 조합을 말합니다.</li>
-                    </ol>
-                    
-                    <h3>제 3조 (약관의 효력 및 변경)</h3>
-                    <p>이 약관은 서비스를 이용하고자 하는 모든 회원에게 적용됩니다. 회사는 합리적인 사유가 발생할 경우에는 이 약관을 변경할 수 있으며, 변경된 약관은 회원에게 공지함으로써 효력이 발생합니다.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-    
-    <section id="privacy-section" class="page-section">
-        <div class="container">
-            <div class="page-header">
-                <button id="privacy-back-btn" class="back-btn"><i class="fas fa-arrow-left"></i> 뒤로 가기</button>
-                <h2 class="page-title">개인정보처리방침</h2>
-            </div>
-            <div class="page-content">
-                <div class="content-card">
-                    <h3>1. 개인정보의 수집 및 이용 목적</h3>
-                    <p>회사는 다음의 목적을 위하여 개인정보를 처리합니다. 처리한 개인정보는 다음의 목적 이외의 용도로는 사용되지 않으며, 이용 목적이 변경되는 경우에는 개인정보 보호법 제18조에 따라 별도의 동의를 받는 등 필요한 조치를 이행할 예정입니다.</p>
-                    <ul>
-                        <li>회원 가입 및 관리: 회원 가입의사 확인, 회원제 서비스 제공에 따른 본인 식별·인증</li>
-                        <li>서비스 제공: 콘텐츠 제공, 맞춤 서비스 제공, 서비스 이용 기록 관리</li>
-                        <li>마케팅 및 광고에의 활용: 신규 서비스 및 이벤트 정보 안내</li>
-                    </ul>
-                    
-                    <h3>2. 수집하는 개인정보의 항목</h3>
-                    <p>회사는 서비스 제공을 위해 다음과 같은 개인정보를 수집합니다.</p>
-                    <ul>
-                        <li>필수항목: 이메일 주소, 비밀번호, 성명</li>
-                        <li>선택항목: 연락처, 소속 기관명</li>
-                        <li>자동 수집 항목: IP 주소, 쿠키, 서비스 이용 기록</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </section>
-    
-    <section id="help-section" class="page-section">
-        <div class="container">
-            <div class="page-header">
-                <button id="help-back-btn" class="back-btn"><i class="fas fa-arrow-left"></i> 뒤로 가기</button>
-                <h2 class="page-title">도움말</h2>
-            </div>
-            <div class="page-content">
-                <div class="content-card">
-                    <h3>자주 묻는 질문(FAQ)</h3>
-                    
-                    <div class="faq-item">
-                        <h4>Q: 제재 대상 데이터는 얼마나 자주 업데이트되나요?</h4>
-                        <p>A: 제재 대상 데이터는 각국 정부 및 국제기구의 발표에 따라 실시간으로 업데이트됩니다. 데이터베이스는 일반적으로 24시간 이내에 최신 정보로 갱신됩니다.</p>
-                    </div>
-                    
-                    <div class="faq-item">
-                        <h4>Q: 검색 결과를 다운로드할 수 있나요?</h4>
-                        <p>A: 네, 개별 제재 대상의 상세 정보는 PDF 형식으로 다운로드할 수 있습니다. 또한 인쇄 기능을 통해 직접 출력할 수도 있습니다.</p>
-                    </div>
-                    
-                    <div class="faq-item">
-                        <h4>Q: 검색 기능을 더 효과적으로 사용하는 방법이 있나요?</h4>
-                        <p>A: 검색 시 다음 팁을 활용하세요:</p>
-                        <ul>
-                            <li>정확한 이름보다는 부분 이름으로 검색하면 더 많은 결과를 얻을 수 있습니다.</li>
-                            <li>여러 필터를 동시에 적용하여 검색 결과를 좁힐 수 있습니다.</li>
-                            <li>고급 검색 옵션을 사용하여 특정 국가나 프로그램에 속한 제재 대상만 검색할 수 있습니다.</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 자바스크립트 -->
+    <!-- 스크립트 -->
     <script type="module" src="js/app.js"></script>
 </body>
 </html> 

@@ -120,23 +120,39 @@ function setupEventListeners() {
  * 로그인 폼 제출 처리
  * @param {Event} event 폼 제출 이벤트
  */
-function handleLoginSubmit(event) {
+async function handleLoginSubmit(event) {
   event.preventDefault();
   
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
   
-  const result = login(email, password);
-  
-  if (result.success) {
-    showAlert(result.message, 'success');
-    updateUserInfo(result.user);
-    showSection(SECTIONS.MAIN);
-    
-    // 최근 제재 대상 표시
-    showRecentSanctions();
-  } else {
-    showAlert(result.message, 'error');
+  try {
+    // 테스트 계정 확인
+    if (email === 'jaesu@kakao.com' && password === '1234') {
+      // 로그인 성공
+      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('userEmail', email);
+      
+      // 로그인 섹션 숨기기
+      document.getElementById('login-section').style.display = 'none';
+      
+      // 메인 섹션 표시
+      document.getElementById('main-section').style.display = 'block';
+      
+      // 사용자 이름 업데이트
+      document.getElementById('user-name').textContent = email.split('@')[0];
+      
+      // 초기 데이터 로드
+      await loadInitialData();
+      
+      // 성공 메시지 표시
+      showAlert('로그인 성공', 'success');
+    } else {
+      showAlert('이메일 또는 비밀번호가 올바르지 않습니다.', 'error');
+    }
+  } catch (error) {
+    console.error('로그인 오류:', error);
+    showAlert('로그인 중 오류가 발생했습니다.', 'error');
   }
 }
 

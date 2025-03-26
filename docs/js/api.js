@@ -1,7 +1,7 @@
 /**
  * api.js - 제재 데이터 API 및 데이터 처리 함수
  * 
- * EU, US, UN의 제재 데이터를 가져오고 검색, 필터링하는 기능을 제공합니다.
+ * UN, EU, US의 제재 데이터를 가져오고 검색, 필터링하는 기능을 제공합니다.
  */
 
 // 캐시 및 상태 관리
@@ -43,31 +43,35 @@ async function fetchSanctionsData(forceRefresh = false) {
         apiState.isLoading = true;
         apiState.error = null;
         
-        // EU, US, UN 제재 데이터 로드
-        const [euResponse, usResponse, unResponse] = await Promise.all([
+        // UN, EU, US 제재 데이터 로드
+        const [unResponse, euResponse, usResponse] = await Promise.all([
+            fetch('data/un_sanctions.json'),
             fetch('data/eu_sanctions.json'),
-            fetch('data/us_sanctions.json'),
-            fetch('data/un_sanctions.json')
+            fetch('data/us_sanctions.json')
         ]);
         
-        if (!euResponse.ok || !usResponse.ok || !unResponse.ok) {
-            throw new Error(`데이터를 가져오는데 실패했습니다: ${euResponse.status}, ${usResponse.status}, ${unResponse.status}`);
+        if (!unResponse.ok || !euResponse.ok || !usResponse.ok) {
+            throw new Error(`데이터를 가져오는데 실패했습니다: ${unResponse.status}, ${euResponse.status}, ${usResponse.status}`);
         }
         
-        const [euData, usData, unData] = await Promise.all([
+        const [unData, euData, usData] = await Promise.all([
+            unResponse.json(),
             euResponse.json(),
-            usResponse.json(),
-            unResponse.json()
+            usResponse.json()
         ]);
         
         // 데이터 병합
         const combinedData = {
-            data: [...euData, ...usData, ...unData]
+            data: [...unData, ...euData, ...usData],
+            lastUpdate: new Date().toISOString()
         };
         
         // 데이터 처리 및 캐시 업데이트
         apiState.sanctions = combinedData;
         apiState.lastFetched = now;
+        
+        // 최신 업데이트 시간 표시
+        updateLastUpdateTime(combinedData.lastUpdate);
         
         console.log(`제재 데이터 로드 완료: ${combinedData.data.length}개 항목`);
         return combinedData;
@@ -83,129 +87,141 @@ async function fetchSanctionsData(forceRefresh = false) {
 }
 
 /**
+ * 최신 업데이트 시간을 표시합니다.
+ * @param {string} updateTime ISO 형식의 업데이트 시간
+ */
+function updateLastUpdateTime(updateTime) {
+    const lastUpdateElement = document.getElementById('last-update');
+    if (lastUpdateElement) {
+        const date = new Date(updateTime);
+        const formattedDate = date.toLocaleString('ko-KR', {
+            timeZone: 'Asia/Seoul',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+        lastUpdateElement.textContent = formattedDate;
+    }
+}
+
+/**
  * 제재 데이터를 검색합니다.
  * @param {string} query 검색어
- * @param {Object} filters 필터 옵션 (소스, 유형, 국가 등)
- * @param {Object} options 정렬 및 페이징 옵션
- * @returns {Promise<Array>} 검색 결과 배열
+ * @param {string} country 국가 필터
+ * @param {string} program 제재 프로그램 필터
+ * @param {string} searchType 검색 유형 (text, number, image)
+ * @param {string} numberType 번호 유형 (passport, id, other)
+ * @returns {Array} 검색 결과 배열
  */
-async function searchSanctions(query = '', filters = {}, options = {}) {
-    const data = await fetchSanctionsData();
-    
-    if (!data || !data.data) {
+function searchSanctions(query, country = '', program = '', searchType = 'text', numberType = '') {
+    if (!apiState.sanctions || !apiState.sanctions.data) {
         return [];
     }
 
-    let results = [...data.data];
-    
-    // 검색어로 필터링
-    if (query && query.trim() !== '') {
-        const searchTerms = query.toLowerCase().split(' ').filter(term => term.length > 0);
-        
-        results = results.filter(sanction => {
-            // 이름 검색
-            const nameMatch = searchTerms.some(term => 
-                sanction.name.toLowerCase().includes(term)
-            );
-            
-            // 별칭 검색
-            const aliasMatch = sanction.details.aliases && 
-                sanction.details.aliases.some(alias => 
-                    searchTerms.some(term => alias.toLowerCase().includes(term))
-                );
-            
-            return nameMatch || aliasMatch;
-        });
+    let results = [...apiState.sanctions.data];
+
+    // 국가 필터 적용
+    if (country) {
+        results = results.filter(item => item.country === country);
     }
-    
-    // 필터 적용
-    if (filters.sources && filters.sources.length > 0) {
-        results = results.filter(sanction => {
-            const sources = sanction.source.split(',');
-            return filters.sources.some(source => sources.includes(source));
-        });
+
+    // 제재 프로그램 필터 적용
+    if (program) {
+        results = results.filter(item => item.programs.includes(program));
     }
-    
-    if (filters.types && filters.types.length > 0) {
-        results = results.filter(sanction => 
-            filters.types.includes(sanction.type)
-        );
+
+    // 검색어가 없으면 필터링된 결과 반환
+    if (!query) {
+        return results;
     }
-    
-    if (filters.countries && filters.countries.length > 0) {
-        results = results.filter(sanction => 
-            sanction.country && filters.countries.includes(sanction.country)
-        );
+
+    // 검색 유형에 따른 검색 수행
+    switch (searchType) {
+        case 'number':
+            return searchByNumber(results, query, numberType);
+        case 'image':
+            return searchByImage(results, query);
+        default:
+            return searchByText(results, query);
     }
+}
+
+/**
+ * 텍스트 기반 검색을 수행합니다.
+ * @param {Array} data 검색할 데이터 배열
+ * @param {string} query 검색어
+ * @returns {Array} 검색 결과 배열
+ */
+function searchByText(data, query) {
+    const searchTerms = query.toLowerCase().split(/\s+/);
     
-    if (filters.programs && filters.programs.length > 0) {
-        results = results.filter(sanction => 
-            sanction.programs.some(program => 
-                filters.programs.includes(program)
-            )
-        );
-    }
-    
-    // 가중치 점수 계산 및 정렬
-    results.forEach(sanction => {
-        let score = 0;
-        
-        // 검색어 일치도
-        if (query && query.trim() !== '') {
-            const searchTerms = query.toLowerCase().split(' ').filter(term => term.length > 0);
-            
-            // 이름에 검색어가 포함되면 가중치 추가
-            if (searchTerms.some(term => sanction.name.toLowerCase().includes(term))) {
-                score += 10;
-                
-                // 정확히 일치하면 추가 가중치
-                if (searchTerms.some(term => sanction.name.toLowerCase() === term)) {
-                    score += 20;
-                }
-            }
-            
-            // 별칭에 검색어가 포함되면 가중치 추가
-            if (sanction.details.aliases && 
-                sanction.details.aliases.some(alias => 
-                    searchTerms.some(term => alias.toLowerCase().includes(term))
-                )) {
-                score += 5;
-            }
+    return data.filter(item => {
+        // 이름 검색
+        if (item.name.toLowerCase().includes(query.toLowerCase())) {
+            return true;
         }
         
-        // 다수 소스에서 제재 대상이면 가중치 추가
-        if (sanction.source.includes(',')) {
-            score += sanction.source.split(',').length * 5;
+        // 별칭 검색
+        if (item.details.aliases.some(alias => 
+            alias.toLowerCase().includes(query.toLowerCase()))) {
+            return true;
         }
         
-        sanction.matchScore = score;
+        // 주소 검색
+        if (item.details.addresses.some(addr => 
+            addr.toLowerCase().includes(query.toLowerCase()))) {
+            return true;
+        }
+        
+        // 모든 검색어가 포함되어 있는지 확인
+        return searchTerms.every(term => 
+            item.name.toLowerCase().includes(term) ||
+            item.details.aliases.some(alias => alias.toLowerCase().includes(term)) ||
+            item.details.addresses.some(addr => addr.toLowerCase().includes(term))
+        );
     });
+}
+
+/**
+ * 번호 기반 검색을 수행합니다.
+ * @param {Array} data 검색할 데이터 배열
+ * @param {string} query 검색어
+ * @param {string} numberType 번호 유형
+ * @returns {Array} 검색 결과 배열
+ */
+function searchByNumber(data, query, numberType) {
+    const normalizedQuery = query.replace(/[^0-9]/g, '');
     
-    // 정렬
-    const sortField = options.sortBy || 'matchScore';
-    const sortDirection = options.sortDirection || 'desc';
-    
-    results.sort((a, b) => {
-        if (sortField === 'name') {
-            return sortDirection === 'asc' 
-                ? a.name.localeCompare(b.name) 
-                : b.name.localeCompare(a.name);
-        } else if (sortField === 'matchScore') {
-            return sortDirection === 'asc' 
-                ? a.matchScore - b.matchScore 
-                : b.matchScore - a.matchScore;
-        }
-        
-        return 0;
+    return data.filter(item => {
+        // 신분증 정보 검색
+        return item.details.identifications.some(id => {
+            if (numberType === 'passport' && id.type.toLowerCase().includes('passport')) {
+                return id.number.replace(/[^0-9]/g, '').includes(normalizedQuery);
+            }
+            if (numberType === 'id' && id.type.toLowerCase().includes('id')) {
+                return id.number.replace(/[^0-9]/g, '').includes(normalizedQuery);
+            }
+            if (numberType === 'other') {
+                return id.number.replace(/[^0-9]/g, '').includes(normalizedQuery);
+            }
+            return false;
+        });
     });
-    
-    // 페이징
-    if (options.page && options.pageSize) {
-        const startIndex = (options.page - 1) * options.pageSize;
-        results = results.slice(startIndex, startIndex + options.pageSize);
-    }
-    
-    return results;
+}
+
+/**
+ * 이미지 기반 검색을 수행합니다.
+ * @param {Array} data 검색할 데이터 배열
+ * @param {string} query 이미지 데이터
+ * @returns {Array} 검색 결과 배열
+ */
+function searchByImage(data, query) {
+    // 이미지 검색 기능은 추후 구현 예정
+    console.log('이미지 검색 기능은 추후 구현될 예정입니다.');
+    return [];
 }
 
 /**
