@@ -435,22 +435,21 @@ function setupEventListeners() {
         registerSubmit.addEventListener('click', handleRegister);
     }
     
-    // 약관 링크 이벤트
+    // 이용약관, 개인정보처리방침, 도움말 링크 이벤트 리스너
     const termsLink = document.getElementById('terms-link');
     const privacyLink = document.getElementById('privacy-link');
+    const helpLink = document.getElementById('help-link');
     
     if (termsLink) {
-        termsLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            showInfoModal('footer-terms');
-        });
+        termsLink.addEventListener('click', showTermsModal);
     }
     
     if (privacyLink) {
-        privacyLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            showInfoModal('footer-privacy');
-        });
+        privacyLink.addEventListener('click', showPrivacyModal);
+    }
+    
+    if (helpLink) {
+        helpLink.addEventListener('click', showHelpModal);
     }
     
     // 비밀번호 표시 토글
@@ -1308,4 +1307,327 @@ function handleRegister(e) {
             termsAgree.checked = false;
         }
     }, 2000);
+}
+
+/**
+ * 이용 약관 모달 표시
+ */
+function showTermsModal(e) {
+    e.preventDefault();
+    
+    const termsContent = `
+        <div class="terms-content">
+            <h2>서비스 이용약관</h2>
+            <p>본 이용약관은 주식회사 WVL(이하 '회사')이 제공하는 세계 경제 제재 검색 서비스(이하 '서비스')의 이용에 관한 조건 및 절차, 회사와 회원 간의 권리, 의무 및 책임사항을 규정합니다.</p>
+            
+            <h3>1. 정의</h3>
+            <p>"서비스"란 회원이 전자적 장치를 통하여 제재 정보를 검색, 조회할 수 있도록 회사가 제공하는 제재 검색 서비스 및 관련 부가 서비스를 의미합니다.</p>
+            <p>"회원"이란 본 약관에 동의하고 서비스 이용 신청을 하여 회사와 이용계약을 체결한 자를 의미합니다.</p>
+            
+            <h3>2. 서비스 이용</h3>
+            <p>회원은 본 약관에서 정한 방법에 따라 서비스를 이용할 수 있습니다.</p>
+            <p>회사는 컴퓨터 등 정보통신설비의 보수점검, 교체 및 고장, 통신의 두절 등의 사유가 발생한 경우에는 서비스의 제공을 일시적으로 중단할 수 있습니다.</p>
+            
+            <h3>3. 정보의 제공 및 광고의 게재</h3>
+            <p>회사는 서비스를 운영함에 있어 각종 정보를 서비스 화면에 게재하거나 전자우편이나 서신 등의 방법으로 회원에게 제공할 수 있습니다.</p>
+            
+            <h3>4. 권리의 귀속 및 이용제한</h3>
+            <p>서비스에 대한 저작권 및 지적재산권은 회사에 귀속됩니다.</p>
+            <p>회원은 서비스를 이용함에 있어 관련 법령, 본 약관, 세부이용지침, 서비스 이용안내 및 사이트 내 공지사항을 준수해야 합니다.</p>
+        </div>
+    `;
+    
+    showModal('이용약관', termsContent);
+}
+
+/**
+ * 개인정보처리방침 모달 표시
+ */
+function showPrivacyModal(e) {
+    e.preventDefault();
+    
+    const privacyContent = `
+        <div class="privacy-content">
+            <h2>개인정보처리방침</h2>
+            <p>주식회사 WVL(이하 '회사')은 개인정보보호법 등 관련 법령에 따라 이용자의 개인정보를 보호하고, 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 다음과 같이 개인정보처리방침을 수립·공개합니다.</p>
+            
+            <h3>1. 개인정보의 수집 및 이용 목적</h3>
+            <p>회사는 회원가입, 서비스 제공, 상담 등을 위해 다음과 같은 개인정보를 수집합니다.</p>
+            <ul>
+                <li>필수항목: 이메일, 비밀번호, 이름</li>
+                <li>선택항목: 회사명, 부서, 직책, 전화번호</li>
+            </ul>
+            
+            <h3>2. 개인정보의 수집 및 이용목적</h3>
+            <p>회사는 수집한 개인정보를 다음의 목적을 위해 이용합니다.</p>
+            <ul>
+                <li>서비스 제공 및 관리</li>
+                <li>이용자 식별 및 본인확인</li>
+                <li>서비스 이용 기록 관리</li>
+                <li>서비스 관련 공지사항 전달</li>
+            </ul>
+            
+            <h3>3. 개인정보의 보유 및 이용기간</h3>
+            <p>회사는 회원탈퇴 시 또는 개인정보의 수집 및 이용목적이 달성되면 지체 없이 파기합니다. 다만, 관련 법령에 의해 보존의 필요가 있는 경우 일정 기간 동안 개인정보를 보관합니다.</p>
+            
+            <h3>4. 정보주체의 권리·의무 및 행사방법</h3>
+            <p>이용자는 개인정보에 대한 열람, 정정, 삭제, 처리정지 요구 등의 권리를 행사할 수 있습니다.</p>
+        </div>
+    `;
+    
+    showModal('개인정보처리방침', privacyContent);
+}
+
+/**
+ * 도움말 모달 표시
+ */
+function showHelpModal(e) {
+    e.preventDefault();
+    
+    const helpContent = `
+        <div class="help-content">
+            <h2>서비스 이용 가이드</h2>
+            
+            <h3>1. 기본 검색 방법</h3>
+            <p>검색창에 검색어를 입력하고 검색 버튼을 클릭하거나 Enter 키를 누르면 검색이 시작됩니다.</p>
+            <p>검색어로는 이름, 별칭, 국가, 유형 등을 입력할 수 있습니다.</p>
+            
+            <h3>2. 고급 검색 기능</h3>
+            <p>"고급 검색" 버튼을 클릭하면 상세 검색 옵션이 표시됩니다.</p>
+            <p>국가별, 프로그램별 필터 및 날짜 범위를 선택하여 검색 결과를 필터링할 수 있습니다.</p>
+            
+            <h3>3. 검색 결과 확인</h3>
+            <p>검색 결과는 카드 형태로 표시됩니다.</p>
+            <p>"상세보기" 버튼을 클릭하면 해당 제재 대상의 상세 정보를 확인할 수 있습니다.</p>
+            
+            <h3>4. 검색 결과 정렬</h3>
+            <p>검색 결과 상단의 정렬 드롭다운 메뉴를 통해 결과를 다양한 기준으로 정렬할 수 있습니다.</p>
+            
+            <h3>5. 도움이 필요하신가요?</h3>
+            <p>추가 문의사항이 있으시면 contact@wvl.co.kr로 이메일을 보내주세요.</p>
+            <p>전화 문의: 02-123-4567 (평일 09:00-18:00)</p>
+        </div>
+    `;
+    
+    showModal('도움말', helpContent);
+}
+
+/**
+ * 필터 옵션 이벤트 처리
+ */
+function setupFilterOptionEvents() {
+    // 고급 검색 영역 내의 필터 옵션 클릭 이벤트
+    const filterOptions = document.querySelectorAll('.filter-options .filter-option');
+    filterOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            const filterType = this.classList.contains('country') ? 'country' : 
+                              this.classList.contains('program') ? 'program' : null;
+            
+            if (!filterType) return;
+            
+            const value = this.getAttribute('data-value');
+            
+            // 다중 선택 처리
+            if (this.classList.contains('selected')) {
+                this.classList.remove('selected');
+                if (filterType === 'country') {
+                    activeFilters.countries.delete(value);
+                } else if (filterType === 'program') {
+                    activeFilters.programs.delete(value);
+                }
+            } else {
+                // 이미 다른 옵션이 선택되어 있는 경우 충돌하는 옵션 체크
+                // 예: '기타' 옵션과 특정 국가 선택은 충돌
+                const conflictingOptions = [];
+                if (filterType === 'country' && value === '기타') {
+                    // '기타' 선택 시 다른 국가 옵션 해제
+                    document.querySelectorAll('.filter-option.country:not([data-value="기타"])').forEach(opt => {
+                        if (opt.classList.contains('selected')) {
+                            conflictingOptions.push(opt);
+                        }
+                    });
+                } else if (filterType === 'country' && value !== '기타') {
+                    // 특정 국가 선택 시 '기타' 옵션 해제
+                    const otherOption = document.querySelector('.filter-option.country[data-value="기타"]');
+                    if (otherOption && otherOption.classList.contains('selected')) {
+                        conflictingOptions.push(otherOption);
+                    }
+                }
+                
+                // 충돌하는 옵션 해제
+                conflictingOptions.forEach(opt => {
+                    opt.classList.remove('selected');
+                    const conflictValue = opt.getAttribute('data-value');
+                    if (filterType === 'country') {
+                        activeFilters.countries.delete(conflictValue);
+                    }
+                });
+                
+                // 현재 옵션 선택
+                this.classList.add('selected');
+                if (filterType === 'country') {
+                    activeFilters.countries.add(value);
+                } else if (filterType === 'program') {
+                    activeFilters.programs.add(value);
+                }
+            }
+            
+            // 검색 결과 필터링
+            filterResults();
+        });
+    });
+}
+
+/**
+ * 제재 상세 정보 표시
+ * @param {number} id 제재 ID
+ */
+async function showSanctionDetails(id) {
+    try {
+        // 로딩 상태 표시
+        showLoading();
+        
+        // 제재 상세 정보 가져오기
+        const sanctionDetails = await getSanctionDetails(id);
+        if (!sanctionDetails) {
+            throw new Error('상세 정보를 가져올 수 없습니다.');
+        }
+        
+        // 상세 정보 모달 생성
+        const modalContent = createDetailModalContent(sanctionDetails);
+        
+        // 모달 표시
+        showModal('제재 상세 정보', modalContent);
+        
+        // 로딩 상태 제거
+        hideLoading();
+        
+    } catch (error) {
+        console.error('상세 정보 표시 오류:', error);
+        showAlert('상세 정보를 불러오는 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+        hideLoading();
+    }
+}
+
+/**
+ * 상세 정보 모달 콘텐츠 생성
+ * @param {Object} data 제재 상세 데이터
+ * @returns {HTMLElement} 모달 콘텐츠 요소
+ */
+function createDetailModalContent(data) {
+    const modalContent = document.createElement('div');
+    modalContent.className = 'detail-modal-content';
+    
+    // 헤더 정보 (이름, 유형, 국적 등)
+    const headerInfo = document.createElement('div');
+    headerInfo.className = 'detail-header';
+    headerInfo.innerHTML = `
+        <h2>${data.name}</h2>
+        <div class="detail-type">
+            <span class="detail-label">유형:</span>
+            <span class="detail-value">${data.type || '정보 없음'}</span>
+        </div>
+        <div class="detail-nationality">
+            <span class="detail-label">국적:</span>
+            <span class="detail-value">${data.nationality || '정보 없음'}</span>
+        </div>
+        ${data.dateOfBirth ? `
+        <div class="detail-dob">
+            <span class="detail-label">생년월일:</span>
+            <span class="detail-value">${data.dateOfBirth}</span>
+        </div>` : ''}
+    `;
+    
+    // 프로그램 정보
+    const programsInfo = document.createElement('div');
+    programsInfo.className = 'detail-programs';
+    let programsHTML = '<h3>적용 제재 프로그램</h3><div class="programs-list">';
+    
+    if (data.programs && data.programs.length > 0) {
+        data.programs.forEach(program => {
+            programsHTML += `<div class="program-tag">${program}</div>`;
+        });
+    } else {
+        programsHTML += '<p>등록된 제재 프로그램이 없습니다.</p>';
+    }
+    
+    programsHTML += '</div>';
+    programsInfo.innerHTML = programsHTML;
+    
+    // 별칭 정보
+    const aliasesInfo = document.createElement('div');
+    aliasesInfo.className = 'detail-aliases';
+    let aliasesHTML = '<h3>별칭</h3><ul class="aliases-list">';
+    
+    if (data.aliases && data.aliases.length > 0) {
+        data.aliases.forEach(alias => {
+            aliasesHTML += `<li>${alias}</li>`;
+        });
+    } else {
+        aliasesHTML += '<li>등록된 별칭이 없습니다.</li>';
+    }
+    
+    aliasesHTML += '</ul>';
+    aliasesInfo.innerHTML = aliasesHTML;
+    
+    // 주소 정보
+    const addressesInfo = document.createElement('div');
+    addressesInfo.className = 'detail-addresses';
+    let addressesHTML = '<h3>알려진 주소</h3><ul class="addresses-list">';
+    
+    if (data.addresses && data.addresses.length > 0) {
+        data.addresses.forEach(address => {
+            addressesHTML += `<li>${address}</li>`;
+        });
+    } else {
+        addressesHTML += '<li>등록된 주소가 없습니다.</li>';
+    }
+    
+    addressesHTML += '</ul>';
+    addressesInfo.innerHTML = addressesHTML;
+    
+    // 관련 제재 정보
+    const relatedSanctionsInfo = document.createElement('div');
+    relatedSanctionsInfo.className = 'detail-related-sanctions';
+    let relatedHTML = '<h3>관련 제재</h3>';
+    
+    if (data.relatedSanctions && data.relatedSanctions.length > 0) {
+        relatedHTML += '<ul class="related-sanctions-list">';
+        data.relatedSanctions.forEach(sanction => {
+            relatedHTML += `
+                <li>
+                    <span class="related-name">${sanction.name}</span>
+                    <span class="related-relationship">(${sanction.relationship})</span>
+                    <button class="btn-link view-related-details" data-id="${sanction.id}">상세보기</button>
+                </li>
+            `;
+        });
+        relatedHTML += '</ul>';
+    } else {
+        relatedHTML += '<p>관련 제재 정보가 없습니다.</p>';
+    }
+    
+    relatedSanctionsInfo.innerHTML = relatedHTML;
+    
+    // 모달 콘텐츠에 모든 섹션 추가
+    modalContent.appendChild(headerInfo);
+    modalContent.appendChild(programsInfo);
+    modalContent.appendChild(aliasesInfo);
+    modalContent.appendChild(addressesInfo);
+    modalContent.appendChild(relatedSanctionsInfo);
+    
+    // 관련 제재 상세 보기 버튼 이벤트 추가
+    setTimeout(() => {
+        const relatedButtons = modalContent.querySelectorAll('.view-related-details');
+        relatedButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const relatedId = this.getAttribute('data-id');
+                // 현재 모달 닫고 관련 제재 상세 정보 표시
+                closeModal();
+                showSanctionDetails(relatedId);
+            });
+        });
+    }, 0);
+    
+    return modalContent;
 }
