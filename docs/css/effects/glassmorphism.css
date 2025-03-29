@@ -1,0 +1,152 @@
+/**
+ * 글래스모피즘 효과 스타일
+ * MZ 세대 트렌드에 맞춘 유리 효과
+ */
+
+/* 기본 글래스모피즘 효과 */
+.glassmorphism {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.glassmorphism:hover {
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.3);
+    transform: translateY(-5px);
+}
+
+/* 어두운 글래스모피즘 */
+.dark-glassmorphism {
+    background: rgba(17, 25, 40, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    color: white;
+    padding: 20px;
+}
+
+/* 글래스모피즘 버튼 */
+.glass-button {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    padding: 10px 25px;
+    color: #444;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.glass-button:hover {
+    background: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.glass-button:active {
+    transform: scale(0.98);
+}
+
+/* 어두운 글래스 버튼 */
+.dark-glass-button {
+    background: rgba(17, 25, 40, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 10px 25px;
+    color: white;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.dark-glass-button:hover {
+    background: rgba(17, 25, 40, 0.75);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* 글래스모피즘 카드 */
+.glass-card {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+    padding: 25px;
+    margin: 20px 0;
+    transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px 0 rgba(31, 38, 135, 0.25);
+}
+
+/* 글래스모피즘 입력 필드 */
+.glass-input {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 12px 20px;
+    width: 100%;
+    color: #333;
+    transition: all 0.3s ease;
+}
+
+.glass-input:focus {
+    background: rgba(255, 255, 255, 0.25);
+    outline: none;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* 글래스모피즘 내비게이션 */
+.glass-nav {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+    padding: 15px 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* 컬러 변형 */
+.glass-blue {
+    background: rgba(70, 130, 255, 0.2);
+    border: 1px solid rgba(70, 130, 255, 0.3);
+}
+
+.glass-pink {
+    background: rgba(255, 70, 200, 0.2);
+    border: 1px solid rgba(255, 70, 200, 0.3);
+}
+
+.glass-green {
+    background: rgba(70, 200, 100, 0.2);
+    border: 1px solid rgba(70, 200, 100, 0.3);
+}
+
+/* 반응형 조정 */
+@media (max-width: 768px) {
+    .glassmorphism,
+    .dark-glassmorphism,
+    .glass-card {
+        padding: 15px;
+    }
+} 

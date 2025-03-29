@@ -1,97 +1,94 @@
-# 제재 대상 검색 시스템 (Sanctions Target Search System)
+# JNK 제재 정보 조회 시스템
 
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/your-username/sanctions-search/Deploy%20Sanctions%20Search%20System)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+국제 제재 정보(UN, EU, US)를 검색하고 조회할 수 있는 웹 애플리케이션입니다. 사용자는 개인, 단체, 선박, 항공기 등 다양한 제재 대상을 검색하고 세부 정보를 확인할 수 있습니다.
 
-## 소개 (Introduction)
+## 주요 기능
 
-제재 대상 검색 시스템은 국제 제재 목록에 있는 개인, 단체, 선박 등의 정보를 빠르고 정확하게 검색할 수 있는 웹 애플리케이션입니다. OFAC, UN, EU 등 다양한 출처의 제재 목록 데이터를 통합하여 제공합니다.
+- **다중 데이터 소스 검색**: UN, EU, US 등 여러 제재 기관의 데이터를 통합 검색
+- **필터링 및 정렬**: 국가, 유형, 제재 기관 등 다양한 필터와 정렬 옵션 제공
+- **상세 정보 조회**: 제재 대상의 기본 정보와 함께 별칭, 주소, 관련 제재 정보 표시
+- **다중 선택 필터**: 여러 필터 옵션을 동시에 선택하여 검색 결과 정밀화
+- **반응형 디자인**: 모바일 및 데스크톱 환경에 최적화된 UI 제공
+- **Y2K 디자인 요소**: MZ 세대 트렌드에 맞춘 시각적 효과 적용
 
-The Sanctions Target Search System is a web application that allows for quick and accurate searches of individuals, organizations, vessels, and other entities listed in international sanctions lists. It integrates sanction list data from various sources including OFAC, UN, and EU.
-
-## 기능 (Features)
-
-- 다양한 조건(이름, 유형, 국가, 제재 프로그램 등)으로 제재 대상 검색
-- 유사도 기반 검색 결과 제공 (퍼지 매칭)
-- 제재 대상의 상세 정보 조회 (별명, 생년월일, 식별번호, 제재 내용 등)
-- 사용자 계정 관리 (로그인, 회원가입)
-- 반응형 디자인 (모바일 지원)
-- 다크 모드 지원
-
-## 배포 (Deployment)
-
-이 시스템은 GitHub Pages에서 호스팅되며 다음 URL에서 접근할 수 있습니다:
-[https://wvl.co.kr](https://wvl.co.kr)
-
-## 로컬 개발 환경 설정 (Local Development Setup)
-
-### 요구사항 (Requirements)
-
-- Python 3.8 이상
-- Git
-
-### 설치 (Installation)
-
-```bash
-# 저장소 복제
-git clone https://github.com/your-username/sanctions-search.git
-cd sanctions-search
-
-# Python 의존성 설치
-pip install -r requirements.txt
-
-# 제재 데이터 업데이트
-python update_sanctions_data.py
-```
-
-### 개발 서버 실행 (Running Development Server)
-
-```bash
-# 정적 파일 서비스를 위한 간단한 서버 실행
-cd docs
-python -m http.server 8000
-```
-
-브라우저에서 `http://localhost:8000`으로 접속하여 애플리케이션을 확인할 수 있습니다.
-
-## 데이터 업데이트 (Data Updates)
-
-제재 데이터는 GitHub Actions를 통해 매일 자동으로 업데이트됩니다. 수동으로 업데이트하려면 다음 명령을 실행하세요:
-
-```bash
-python update_sanctions_data.py
-```
-
-## 구조 (Structure)
+## 프로젝트 구조
 
 ```
-sanctions-search/
-├── .github/
-│   └── workflows/
-│       └── deploy.yml        # GitHub Actions 배포 워크플로우
-├── docs/                     # 정적 웹사이트 (GitHub Pages)
-│   ├── css/
-│   │   └── styles.css        # 커스텀 스타일
-│   ├── data/
-│   │   └── sanctions.json    # 제재 데이터
-│   ├── js/
-│   │   ├── app.js           # 메인 애플리케이션 로직
-│   │   └── config.js        # 환경 설정
-│   └── index.html           # 메인 HTML 페이지
-├── update_sanctions_data.py  # 제재 데이터 업데이트 스크립트
-├── README.md                 # 프로젝트 설명서
-├── requirements.txt          # Python 의존성
-└── CNAME                     # GitHub Pages 커스텀 도메인 설정
+public/
+├── css/               - 스타일시트
+│   ├── effects/       - 시각적 효과 CSS (Y2K, 애니메이션 등)
+│   ├── images/        - UI 요소용 이미지
+│   └── style.css      - 메인 스타일시트
+├── data/              - 처리된 제재 데이터
+│   ├── eu_sanctions.json
+│   ├── un_sanctions.json
+│   └── us_sanctions.json
+├── js/                - 자바스크립트 파일
+│   ├── api.js         - 데이터 접근 및 처리 로직
+│   ├── app.js         - 메인 애플리케이션 로직
+│   ├── auth.js        - 인증 관련 기능
+│   ├── config.js      - 환경 설정
+│   ├── ui.js          - UI 조작 함수
+│   └── update-data.js - 데이터 업데이트 기능
+└── index.html         - 메인 HTML 파일
 ```
 
-## 기여 (Contributing)
+## 최근 업데이트 내용 (2025-03-29)
 
-프로젝트에 기여하고 싶으시다면 이슈를 등록하거나 풀 리퀘스트를 보내주세요. 모든 기여를 환영합니다!
+### 코드 최적화 및 구조 개선
+- 중복 코드 및 폴더 제거, 더 효율적인 구조로 재구성
+- 템플릿 리터럴 관련 문법 오류 수정
+- 유틸리티 함수 분리 및 재사용성 개선
 
-## 라이선스 (License)
+### 기능 개선
+- 다중 선택 가능한 필터 옵션 구현
+- 제재 대상 상세 정보 표시 기능 강화
+- 검색 및 필터링 알고리즘 최적화
 
-이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
+### UI/UX 개선
+- Y2K 스타일 요소 적용 (텍스처, 효과 등)
+- 반응형 레이아웃 개선
+- 회사 주소 및 정보 업데이트
+- 모달 포맷팅 개선 (이용약관, 개인정보처리방침, 도움말)
 
-## 연락처 (Contact)
+## 기술 스택
 
-질문이나 제안이 있으시면 이슈를 등록하거나 이메일로 연락주세요: your-email@example.com 
+- HTML5
+- CSS3 (애니메이션, 미디어 쿼리)
+- JavaScript (ES6+)
+- JSON (데이터 형식)
+
+## 사용 방법
+
+1. 검색창에 이름, 단체명, 키워드 등을 입력하세요.
+2. 검색 결과에서 필터 옵션을 사용하여 원하는 결과를 찾으세요.
+   - 제재 기관 필터: UN, EU, US 등
+   - 유형 필터: 개인, 단체, 선박, 항공기 등
+   - 국가/지역 필터: 북한, 러시아, 이란, 시리아 등
+3. 검색 결과를 클릭하여 상세 정보를 확인하세요.
+
+## 로컬 개발 환경 설정
+
+1. 저장소 클론
+   ```
+   git clone https://github.com/jaesu74/SP.git
+   ```
+
+2. `index.html` 파일을 웹 브라우저에서 직접 실행하거나, 로컬 웹 서버를 사용하여 실행
+   ```
+   cd public
+   python -m http.server 8000  # Python 3
+   ```
+
+3. 브라우저에서 `http://localhost:8000` 접속
+
+## 라이선스
+
+MIT License - 자세한 내용은 LICENSE 파일을 참조하세요.
+
+## 연락처
+
+주식회사 더블유브이엘 (WVL Inc.)  
+주소: 서울특별시 강남구 테헤란로 123, 7층 (우편번호: 06123)  
+전화: 02-123-4567  
+이메일: info@wvl.com 

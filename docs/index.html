@@ -10,14 +10,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
+    <!-- MZ 세대 트렌드 스타일시트 추가 -->
+    <link rel="stylesheet" href="css/effects.css">
+    <link rel="stylesheet" href="css/effects/glassmorphism.css">
+    <link rel="stylesheet" href="css/effects/neumorphism.css">
+    <link rel="stylesheet" href="css/effects/animated-background.css">
+    <link rel="stylesheet" href="textures.css">
 </head>
-<body>
+<body class="gradient-overlay">
     <!-- 로그인 섹션 -->
-    <section id="login-section">
-        <div class="page-title-header">
+    <section id="login-section" class="textured-layer">
+        <div class="page-title-header animated">
             <h1>세계 경제 제재 검색 서비스</h1>
         </div>
-        <div class="login-container">
+        <div class="login-container modern-background rounded-modern animated delay-100 blur-gradient">
             <div class="login-header">
                 <h2>WVL 제재 조회 시스템</h2>
                 <p>UN, EU, US의 제재 대상을 검색하세요</p>
@@ -34,12 +40,12 @@
                         <input type="password" id="password" placeholder="비밀번호를 입력하세요" required>
                         <i class="fas fa-eye toggle-password"></i>
                     </div>
-                    <button type="submit" class="btn-primary">로그인</button>
+                    <button type="submit" class="btn-primary glow">로그인</button>
                 </form>
                 <div class="login-footer">
                     <p>테스트 계정: jaesu@kakao.com / 1234</p>
                     <div class="login-links">
-                        <a href="#" id="register-link">회원가입</a>
+                        <a href="#" id="register-link" class="glow">회원가입</a>
                         <a href="#" id="help-link">도움말</a>
                         <a href="#" id="about-link">회사소개</a>
                     </div>
@@ -48,7 +54,7 @@
         </div>
         
         <!-- 푸터 링크 그룹 -->
-        <div class="footer-links-group">
+        <div class="footer-links-group animated delay-200">
             <div class="footer-link-category">
                 <h3>회사 정보</h3>
                 <a href="#" id="footer-about">회사 소개</a>
@@ -73,14 +79,14 @@
     </section>
 
     <!-- 메인 섹션 -->
-    <section id="main-section" style="display: none;">
+    <section id="main-section" style="display: none;" class="textured-layer floating-shapes">
         <header class="main-header">
-            <div class="header-logo">
+            <div class="header-logo animated">
                 <h1>세계 경제 제재 검색 서비스</h1>
             </div>
-            <div class="user-info">
+            <div class="user-info animated delay-100">
                 <span>안녕하세요, <span id="user-name">사용자</span>님!</span>
-                <button id="logout-btn" class="btn-secondary">로그아웃</button>
+                <button id="logout-btn" class="btn-secondary glow">로그아웃</button>
             </div>
         </header>
 
@@ -88,26 +94,26 @@
             <div class="alert-container"></div>
             
             <!-- 검색 섹션 업데이트 -->
-            <div class="search-section">
+            <div class="search-section modern-background rounded-modern animated delay-200 blur-gradient">
                 <div class="container">
                     <h2>제재 정보 검색</h2>
                     <div class="search-bar">
                         <input type="text" id="search-input" placeholder="이름, 별칭, 국가 또는 유형으로 검색...">
-                        <button id="search-button" onclick="performSearch()">검색</button>
+                        <button id="search-button" onclick="performSearch()" class="glow">검색</button>
                     </div>
 
                     <!-- 검색 유형 선택 -->
                     <div class="search-options">
                         <div class="search-type-options">
-                            <label class="search-option active">
+                            <label class="search-option active y2k-style tilt-effect">
                                 <input type="radio" name="search-type" value="text" checked>
                                 <span>텍스트 검색</span>
                             </label>
-                            <label class="search-option">
+                            <label class="search-option y2k-style tilt-effect">
                                 <input type="radio" name="search-type" value="number">
                                 <span>번호 검색</span>
                             </label>
-                            <label class="search-option">
+                            <label class="search-option y2k-style tilt-effect">
                                 <input type="radio" name="search-type" value="image">
                                 <span>이미지 검색</span>
                             </label>
@@ -115,15 +121,15 @@
                         
                         <!-- 번호 유형 옵션 (기본적으로 숨김) -->
                         <div class="number-type-options" style="display: none;">
-                            <label class="search-option active">
+                            <label class="search-option active y2k-style tilt-effect">
                                 <input type="radio" name="number-type" value="passport" checked>
                                 <span>여권 번호</span>
                             </label>
-                            <label class="search-option">
+                            <label class="search-option y2k-style tilt-effect">
                                 <input type="radio" name="number-type" value="id">
                                 <span>ID 번호</span>
                             </label>
-                            <label class="search-option">
+                            <label class="search-option y2k-style tilt-effect">
                                 <input type="radio" name="number-type" value="other">
                                 <span>기타 번호</span>
                             </label>
@@ -132,53 +138,53 @@
                     
                     <!-- 고급 검색 토글 -->
                     <div class="advanced-search-toggle">
-                        <button id="advanced-search-button">고급 검색 <i class="fas fa-angle-down"></i></button>
+                        <button id="advanced-search-button" class="glow">고급 검색 <i class="fas fa-angle-down"></i></button>
                     </div>
                     
                     <!-- 고급 검색 옵션 (기본적으로 숨김) -->
                     <div class="advanced-search-options" style="display: none;">
                         <div class="search-filters">
-                            <div class="filter-group">
+                            <div class="filter-group slide-left">
                                 <h3>국가별 필터</h3>
                                 <div class="filter-options country-options">
-                                    <div class="filter-option country" data-value="북한">
+                                    <div class="filter-option country y2k-style tilt-effect" data-value="북한">
                                         <span>북한</span>
                                     </div>
-                                    <div class="filter-option country" data-value="러시아">
+                                    <div class="filter-option country y2k-style tilt-effect" data-value="러시아">
                                         <span>러시아</span>
                                     </div>
-                                    <div class="filter-option country" data-value="이란">
+                                    <div class="filter-option country y2k-style tilt-effect" data-value="이란">
                                         <span>이란</span>
                                     </div>
-                                    <div class="filter-option country" data-value="시리아">
+                                    <div class="filter-option country y2k-style tilt-effect" data-value="시리아">
                                         <span>시리아</span>
                                     </div>
-                                    <div class="filter-option country" data-value="기타">
+                                    <div class="filter-option country y2k-style tilt-effect" data-value="기타">
                                         <span>기타</span>
                                     </div>
                                 </div>
                             </div>
                             
-                            <div class="filter-group">
+                            <div class="filter-group slide-right">
                                 <h3>프로그램별 필터</h3>
                                 <div class="filter-options program-options">
-                                    <div class="filter-option program" data-value="UN">
+                                    <div class="filter-option program y2k-style tilt-effect" data-value="UN">
                                         <span>UN 제재</span>
                                     </div>
-                                    <div class="filter-option program" data-value="US">
+                                    <div class="filter-option program y2k-style tilt-effect" data-value="US">
                                         <span>미국 제재</span>
                                     </div>
-                                    <div class="filter-option program" data-value="EU">
+                                    <div class="filter-option program y2k-style tilt-effect" data-value="EU">
                                         <span>EU 제재</span>
                                     </div>
-                                    <div class="filter-option program" data-value="KR">
+                                    <div class="filter-option program y2k-style tilt-effect" data-value="KR">
                                         <span>한국 제재</span>
                                     </div>
                                 </div>
                             </div>
                             
                             <!-- 날짜 범위 필터 -->
-                            <div class="filter-group">
+                            <div class="filter-group slide-left">
                                 <h3>날짜 범위</h3>
                                 <div class="date-range-filter">
                                     <div class="date-input">
@@ -197,7 +203,7 @@
             </div>
 
             <!-- 결과 카운트 및 정렬 옵션 -->
-            <div class="results-header">
+            <div class="results-header animated">
                 <div class="container">
                     <div class="results-count">
                         <span id="results-count">0</span> 개의 결과
@@ -217,14 +223,14 @@
             <!-- 결과 컨테이너 -->
             <div class="results-section">
                 <div class="container">
-                    <div id="results-container" class="results-grid">
+                    <div id="results-container" class="results-grid animated delay-300">
                         <!-- 검색 결과가 여기에 표시됩니다 -->
                     </div>
                 </div>
             </div>
 
             <!-- 최신 업데이트 정보 -->
-            <div class="update-info">
+            <div class="update-info animated delay-400">
                 <p>마지막 업데이트: <span id="last-update">2025-03-26 12:00 LT</span></p>
             </div>
         </div>
@@ -232,7 +238,7 @@
 
     <!-- 상세 정보 모달 -->
     <div id="detail-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content glassmorphism">
             <div class="modal-header">
                 <h2>제재 대상 상세 정보</h2>
                 <button id="detail-close" class="close-btn">&times;</button>
@@ -253,7 +259,7 @@
     
     <!-- 회원가입 모달 -->
     <div id="register-modal" class="modal register-modal">
-        <div class="modal-content">
+        <div class="modal-content rounded-modern vibrant-colors wave-bg">
             <div class="modal-header">
                 <h2>회원가입</h2>
                 <button id="register-close" class="close-btn">&times;</button>
@@ -287,14 +293,14 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button id="register-submit" class="btn-primary">회원가입</button>
+                <button id="register-submit" class="btn-primary glow">회원가입</button>
             </div>
         </div>
     </div>
 
     <!-- 푸터 섹션 -->
     <footer class="main-footer">
-        <div class="footer-container">
+        <div class="footer-container maximalist starry-sky">
             <div class="footer-content">
                 <div class="footer-section">
                     <h3>회사 정보</h3>
@@ -306,7 +312,7 @@
                 <div class="footer-section">
                     <h3>고객 지원</h3>
                     <ul>
-                        <li><a href="#" id="footer-help">도움말</a></li>
+                        <li><a href="#" id="footer-help" class="glow">도움말</a></li>
                         <li><a href="#" id="footer-faq">자주 묻는 질문</a></li>
                         <li><a href="#" id="footer-contact">문의하기</a></li>
                     </ul>
@@ -314,8 +320,8 @@
                 <div class="footer-section">
                     <h3>법적 정보</h3>
                     <ul>
-                        <li><a href="#" id="footer-terms">이용약관</a></li>
-                        <li><a href="#" id="footer-privacy">개인정보처리방침</a></li>
+                        <li><a href="#" id="footer-terms" class="glow">이용약관</a></li>
+                        <li><a href="#" id="footer-privacy" class="glow">개인정보처리방침</a></li>
                         <li><a href="#" id="footer-license">라이선스</a></li>
                     </ul>
                 </div>
@@ -328,5 +334,9 @@
 
     <!-- 스크립트 -->
     <script type="module" src="js/app.js"></script>
+    <!-- 애니메이션 스크립트 추가 -->
+    <script src="js/animations.js"></script>
+    <!-- 테마 전환 스크립트 추가 -->
+    <script src="js/theme-switcher.js"></script>
 </body>
 </html> 
