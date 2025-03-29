@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>세계 경제 제재 검색 서비스</title>
+    <!-- 구글 폰트 로드 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- 로그인 섹션 -->
+    <section id="login-section">
+        <div class="page-title-header">
+            <h1>세계 경제 제재 검색 서비스</h1>
+        </div>
+        <div class="login-container">
+            <div class="login-header">
+                <h2>WVL 제재 조회 시스템</h2>
+                <p>UN, EU, US의 제재 대상을 검색하세요</p>
+            </div>
+            <div class="login-body">
+                <div class="alert-container"></div>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="email">이메일</label>
+                        <input type="email" id="email" placeholder="이메일을 입력하세요" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">비밀번호</label>
+                        <input type="password" id="password" placeholder="비밀번호를 입력하세요" required>
+                        <i class="fas fa-eye toggle-password"></i>
+                    </div>
+                    <button type="submit" class="btn-primary">로그인</button>
+                </form>
+                <div class="login-footer">
+                    <p>테스트 계정: jaesu@kakao.com / 1234</p>
+                    <div class="login-links">
+                        <a href="#" id="register-link">회원가입</a>
+                        <a href="#" id="help-link">도움말</a>
+                        <a href="#" id="about-link">회사소개</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 푸터 링크 그룹 -->
+        <div class="footer-links-group">
+            <div class="footer-link-category">
+                <h3>회사 정보</h3>
+                <a href="#" id="footer-about">회사 소개</a>
+                <a href="#" id="footer-contact">문의하기</a>
+                <a href="#" id="footer-news">뉴스 및 공지</a>
+            </div>
+            
+            <div class="footer-link-category">
+                <h3>고객 지원</h3>
+                <a href="#" id="footer-help">도움말</a>
+                <a href="#" id="footer-faq">자주 묻는 질문</a>
+                <a href="#" id="footer-contact">고객센터</a>
+            </div>
+            
+            <div class="footer-link-category">
+                <h3>법적 정보</h3>
+                <a href="#" id="footer-terms">이용약관</a>
+                <a href="#" id="footer-privacy">개인정보처리방침</a>
+                <a href="#" id="footer-license">라이선스</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 메인 섹션 -->
+    <section id="main-section" style="display: none;">
+        <header class="main-header">
+            <div class="header-logo">
+                <h1>세계 경제 제재 검색 서비스</h1>
+            </div>
+            <div class="user-info">
+                <span>안녕하세요, <span id="user-name">사용자</span>님!</span>
+                <button id="logout-btn" class="btn-secondary">로그아웃</button>
+            </div>
+        </header>
+
+        <div class="container">
+            <div class="alert-container"></div>
+            
+            <!-- 검색 섹션 업데이트 -->
+            <div class="search-section">
+                <div class="container">
+                    <h2>제재 정보 검색</h2>
+                    <div class="search-bar">
+                        <input type="text" id="search-input" placeholder="이름, 별칭, 국가 또는 유형으로 검색...">
+                        <button id="search-button" onclick="performSearch()">검색</button>
+                    </div>
+
+                    <!-- 검색 유형 선택 -->
+                    <div class="search-options">
+                        <div class="search-type-options">
+                            <label class="search-option active">
+                                <input type="radio" name="search-type" value="text" checked>
+                                <span>텍스트 검색</span>
+                            </label>
+                            <label class="search-option">
+                                <input type="radio" name="search-type" value="number">
+                                <span>번호 검색</span>
+                            </label>
+                            <label class="search-option">
+                                <input type="radio" name="search-type" value="image">
+                                <span>이미지 검색</span>
+                            </label>
+                        </div>
+                        
+                        <!-- 번호 유형 옵션 (기본적으로 숨김) -->
+                        <div class="number-type-options" style="display: none;">
+                            <label class="search-option active">
+                                <input type="radio" name="number-type" value="passport" checked>
+                                <span>여권 번호</span>
+                            </label>
+                            <label class="search-option">
+                                <input type="radio" name="number-type" value="id">
+                                <span>ID 번호</span>
+                            </label>
+                            <label class="search-option">
+                                <input type="radio" name="number-type" value="other">
+                                <span>기타 번호</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- 고급 검색 토글 -->
+                    <div class="advanced-search-toggle">
+                        <button id="advanced-search-button">고급 검색 <i class="fas fa-angle-down"></i></button>
+                    </div>
+                    
+                    <!-- 고급 검색 옵션 (기본적으로 숨김) -->
+                    <div class="advanced-search-options" style="display: none;">
+                        <div class="search-filters">
+                            <div class="filter-group">
+                                <h3>국가별 필터</h3>
+                                <div class="filter-options country-options">
+                                    <div class="filter-option country" data-value="북한">
+                                        <span>북한</span>
+                                    </div>
+                                    <div class="filter-option country" data-value="러시아">
+                                        <span>러시아</span>
+                                    </div>
+                                    <div class="filter-option country" data-value="이란">
+                                        <span>이란</span>
+                                    </div>
+                                    <div class="filter-option country" data-value="시리아">
+                                        <span>시리아</span>
+                                    </div>
+                                    <div class="filter-option country" data-value="기타">
+                                        <span>기타</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <h3>프로그램별 필터</h3>
+                                <div class="filter-options program-options">
+                                    <div class="filter-option program" data-value="UN">
+                                        <span>UN 제재</span>
+                                    </div>
+                                    <div class="filter-option program" data-value="US">
+                                        <span>미국 제재</span>
+                                    </div>
+                                    <div class="filter-option program" data-value="EU">
+                                        <span>EU 제재</span>
+                                    </div>
+                                    <div class="filter-option program" data-value="KR">
+                                        <span>한국 제재</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 날짜 범위 필터 -->
+                            <div class="filter-group">
+                                <h3>날짜 범위</h3>
+                                <div class="date-range-filter">
+                                    <div class="date-input">
+                                        <label for="start-date">시작일</label>
+                                        <input type="date" id="start-date">
+                                    </div>
+                                    <div class="date-input">
+                                        <label for="end-date">종료일</label>
+                                        <input type="date" id="end-date">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 결과 카운트 및 정렬 옵션 -->
+            <div class="results-header">
+                <div class="container">
+                    <div class="results-count">
+                        <span id="results-count">0</span> 개의 결과
+                    </div>
+                    <div class="sort-options">
+                        <label for="sort-select">정렬:</label>
+                        <select id="sort-select">
+                            <option value="relevance">관련성</option>
+                            <option value="date-desc">최신순</option>
+                            <option value="date-asc">오래된순</option>
+                            <option value="name-asc">이름 (가나다순)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 결과 컨테이너 -->
+            <div class="results-section">
+                <div class="container">
+                    <div id="results-container" class="results-grid">
+                        <!-- 검색 결과가 여기에 표시됩니다 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 최신 업데이트 정보 -->
+            <div class="update-info">
+                <p>마지막 업데이트: <span id="last-update">2025-03-26 12:00 LT</span></p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 상세 정보 모달 -->
+    <div id="detail-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>제재 대상 상세 정보</h2>
+                <button id="detail-close" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="detail-content"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="detail-print" class="btn-secondary">
+                    <i class="fas fa-print"></i> 인쇄
+                </button>
+                <button id="detail-download" class="btn-secondary">
+                    <i class="fas fa-download"></i> PDF 다운로드
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 회원가입 모달 -->
+    <div id="register-modal" class="modal register-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>회원가입</h2>
+                <button id="register-close" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert-container"></div>
+                <form id="register-form" class="register-form">
+                    <div class="form-group">
+                        <label for="register-name">이름</label>
+                        <input type="text" id="register-name" placeholder="이름을 입력하세요" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">이메일</label>
+                        <input type="email" id="register-email" placeholder="이메일을 입력하세요" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">비밀번호</label>
+                        <input type="password" id="register-password" placeholder="비밀번호를 입력하세요" required>
+                        <i class="fas fa-eye toggle-password"></i>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password-confirm">비밀번호 확인</label>
+                        <input type="password" id="register-password-confirm" placeholder="비밀번호를 다시 입력하세요" required>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="terms-agree" required>
+                            <a href="#" id="terms-link">이용약관</a> 및 <a href="#" id="privacy-link">개인정보처리방침</a>에 동의합니다.
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="register-submit" class="btn-primary">회원가입</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 푸터 섹션 -->
+    <footer class="main-footer">
+        <div class="footer-container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>회사 정보</h3>
+                    <p>주식회사 WVL</p>
+                    <p>서울특별시 강남구 테헤란로 123, 10층</p>
+                    <p>대표: 김재수</p>
+                    <p>사업자등록번호: 123-45-67890</p>
+                </div>
+                <div class="footer-section">
+                    <h3>고객 지원</h3>
+                    <ul>
+                        <li><a href="#" id="footer-help">도움말</a></li>
+                        <li><a href="#" id="footer-faq">자주 묻는 질문</a></li>
+                        <li><a href="#" id="footer-contact">문의하기</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>법적 정보</h3>
+                    <ul>
+                        <li><a href="#" id="footer-terms">이용약관</a></li>
+                        <li><a href="#" id="footer-privacy">개인정보처리방침</a></li>
+                        <li><a href="#" id="footer-license">라이선스</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 WVL. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 스크립트 -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html> 

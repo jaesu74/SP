@@ -1,0 +1,140 @@
+/**
+ * Y2K 텍스처 및 효과 스타일
+ * MZ 세대 디자인 트렌드에 맞춘 시각적 효과
+ */
+
+.y2k-texture {
+    background-image: url('../images/y2k-texture.png');
+    background-repeat: repeat;
+    background-size: 200px;
+    position: relative;
+}
+
+.y2k-texture::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.3);
+    pointer-events: none;
+}
+
+/* 반짝이는 효과 */
+.sparkle {
+    position: relative;
+    overflow: hidden;
+}
+
+.sparkle::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background-image: 
+        radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px),
+        radial-gradient(circle, rgba(255,255,255,0.5) 2px, transparent 2px);
+    background-size: 24px 24px, 36px 36px;
+    animation: sparkleAnimation 8s linear infinite;
+    pointer-events: none;
+    opacity: 0.3;
+}
+
+@keyframes sparkleAnimation {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* 물결 효과 */
+.wave-effect {
+    position: relative;
+    overflow: hidden;
+}
+
+.wave-effect::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, 
+        rgba(255,255,255,0) 0%,
+        rgba(255,255,255,0.1) 50%, 
+        rgba(255,255,255,0) 100%);
+    background-size: 200% 200%;
+    animation: waveAnimation 3s ease infinite;
+    pointer-events: none;
+}
+
+@keyframes waveAnimation {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* 텍스처 배경 오버레이 */
+.texture-overlay {
+    position: relative;
+}
+
+.texture-overlay::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('../images/texture.jpg');
+    background-size: cover;
+    opacity: 0.1;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+}
+
+/* 홀로그램 효과 */
+.hologram {
+    position: relative;
+    overflow: hidden;
+}
+
+.hologram::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        135deg, 
+        rgba(255,0,255,0.1) 0%, 
+        rgba(0,255,255,0.1) 50%, 
+        rgba(255,255,0,0.1) 100%
+    );
+    mix-blend-mode: screen;
+    opacity: 0.5;
+    animation: hologramAnimation 5s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes hologramAnimation {
+    0% {
+        background-position: 0% 0%;
+    }
+    100% {
+        background-position: 100% 100%;
+    }
+} 
