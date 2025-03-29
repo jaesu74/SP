@@ -870,80 +870,153 @@ function displayResults(results) {
 }
 
 /**
- * 상세 정보 표시 - 통합된 함수
- * @param {string|number} id 결과 ID 또는 인덱스
+ * 상세 정보 표시
+ * @param {string} id 제재 대상 ID
  */
-function showDetail(id) {
-    let result;
-    
-    // ID가 숫자인 경우 인덱스로 처리 (이전 방식)
-    if (!isNaN(id)) {
-        if (!currentResults || !currentResults[id]) {
-            showAlert('상세 정보를 찾을 수 없습니다.', 'error');
+async function showDetail(id) {
+    try {
+        console.log(`상세 정보 요청: ${id}`);
+        
+        // 상세 정보 로드
+        const sanctionDetail = await getSanctionDetails(id);
+        
+        if (!sanctionDetail) {
+            console.error(`상세 정보를 찾을 수 없습니다: ${id}`);
+            showAlert('상세 정보를 불러올 수 없습니다.', 'error');
             return;
         }
-        result = currentResults[id];
-    } else {
-        // ID가 문자열인 경우 ID로 검색 (새 방식)
-        if (!currentResults) {
-            showAlert('검색 결과가 없습니다.', 'error');
-            return;
-        }
-        result = currentResults.find(item => item.id === id);
-        if (!result) {
-            showAlert('상세 정보를 찾을 수 없습니다.', 'error');
-            return;
-        }
+        
+        // 상세 정보 출력
+        const detailContent = document.getElementById('detail-content');
+        
+        const programLabels = {
+            'UN_SANCTIONS': 'UN 제재',
+            'EU_SANCTIONS': 'EU 제재',
+            'US_SANCTIONS': '미국 제재',
+            'KR_SANCTIONS': '한국 제재'
+        };
+        
+        // 적용 프로그램 문자열 생성
+        const programsString = sanctionDetail.programs
+            .map(program => programLabels[program] || program)
+            .join(', ');
+        
+        // HTML 구성
+        const html = `
+            <div class="detail-header">
+                <h3>${sanctionDetail.name}</h3>
+                <div class="detail-meta">
+                    <div class="detail-meta-item">
+                        <span class="label">유형:</span>
+                        <span class="value">${sanctionDetail.type}</span>
+                    </div>
+                    <div class="detail-meta-item">
+                        <span class="label">국가:</span>
+                        <span class="value">${sanctionDetail.country}</span>
+                    </div>
+                    <div class="detail-meta-item">
+                        <span class="label">제재 프로그램:</span>
+                        <span class="value">${programsString}</span>
+                    </div>
+                    ${sanctionDetail.details.birthDate ? `
+                    <div class="detail-meta-item">
+                        <span class="label">생년월일:</span>
+                        <span class="value">${sanctionDetail.details.birthDate}</span>
+                    </div>
+                    ` : ''}
+                    ${sanctionDetail.details.sanctionDate ? `
+                    <div class="detail-meta-item">
+                        <span class="label">제재 지정일:</span>
+                        <span class="value">${sanctionDetail.details.sanctionDate}</span>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+            
+            ${sanctionDetail.details.description ? `
+            <div class="detail-section">
+                <h4>설명</h4>
+                <p>${sanctionDetail.details.description}</p>
+            </div>
+            ` : ''}
+            
+            ${sanctionDetail.details.aliases && sanctionDetail.details.aliases.length > 0 ? `
+            <div class="detail-section">
+                <h4>별명 및 대체 이름</h4>
+                <ul class="detail-list">
+                    ${sanctionDetail.details.aliases.map(alias => `
+                        <li>${alias}</li>
+                    `).join('')}
+                </ul>
+            </div>
+            ` : ''}
+            
+            ${sanctionDetail.details.addresses && sanctionDetail.details.addresses.length > 0 ? `
+            <div class="detail-section">
+                <h4>주소</h4>
+                <ul class="detail-list">
+                    ${sanctionDetail.details.addresses.map(address => `
+                        <li>${address}</li>
+                    `).join('')}
+                </ul>
+            </div>
+            ` : ''}
+            
+            ${sanctionDetail.details.identifications && sanctionDetail.details.identifications.length > 0 ? `
+            <div class="detail-section">
+                <h4>신분증 및 식별 정보</h4>
+                <table class="detail-table">
+                    <thead>
+                        <tr>
+                            <th>유형</th>
+                            <th>번호</th>
+                            <th>국가</th>
+                            <th>발급일</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sanctionDetail.details.identifications.map(id => `
+                            <tr>
+                                <td>${id.type || '-'}</td>
+                                <td>${id.number || '-'}</td>
+                                <td>${id.country || '-'}</td>
+                                <td>${id.issueDate || '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            ` : ''}
+            
+            ${sanctionDetail.details.relatedSanctions && sanctionDetail.details.relatedSanctions.length > 0 ? `
+            <div class="detail-section">
+                <h4>관련 제재 대상</h4>
+                <ul class="detail-list">
+                    ${sanctionDetail.details.relatedSanctions.map(related => `
+                        <li>
+                            <strong>${related.name}</strong> 
+                            ${related.type ? `(${related.type})` : ''} 
+                            ${related.relationship ? `- ${related.relationship}` : ''}
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+            ` : ''}
+        `;
+        
+        detailContent.innerHTML = html;
+        
+        // 모달 열기
+        const detailModal = document.getElementById('detail-modal');
+        detailModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden'; // 스크롤 방지
+        
+        console.log('상세 정보 표시 완료');
+        
+    } catch (error) {
+        console.error('상세 정보 로드 오류:', error);
+        showAlert('상세 정보를 불러오는 중 오류가 발생했습니다.', 'error');
     }
-    
-    const detailContent = document.getElementById('detail-content');
-    const detailModal = document.getElementById('detail-modal');
-    
-    if (!detailContent || !detailModal) return;
-    
-    detailContent.innerHTML = `
-        <div class="detail-header">
-            <h2>${result.name}</h2>
-            <span class="detail-type">${result.type}</span>
-        </div>
-        <div class="detail-body">
-            <div class="detail-section">
-                <h3>기본 정보</h3>
-                <p><strong>국가:</strong> ${result.country}</p>
-                <p><strong>제재 프로그램:</strong> ${result.programs.join(', ')}</p>
-            </div>
-            <div class="detail-section">
-                <h3>별칭</h3>
-                <ul>
-                    ${result.details.aliases.map(alias => `<li>${alias}</li>`).join('')}
-                </ul>
-            </div>
-            <div class="detail-section">
-                <h3>주소</h3>
-                <ul>
-                    ${result.details.addresses.map(addr => `<li>${addr}</li>`).join('')}
-                </ul>
-            </div>
-            ${result.details.identifications && result.details.identifications.length ? `
-                <div class="detail-section">
-                    <h3>신분증 정보</h3>
-                    <ul>
-                        ${result.details.identifications.map(id => `<li>${id.type}: ${id.number}</li>`).join('')}
-                    </ul>
-                </div>
-            ` : ''}
-            ${result.details.relatedSanctions && result.details.relatedSanctions.length ? `
-                <div class="detail-section">
-                    <h3>관련 제재</h3>
-                    <ul>
-                        ${result.details.relatedSanctions.map(sanction => `<li>${sanction.name} (${sanction.type})</li>`).join('')}
-                    </ul>
-                </div>
-            ` : ''}
-        </div>
-    `;
-    
-    detailModal.classList.add('show');
 }
 
 /**
