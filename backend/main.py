@@ -303,6 +303,10 @@ async def get_sanction(
     
     return Sanction(**result)
 
+# 경로 설정 섹션
+# 상위 requirements.txt 참조로 수정
+requirements_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'requirements.txt')
+
 # 서버 실행
 if __name__ == "__main__":
     # 샘플 데이터 삽입

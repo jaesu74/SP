@@ -3,10 +3,7 @@
  * 메인 애플리케이션 파일
  */
 
-// 이미 초기화 되었는지 확인하는 전역 변수
-if (typeof window._sanctionsAppInitialized === 'undefined') {
-    window._sanctionsAppInitialized = false;
-}
+import { fetchSanctionsData, searchSanctions, getSanctionDetails } from './api.js';
 
 // 전역 변수
 let currentResults = [];
@@ -16,342 +13,28 @@ let activeFilters = {
 };
 let users = JSON.parse(localStorage.getItem('users')) || [];
 
-// 검색 결과 캐시
-let resultsCache = {};
-
-// 임시 데이터 저장소
-let temporaryData = null;
-
-// DOM이 로드된 후 정확히 한 번만 초기화
-document.addEventListener('DOMContentLoaded', function() {
-    // 이미 초기화되었는지 확인
-    if (window._sanctionsAppInitialized === true) {
-        console.log('앱이 이미 초기화되었습니다.');
-        return;
-    }
-    
-    // 초기화 함수 실행
-    console.log('앱 초기화 시작...');
-    initApp();
-    
-    // 초기화 완료 표시
-    window._sanctionsAppInitialized = true;
-    console.log('앱 초기화 완료.');
-});
+// DOM이 로드된 후 초기화
+document.addEventListener('DOMContentLoaded', initializeApp);
 
 /**
- * 앱 초기화
+ * 애플리케이션 초기화
  */
-function initApp() {
-    // 중복 체크는 이미 DOMContentLoaded에서 했으므로 제거
+function initializeApp() {
+    console.log('세계 경제 제재 검색 서비스 초기화...');
     
-    // 전역 이벤트 리스너 클리어
-    if (window._scrollHandler) {
-        window.removeEventListener('scroll', window._scrollHandler);
-    }
+    // 로그인 상태 확인
+    checkLoginStatus();
     
-    if (window._memoryCleanupTimer) {
-        clearInterval(window._memoryCleanupTimer);
-        window._memoryCleanupTimer = null;
-    }
+    // 이벤트 리스너 등록
+    setupEventListeners();
     
-    // 이미지 옵저버 중단
-    if (window._imageObserver) {
-        window._imageObserver.disconnect();
-        window._imageObserver = null;
-    }
+    // 필터 및 검색 옵션 설정
+    setupFilterOptions();
+    setupSearchOptions();
+    setupAutocomplete();
     
-    // 테마 설정
-    initTheme();
-    
-    // 이벤트 리스너 등록 (한 번만)
-    setupEventListenersOnce();
-    
-    // 필터 옵션 초기화
-    initFilterOptions();
-    
-    // 인증 UI 업데이트
-    updateAuthUI();
-    
-    // 초기 필터 설정
-    resetFilters();
-    
-    // 애니메이션 초기화
-    initAnimations();
-    
-    // 터치 디바이스 감지 및 최적화
-    detectTouchDevice();
-    
-    // 메모리 최적화를 위한 가비지 컬렉션 유도
-    optimizeMemory();
-}
-
-/**
- * 이벤트 리스너를 한 번만 등록하는 함수
- */
-function setupEventListenersOnce() {
-    // 이벤트 리스너 중복 등록 방지를 위한 플래그 사용
-    
-    // 검색 버튼 이벤트 연결
-    const searchButton = document.getElementById('search-button');
-    if (searchButton && !searchButton._hasClickListener) {
-        if (searchButton._clickListener) {
-            searchButton.removeEventListener('click', searchButton._clickListener);
-        }
-        searchButton._clickListener = handleSearch;
-        searchButton.addEventListener('click', searchButton._clickListener, {passive: false});
-        searchButton._hasClickListener = true;
-    }
-    
-    // 검색 입력 필드 엔터키 이벤트
-    const searchInput = document.getElementById('search-input');
-    if (searchInput && !searchInput._hasKeyupListener) {
-        const keyupHandler = function(event) {
-            if (event.key === 'Enter') {
-                handleSearch();
-            }
-        };
-        if (searchInput._keyupListener) {
-            searchInput.removeEventListener('keyup', searchInput._keyupListener);
-        }
-        searchInput._keyupListener = keyupHandler;
-        searchInput.addEventListener('keyup', keyupHandler, {passive: true});
-        searchInput._hasKeyupListener = true;
-    }
-    
-    // 필터 토글 버튼
-    const filterToggle = document.getElementById('filter-toggle');
-    if (filterToggle && !filterToggle._hasClickListener) {
-        if (filterToggle._clickListener) {
-            filterToggle.removeEventListener('click', filterToggle._clickListener);
-        }
-        filterToggle._clickListener = toggleFilterSection;
-        filterToggle.addEventListener('click', filterToggle._clickListener, {passive: false});
-        filterToggle._hasClickListener = true;
-    }
-    
-    // 필터 적용 버튼
-    const applyFilterButton = document.getElementById('apply-filter');
-    if (applyFilterButton && !applyFilterButton._hasClickListener) {
-        applyFilterButton.addEventListener('click', filterResults);
-        applyFilterButton._hasClickListener = true;
-    }
-    
-    // 필터 초기화 버튼
-    const resetFilterButton = document.getElementById('reset-filter');
-    if (resetFilterButton && !resetFilterButton._hasClickListener) {
-        resetFilterButton.addEventListener('click', resetFilters);
-        resetFilterButton._hasClickListener = true;
-    }
-    
-    // 로그인 처리
-    const loginForm = document.getElementById('login-form');
-    if (loginForm && !loginForm._hasSubmitListener) {
-        loginForm.addEventListener('submit', handleLogin);
-        loginForm._hasSubmitListener = true;
-    }
-    
-    // 로그아웃 처리
-    const logoutButton = document.getElementById('logout-button');
-    if (logoutButton && !logoutButton._hasClickListener) {
-        logoutButton.addEventListener('click', handleLogout);
-        logoutButton._hasClickListener = true;
-    }
-    
-    // 회원가입 폼 처리
-    const registerForm = document.getElementById('register-form');
-    if (registerForm && !registerForm._hasSubmitListener) {
-        registerForm.addEventListener('submit', handleRegister);
-        registerForm._hasSubmitListener = true;
-    }
-    
-    // 모달 닫기 버튼 - 한 번만 등록
-    if (!window._closeButtonsInitialized) {
-        // 기존 리스너가 있으면 제거
-        document.querySelectorAll('.close-modal').forEach(button => {
-            const oldListener = button._closeListener;
-            if (oldListener) {
-                button.removeEventListener('click', oldListener);
-            }
-        });
-        
-        // 새 리스너 등록
-        const closeButtons = document.querySelectorAll('.close-modal');
-        closeButtons.forEach(button => {
-            const closeHandler = function() {
-                const modalId = this.closest('.modal').id;
-                closeModal(modalId);
-            };
-            button._closeListener = closeHandler;
-            button.addEventListener('click', closeHandler, {passive: false});
-        });
-        window._closeButtonsInitialized = true;
-    }
-    
-    // 모달 외부 클릭 - 한 번만 등록
-    if (!window._modalsInitialized) {
-        const modals = document.querySelectorAll('.modal');
-        modals.forEach(modal => {
-            modal.addEventListener('click', function(event) {
-                if (event.target === this) {
-                    closeModal(this.id);
-                }
-            });
-        });
-        window._modalsInitialized = true;
-    }
-}
-
-/**
- * 메모리 사용 최적화
- */
-function optimizeMemory() {
-    // 이전 타이머가 있으면 제거
-    if (window._memoryCleanupTimer) {
-        clearInterval(window._memoryCleanupTimer);
-        window._memoryCleanupTimer = null;
-    }
-    
-    // 이전 스크롤 이벤트 리스너 제거
-    if (window._scrollHandler) {
-        window.removeEventListener('scroll', window._scrollHandler);
-    }
-    
-    // 스크롤 성능 최적화 함수
-    function optimizedScrollHandler() {
-        // 스로틀링 구현
-        if (!window._isScrollThrottled) {
-            window._isScrollThrottled = true;
-            
-            // requestAnimationFrame을 사용하여 스크롤 처리 최적화
-            requestAnimationFrame(() => {
-                // 스크롤 이벤트 처리 코드
-                window._isScrollThrottled = false;
-            });
-        }
-    }
-    
-    // 새 스크롤 핸들러 등록 (passive: true로 성능 개선)
-    window._scrollHandler = optimizedScrollHandler;
-    window.addEventListener('scroll', window._scrollHandler, { passive: true });
-    
-    // 리소스 정리 함수 - 특정 시간(10분)마다 실행
-    function cleanupResources() {
-        console.log('메모리 정리 수행...');
-        
-        // 임시 DOM 요소 정리
-        document.querySelectorAll('.temp-element').forEach(el => {
-            if (el && el.parentNode) {
-                el.parentNode.removeChild(el);
-            }
-        });
-        
-        // 대용량 임시 데이터 해제
-        temporaryData = null;
-        
-        // 오래된 캐시 정리 (5분 이상)
-        const now = Date.now();
-        Object.keys(resultsCache).forEach(key => {
-            const cacheTime = resultsCache[key]?.timestamp || 0;
-            if (now - cacheTime > 300000) {
-                delete resultsCache[key];
-            }
-        });
-        
-        // 가비지 컬렉션 유도
-        if (window.gc) {
-            try {
-                window.gc();
-            } catch (e) {}
-        }
-    }
-    
-    // 최초 1회 리소스 정리 실행
-    cleanupResources();
-    
-    // 주기적인 메모리 정리를 위한 타이머 설정 (10분마다)
-    window._memoryCleanupTimer = setInterval(cleanupResources, 600000);
-    
-    // 이미지 지연 로딩 (한 번만 설정)
-    if (!window._lazyImagesInitialized) {
-        setupLazyImages();
-        window._lazyImagesInitialized = true;
-    }
-}
-
-/**
- * 이미지 지연 로딩 설정
- */
-function setupLazyImages() {
-    // 이전 옵저버가 있다면 중단
-    if (window._imageObserver) {
-        window._imageObserver.disconnect();
-    }
-    
-    // 지연 로딩할 이미지 선택
-    const lazyImages = document.querySelectorAll('img.lazy-image');
-    
-    if (lazyImages.length === 0) return;
-    
-    // IntersectionObserver 지원 여부 확인
-    if ('IntersectionObserver' in window) {
-        // 새 옵저버 생성
-        window._imageObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const img = entry.target;
-                    if (img.dataset.src) {
-                        img.src = img.dataset.src;
-                        img.classList.remove('lazy-image');
-                        window._imageObserver.unobserve(img);
-                    }
-                }
-            });
-        });
-        
-        // 각 이미지 관찰 시작
-        lazyImages.forEach(img => {
-            if (img.dataset.src) {
-                window._imageObserver.observe(img);
-            }
-        });
-    } else {
-        // IntersectionObserver를 지원하지 않는 브라우저용 폴백
-        lazyImages.forEach(img => {
-            if (img.dataset.src) {
-                img.src = img.dataset.src;
-                img.classList.remove('lazy-image');
-            }
-        });
-    }
-}
-
-/**
- * 터치 디바이스 감지 및 최적화
- */
-function detectTouchDevice() {
-    const isTouchDevice = 'ontouchstart' in window || 
-                          navigator.maxTouchPoints > 0 || 
-                          navigator.msMaxTouchPoints > 0;
-    
-    if (isTouchDevice) {
-        document.body.classList.add('touch-device');
-        
-        // 터치 이벤트 최적화
-        document.addEventListener('touchstart', function() {}, {passive: true});
-        document.addEventListener('touchmove', function() {}, {passive: true});
-    }
-}
-
-/**
- * 캐시 정리
- */
-function clearCache() {
-    // 이전 검색 결과 캐시 정리
-    resultsCache = {};
-    
-    // 사용하지 않는 큰 객체 참조 해제
-    temporaryData = null;
+    // 초기 데이터 로드
+    loadInitialData();
 }
 
 /**
@@ -675,71 +358,115 @@ function adjustFooterForMainSection() {
  * 이벤트 리스너 등록
  */
 function setupEventListeners() {
-    // 로그인 폼 제출 이벤트
+    // 로그인 폼 제출
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', handleLogin);
     }
     
-    // 로그아웃 버튼 클릭 이벤트
+    // 로그아웃 버튼
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', handleLogout);
     }
     
-    // 비밀번호 토글 이벤트
-    const togglePassword = document.querySelector('.toggle-password');
-    if (togglePassword) {
-        togglePassword.addEventListener('click', togglePasswordVisibility);
+    // 검색 폼 제출
+    const searchForm = document.getElementById('search-form');
+    if (searchForm) {
+        searchForm.addEventListener('submit', performSearch);
     }
     
-    // 검색 버튼 클릭 이벤트
+    // 검색 버튼 클릭
     const searchButton = document.getElementById('search-button');
     if (searchButton) {
-        searchButton.addEventListener('click', handleSearch);
+        searchButton.addEventListener('click', performSearch);
     }
     
-    // 검색창 엔터 키 이벤트
+    // 엔터 키 검색 실행
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
-        searchInput.addEventListener('keyup', e => {
+        searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                handleSearch();
+                e.preventDefault();
+                performSearch();
             }
         });
     }
     
-    // 고급 검색 토글 버튼
-    const advancedSearchBtn = document.getElementById('advanced-search-button');
-    if (advancedSearchBtn) {
-        advancedSearchBtn.addEventListener('click', toggleAdvancedSearch);
+    // 고급 검색 토글
+    const advancedToggle = document.getElementById('advanced-toggle');
+    const advancedSearch = document.getElementById('advanced-search');
+    if (advancedToggle && advancedSearch) {
+        advancedToggle.addEventListener('click', () => {
+            advancedSearch.classList.toggle('show');
+        });
     }
     
-    // 정렬 드롭다운 변경 이벤트
-    const sortSelect = document.getElementById('sort-select');
-    if (sortSelect) {
-        sortSelect.addEventListener('change', sortResults);
+    // 상세 정보 모달 닫기
+    const detailClose = document.getElementById('detail-close');
+    const detailModal = document.getElementById('detail-modal');
+    if (detailClose && detailModal) {
+        detailClose.addEventListener('click', () => {
+            detailModal.classList.remove('show');
+        });
     }
-
-    // 이용약관, 개인정보처리방침, 도움말 링크 이벤트 리스너
+    
+    // 회원가입 모달 표시
+    const registerLink = document.getElementById('register-link');
+    const registerModal = document.getElementById('register-modal');
+    if (registerLink && registerModal) {
+        registerLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            registerModal.classList.add('show');
+        });
+    }
+    
+    // 회원가입 모달 닫기
+    const registerClose = document.getElementById('register-close');
+    if (registerClose && registerModal) {
+        registerClose.addEventListener('click', () => {
+            registerModal.classList.remove('show');
+        });
+    }
+    
+    // 회원가입 폼 제출
+    const registerSubmit = document.getElementById('register-submit');
+    if (registerSubmit) {
+        registerSubmit.addEventListener('click', handleRegister);
+    }
+    
+    // 약관 링크 이벤트
     const termsLink = document.getElementById('terms-link');
     const privacyLink = document.getElementById('privacy-link');
-    const helpLink = document.getElementById('help-link');
     
     if (termsLink) {
-        termsLink.addEventListener('click', showTermsModal);
+        termsLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showInfoModal('footer-terms');
+        });
     }
     
     if (privacyLink) {
-        privacyLink.addEventListener('click', showPrivacyModal);
+        privacyLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showInfoModal('footer-privacy');
+        });
     }
     
-    if (helpLink) {
-        helpLink.addEventListener('click', showHelpModal);
-    }
+    // 비밀번호 표시 토글
+    const togglePasswordElements = document.querySelectorAll('.toggle-password');
+    togglePasswordElements.forEach(toggle => {
+        toggle.addEventListener('click', () => {
+            const passwordInput = toggle.previousElementSibling;
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            toggle.classList.toggle('fa-eye');
+            toggle.classList.toggle('fa-eye-slash');
+        });
+    });
     
-    // 필터 옵션 이벤트
-    setupFilterOptionEvents();
+    // 푸터 링크
+    setupFooterLinks();
 }
 
 /**
@@ -906,13 +633,18 @@ async function handleLogin(e) {
             // 로그인 성공
             localStorage.setItem('isLoggedIn', 'true');
             localStorage.setItem('userEmail', email);
-            localStorage.setItem('userName', '재수');
+            localStorage.setItem('userName', '김재수');
+            
+            console.log('테스트 계정으로 로그인 성공!');
             
             // 메인 페이지로 전환
             showMainSection(email);
             
             // 성공 메시지
             showAlert('로그인 성공!', 'success');
+            
+            // 초기 검색 실행 (전체 데이터 로드)
+            performSearch();
             return;
         }
         
@@ -929,6 +661,9 @@ async function handleLogin(e) {
             
             // 성공 메시지
             showAlert('로그인 성공!', 'success');
+            
+            // 초기 검색 실행 (전체 데이터 로드)
+            performSearch();
         } else {
             showAlert('이메일 또는 비밀번호가 올바르지 않습니다.', 'error');
         }
@@ -954,633 +689,101 @@ function handleLogout() {
 }
 
 /**
- * 검색 처리 함수
+ * 검색 처리 - 통합된 검색 함수
+ * @param {Event} e 이벤트 객체 (선택적)
  */
-function handleSearch() {
-    const searchInput = document.getElementById('search-input');
-    const query = searchInput.value.trim();
+async function performSearch(e) {
+    if (e) e.preventDefault();
     
-    // 로딩 상태 표시
-    showLoading();
+    const query = document.getElementById('search-input').value.trim();
+    const searchType = document.querySelector('input[name="search-type"]:checked')?.value || 
+                       document.getElementById('search-type')?.value || 'text';
     
-    // 현재 페이지
-    const currentPage = 1;
-    const pageSize = 20;
+    const numberType = searchType === 'number' ? 
+                      (document.querySelector('input[name="number-type"]:checked')?.value || 
+                       document.getElementById('number-type')?.value || '') : '';
     
-    // 필터 옵션 수집
-    const options = {
-        page: currentPage,
-        pageSize: pageSize,
-        sources: ['un', 'eu', 'us'],
-        countries: activeFilters.countries,
-        programs: activeFilters.programs,
-        startDate: document.getElementById('start-date')?.value,
-        endDate: document.getElementById('end-date')?.value,
-        searchType: document.querySelector('input[name="search-type"]:checked')?.value || 'text',
-        numberType: document.querySelector('input[name="number-type"]:checked')?.value || 'passport'
-    };
-    
-    // 검색 API 호출
-    searchSanctions(query, options)
-        .then(result => {
-            // 결과 표시
-            displayResults(result.data);
-            updateResultsCount(result.pagination.total);
-            
-            // 페이지네이션 업데이트
-            updatePagination(result.pagination);
-            
-            // 로딩 상태 제거
-            hideLoading();
-        })
-        .catch(error => {
-            console.error('검색 오류:', error);
-            showAlert('검색 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
-            hideLoading();
-        });
-}
-
-/**
- * 페이지 변경 처리
- * @param {number} page 이동할 페이지 번호
- */
-function changePage(page) {
-    // 현재 검색어 가져오기
-    const searchInput = document.getElementById('search-input');
-    const query = searchInput ? searchInput.value.trim() : '';
-    
-    // 로딩 상태 표시
-    showLoading();
-    
-    // 페이지 크기
-    const pageSize = 20;
-    
-    // 필터 옵션 수집
-    const options = {
-        page: page,
-        pageSize: pageSize,
-        sources: ['un', 'eu', 'us'],
-        countries: activeFilters.countries,
-        programs: activeFilters.programs,
-        startDate: document.getElementById('start-date')?.value,
-        endDate: document.getElementById('end-date')?.value,
-        searchType: document.querySelector('input[name="search-type"]:checked')?.value || 'text',
-        numberType: document.querySelector('input[name="number-type"]:checked')?.value || 'passport'
-    };
-    
-    // 검색 API 호출
-    searchSanctions(query, options)
-        .then(result => {
-            // 결과 표시
-            displayResults(result.data);
-            
-            // 페이지네이션 업데이트
-            updatePagination(result.pagination);
-            
-            // 로딩 상태 제거
-            hideLoading();
-            
-            // 결과 상단으로 스크롤
-            document.getElementById('results-section').scrollIntoView({
-                behavior: 'smooth'
-            });
-        })
-        .catch(error => {
-            console.error('페이지 변경 오류:', error);
-            showAlert('페이지 로드 중 오류가 발생했습니다.', 'error');
-            hideLoading();
-        });
-}
-
-/**
- * 페이지네이션 UI 업데이트
- * @param {Object} pagination 페이지네이션 정보
- */
-function updatePagination(pagination) {
-    const paginationContainer = document.getElementById('pagination');
-    if (!paginationContainer) return;
-    
-    const { page, totalPages } = pagination;
-    
-    // 페이지가 하나뿐이면 페이지네이션 숨김
-    if (totalPages <= 1) {
-        paginationContainer.innerHTML = '';
-        paginationContainer.style.display = 'none';
+    if (!query && !e) {
+        // 초기 로드 시에는 빈 쿼리 허용 (모든 결과 표시)
+    } else if (!query) {
+        showAlert('검색어를 입력해주세요.', 'error');
         return;
     }
     
-    paginationContainer.style.display = 'flex';
-    
-    let paginationHTML = '';
-    
-    // 이전 페이지 버튼
-    paginationHTML += `
-        <button class="pagination-button ${page <= 1 ? 'disabled' : ''}" 
-            ${page <= 1 ? 'disabled' : `onclick="changePage(${page - 1})"`}>
-            <i class="fas fa-chevron-left"></i>
-        </button>
-    `;
-    
-    // 페이지 번호 버튼
-    const maxVisiblePages = 5;
-    let startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-    
-    // 시작 페이지 조정
-    if (endPage - startPage + 1 < maxVisiblePages) {
-        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    // 검색 중 UI 표시
+    const resultsContainer = document.getElementById('results-container') || document.getElementById('results-list');
+    if (resultsContainer) {
+        resultsContainer.innerHTML = '<div class="loading-spinner"></div>';
     }
     
-    // 처음 페이지 표시
-    if (startPage > 1) {
-        paginationHTML += `
-            <button class="pagination-button" onclick="changePage(1)">1</button>
-        `;
-        
-        if (startPage > 2) {
-            paginationHTML += `<span class="pagination-ellipsis">...</span>`;
-        }
-    }
-    
-    // 페이지 번호 표시
-    for (let i = startPage; i <= endPage; i++) {
-        paginationHTML += `
-            <button class="pagination-button ${i === page ? 'active' : ''}" 
-                onclick="changePage(${i})">${i}</button>
-        `;
-    }
-    
-    // 마지막 페이지 표시
-    if (endPage < totalPages) {
-        if (endPage < totalPages - 1) {
-            paginationHTML += `<span class="pagination-ellipsis">...</span>`;
-        }
-        
-        paginationHTML += `
-            <button class="pagination-button" onclick="changePage(${totalPages})">${totalPages}</button>
-        `;
-    }
-    
-    // 다음 페이지 버튼
-    paginationHTML += `
-        <button class="pagination-button ${page >= totalPages ? 'disabled' : ''}" 
-            ${page >= totalPages ? 'disabled' : `onclick="changePage(${page + 1})"`}>
-            <i class="fas fa-chevron-right"></i>
-        </button>
-    `;
-    
-    paginationContainer.innerHTML = paginationHTML;
-}
-
-/**
- * 필터 결과 적용
- */
-function filterResults() {
-    // 현재 검색어 가져오기
-    const searchInput = document.getElementById('search-input');
-    const query = searchInput ? searchInput.value.trim() : '';
-    
-    // 필터 옵션 수집
-    const options = {
-        page: 1,
-        pageSize: 20,
-        sources: ['un', 'eu', 'us'],
-        countries: activeFilters.countries,
-        programs: activeFilters.programs,
-        startDate: document.getElementById('start-date')?.value,
-        endDate: document.getElementById('end-date')?.value,
-        searchType: document.querySelector('input[name="search-type"]:checked')?.value || 'text',
-        numberType: document.querySelector('input[name="number-type"]:checked')?.value || 'passport'
-    };
-    
-    // 로딩 상태 표시
-    showLoading();
-    
-    // 검색 API 호출
-    searchSanctions(query, options)
-        .then(result => {
-            // 결과 표시
-            displayResults(result.data);
-            updateResultsCount(result.pagination.total);
-            
-            // 페이지네이션 업데이트
-            updatePagination(result.pagination);
-            
-            // 로딩 상태 제거
-            hideLoading();
-        })
-        .catch(error => {
-            console.error('필터 적용 오류:', error);
-            showAlert('필터 적용 중 오류가 발생했습니다.', 'error');
-            hideLoading();
-        });
-}
-
-/**
- * 결과 표시 함수
- * @param {Array} results 검색 결과
- */
-function displayResults(results) {
-    const resultsContainer = document.getElementById('results-container');
-    
-    if (!resultsContainer) return;
-    
-    // 컨테이너 초기화
-    resultsContainer.innerHTML = '';
-    
-    // 결과가 없는 경우
-    if (!results || results.length === 0) {
-        resultsContainer.innerHTML = `
-            <div class="no-results">
-                <h3>검색 결과가 없습니다</h3>
-                <p>다른 검색어로 다시 시도하거나 필터를 조정해보세요.</p>
-            </div>
-        `;
-        return;
-    }
-    
-    // 결과가 있는 경우, 각 항목을 카드로 표시
-    results.forEach(item => {
-        // 결과 카드 생성
-        const resultCard = document.createElement('div');
-        resultCard.className = 'result-card';
-        resultCard.dataset.id = item.id;
-        resultCard.dataset.type = item.type;
-        
-        // 카드 콘텐츠 설정
-        resultCard.innerHTML = `
-            <h3>${item.name}</h3>
-            <div class="result-meta">
-                <div class="result-meta-item">
-                    <i class="fas fa-globe"></i> ${item.country}
-                </div>
-                <div class="result-meta-item">
-                    <i class="fas fa-tag"></i> ${item.type}
-                </div>
-                ${item.details && item.details.sanctionDate ? `
-                <div class="result-meta-item">
-                    <i class="fas fa-calendar"></i> ${formatDate(item.details.sanctionDate)}
-                </div>` : ''}
-            </div>
-            <div class="result-description">
-                ${item.details && item.details.description ? item.details.description.substring(0, 150) + (item.details.description.length > 150 ? '...' : '') : '상세 설명 없음'}
-            </div>
-            <div class="result-programs">
-                ${item.programs.map(program => `<span class="program-tag">${formatProgramName(program)}</span>`).join('')}
-            </div>
-            <button class="view-details-button" data-id="${item.id}">상세 정보 보기</button>
-        `;
-        
-        // 상세 정보 버튼 이벤트 추가
-        setTimeout(() => {
-            const detailBtn = resultCard.querySelector('.view-details-button');
-            if (detailBtn) {
-                detailBtn.addEventListener('click', function() {
-                    showSanctionDetails(this.getAttribute('data-id'));
-                });
-            }
-        }, 0);
-        
-        // 카드를 결과 컨테이너에 추가
-        resultsContainer.appendChild(resultCard);
-    });
-}
-
-/**
- * 고급 검색 토글 함수
- */
-function toggleAdvancedSearch() {
-    const advancedSearch = document.querySelector('.advanced-search-options');
-    const toggleBtn = document.getElementById('advanced-search-button');
-    
-    if (advancedSearch) {
-        const isVisible = advancedSearch.style.display !== 'none';
-        advancedSearch.style.display = isVisible ? 'none' : 'block';
-        
-        // 버튼 아이콘 회전
-        const icon = toggleBtn.querySelector('i');
-        if (icon) {
-            icon.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
-        }
-    }
-}
-
-/**
- * 초기 필터 옵션 활성화
- */
-function activateFilters() {
-    // 국가별 필터 활성화
-    const countryOptions = document.querySelectorAll('.filter-option.country');
-    countryOptions.forEach(option => {
-        option.addEventListener('click', function() {
-            const isSelected = this.classList.contains('selected');
-            const value = this.getAttribute('data-value');
-            
-            if (isSelected) {
-                this.classList.remove('selected');
-                activeFilters.countries.delete(value);
-            } else {
-                this.classList.add('selected');
-                activeFilters.countries.add(value);
-            }
-            
-            console.log('활성화된 국가 필터:', activeFilters.countries);
-        });
-    });
-    
-    // 프로그램별 필터 활성화
-    const programOptions = document.querySelectorAll('.filter-option.program');
-    programOptions.forEach(option => {
-        option.addEventListener('click', function() {
-            const isSelected = this.classList.contains('selected');
-            const value = this.getAttribute('data-value');
-            
-            if (isSelected) {
-                this.classList.remove('selected');
-                activeFilters.programs.delete(value);
-            } else {
-                this.classList.add('selected');
-                activeFilters.programs.add(value);
-            }
-            
-            console.log('활성화된 프로그램 필터:', activeFilters.programs);
-        });
-    });
-    
-    // 날짜 필터 활성화
-    const startDate = document.getElementById('start-date');
-    const endDate = document.getElementById('end-date');
-    
-    if (startDate) {
-        startDate.addEventListener('change', function() {
-            if (endDate && endDate.value && new Date(this.value) > new Date(endDate.value)) {
-                showAlert('시작일은 종료일보다 이전이어야 합니다.', 'error');
-                this.value = '';
-            }
-        });
-    }
-    
-    if (endDate) {
-        endDate.addEventListener('change', function() {
-            if (startDate && startDate.value && new Date(this.value) < new Date(startDate.value)) {
-                showAlert('종료일은 시작일보다 이후여야 합니다.', 'error');
-                this.value = '';
-            }
-        });
-    }
-}
-
-/**
- * 검색 옵션 설정
- */
-function setupSearchOptions() {
-    // 검색 유형 옵션 설정
-    const searchTypeOptions = document.querySelectorAll('.search-type-options .search-option');
-    const numberTypeOptions = document.querySelector('.number-type-options');
-    
-    searchTypeOptions.forEach(option => {
-        const input = option.querySelector('input');
-        if (input) {
-            input.addEventListener('change', function() {
-                // 모든 옵션에서 active 클래스 제거
-                searchTypeOptions.forEach(opt => opt.classList.remove('active'));
-                // 선택된 옵션에만 active 클래스 추가
-                this.closest('.search-option').classList.add('active');
-                
-                // 번호 검색일 경우 번호 유형 옵션 표시
-                if (this.value === 'number' && numberTypeOptions) {
-                    numberTypeOptions.style.display = 'flex';
-                } else if (numberTypeOptions) {
-                    numberTypeOptions.style.display = 'none';
-                }
-            });
-        }
-    });
-    
-    // 번호 유형 옵션 설정
-    const numberTypeRadios = document.querySelectorAll('.number-type-options .search-option input');
-    numberTypeRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            document.querySelectorAll('.number-type-options .search-option').forEach(opt => 
-                opt.classList.remove('active'));
-            this.closest('.search-option').classList.add('active');
-        });
-    });
-}
-
-/**
- * 페이지 초기 데이터 로드
- */
-async function loadInitialData() {
     try {
-        // 로딩 상태 표시
-        showLoading();
+        // 선택된 필터 가져오기
+        const selectedCountries = Array.from(document.querySelectorAll('.filter-option.country.selected'))
+            .map(el => el.dataset.value);
+        const selectedPrograms = Array.from(document.querySelectorAll('.filter-option.program.selected'))
+            .map(el => el.dataset.value);
         
-        // 결과 카운트 초기화
-        updateResultsCount(0);
+        // API 함수 호출
+        const country = selectedCountries.length > 0 ? selectedCountries[0] : '';
+        const program = selectedPrograms.length > 0 ? selectedPrograms[0] : '';
         
-        // 필터 초기화 및 활성화
-        // 이미 initApp에서 실행하므로 여기서는 제거
-        // activateFilters();
+        let searchResult = await searchSanctions(query, country, program, searchType, numberType);
         
-        // 로딩 상태 제거
-        hideLoading();
-        
-    } catch (error) {
-        console.error('초기 데이터 로드 오류:', error);
-        showAlert('데이터를 불러오는 중 오류가 발생했습니다.', 'error');
-        hideLoading();
-    }
-}
-
-/**
- * 프로그램 이름 포맷팅
- * @param {string} program 프로그램 코드
- * @returns {string} 포맷팅된 프로그램 이름
- */
-function formatProgramName(program) {
-    if (program.includes('UN_SANCTIONS')) {
-        return 'UN 제재';
-    } else if (program.includes('EU_SANCTIONS')) {
-        return 'EU 제재';
-    } else if (program.includes('US_SANCTIONS')) {
-        return 'US 제재';
-    } else if (program.includes('KR')) {
-        return '한국 제재';
-    }
-    return program;
-}
-
-/**
- * 날짜 포맷팅
- * @param {string} dateString 날짜 문자열
- * @returns {string} 포맷팅된 날짜
- */
-function formatDate(dateString) {
-    if (!dateString) return '날짜 정보 없음';
-    
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-    
-    return date.toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-    });
-}
-
-/**
- * 제재 상세 정보 표시
- * @param {number} id 제재 ID
- */
-async function showSanctionDetails(id) {
-    try {
-        // 로딩 상태 표시
-        showLoading();
-        
-        // 제재 상세 정보 가져오기
-        const sanctionDetails = await getSanctionDetails(id);
-        if (!sanctionDetails) {
-            throw new Error('상세 정보를 가져올 수 없습니다.');
+        // 이전 방식 호환 - 다중 필터 적용
+        if (activeFilters.countries.size > 0) {
+            searchResult.results = searchResult.results.filter(item => 
+                Array.from(activeFilters.countries).some(c => item.country === c)
+            );
         }
         
-        // 상세 정보 모달 생성
-        const modalContent = createDetailModalContent(sanctionDetails);
+        if (activeFilters.programs.size > 0) {
+            searchResult.results = searchResult.results.filter(item => 
+                item.programs.some(program => activeFilters.programs.has(program))
+            );
+        }
         
-        // 모달 표시
-        showModal('제재 상세 정보', modalContent);
+        // 전역 변수에 결과 저장
+        currentResults = searchResult.results;
         
-        // 로딩 상태 제거
-        hideLoading();
+        // 결과 수 업데이트
+        updateResultsCount(searchResult.results.length);
         
+        // 검색 결과가 있는 경우
+        if (searchResult.results.length > 0) {
+            displayResults(searchResult.results);
+            
+            // 유사 검색어로 찾은 결과가 있는 경우 알림
+            if (searchResult.hasSimilarMatches && !searchResult.hasExactMatches) {
+                showAlert('정확한 일치 결과는 없지만 유사한 검색어로 결과를 찾았습니다.', 'info');
+            }
+        } else {
+            // 검색 결과가 없는 경우
+            if (resultsContainer) {
+                resultsContainer.innerHTML = `
+                    <div class="no-results">
+                        <h3>검색 결과가 없습니다</h3>
+                        <p>다른 검색어를 시도하거나 필터를 조정해보세요.</p>
+                    </div>
+                `;
+            }
+            
+            // 추천 검색어가 있는 경우
+            if (searchResult.suggestions && searchResult.suggestions.length > 0) {
+                displaySearchSuggestions(searchResult.suggestions);
+            }
+        }
     } catch (error) {
-        console.error('상세 정보 표시 오류:', error);
-        showAlert('상세 정보를 불러오는 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
-        hideLoading();
-    }
-}
-
-/**
- * 상세 정보 모달 콘텐츠 생성
- * @param {Object} data 제재 상세 데이터
- * @returns {HTMLElement} 모달 콘텐츠 요소
- */
-function createDetailModalContent(data) {
-    const modalContent = document.createElement('div');
-    modalContent.className = 'detail-modal-content';
-    
-    // 헤더 정보 (이름, 유형, 국적 등)
-    const headerInfo = document.createElement('div');
-    headerInfo.className = 'detail-header';
-    headerInfo.innerHTML = `
-        <h2>${data.name}</h2>
-        <div class="detail-type">
-            <span class="detail-label">유형:</span>
-            <span class="detail-value">${data.type || '정보 없음'}</span>
-        </div>
-        <div class="detail-nationality">
-            <span class="detail-label">국적:</span>
-            <span class="detail-value">${data.nationality || '정보 없음'}</span>
-        </div>
-        ${data.dateOfBirth ? `
-        <div class="detail-dob">
-            <span class="detail-label">생년월일:</span>
-            <span class="detail-value">${data.dateOfBirth}</span>
-        </div>` : ''}
-    `;
-    
-    // 프로그램 정보
-    const programsInfo = document.createElement('div');
-    programsInfo.className = 'detail-programs';
-    let programsHTML = '<h3>적용 제재 프로그램</h3><div class="programs-list">';
-    
-    if (data.programs && data.programs.length > 0) {
-        data.programs.forEach(program => {
-            programsHTML += `<div class="program-tag">${program}</div>`;
-        });
-    } else {
-        programsHTML += '<p>등록된 제재 프로그램이 없습니다.</p>';
-    }
-    
-    programsHTML += '</div>';
-    programsInfo.innerHTML = programsHTML;
-    
-    // 별칭 정보
-    const aliasesInfo = document.createElement('div');
-    aliasesInfo.className = 'detail-aliases';
-    let aliasesHTML = '<h3>별칭</h3><ul class="aliases-list">';
-    
-    if (data.aliases && data.aliases.length > 0) {
-        data.aliases.forEach(alias => {
-            aliasesHTML += `<li>${alias}</li>`;
-        });
-    } else {
-        aliasesHTML += '<li>등록된 별칭이 없습니다.</li>';
-    }
-    
-    aliasesHTML += '</ul>';
-    aliasesInfo.innerHTML = aliasesHTML;
-    
-    // 주소 정보
-    const addressesInfo = document.createElement('div');
-    addressesInfo.className = 'detail-addresses';
-    let addressesHTML = '<h3>알려진 주소</h3><ul class="addresses-list">';
-    
-    if (data.addresses && data.addresses.length > 0) {
-        data.addresses.forEach(address => {
-            addressesHTML += `<li>${address}</li>`;
-        });
-    } else {
-        addressesHTML += '<li>등록된 주소가 없습니다.</li>';
-    }
-    
-    addressesHTML += '</ul>';
-    addressesInfo.innerHTML = addressesHTML;
-    
-    // 관련 제재 정보
-    const relatedSanctionsInfo = document.createElement('div');
-    relatedSanctionsInfo.className = 'detail-related-sanctions';
-    let relatedHTML = '<h3>관련 제재</h3>';
-    
-    if (data.relatedSanctions && data.relatedSanctions.length > 0) {
-        relatedHTML += '<ul class="related-sanctions-list">';
-        data.relatedSanctions.forEach(sanction => {
-            relatedHTML += `
-                <li>
-                    <span class="related-name">${sanction.name}</span>
-                    <span class="related-relationship">(${sanction.relationship})</span>
-                    <button class="btn-link view-related-details" data-id="${sanction.id}">상세보기</button>
-                </li>
+        console.error('검색 오류:', error);
+        if (resultsContainer) {
+            resultsContainer.innerHTML = `
+                <div class="error-message">
+                    <h3>검색 중 오류가 발생했습니다</h3>
+                    <p>나중에 다시 시도해주세요.</p>
+                </div>
             `;
-        });
-        relatedHTML += '</ul>';
-    } else {
-        relatedHTML += '<p>관련 제재 정보가 없습니다.</p>';
+        }
+        showAlert('검색 중 오류가 발생했습니다.', 'error');
     }
-    
-    relatedSanctionsInfo.innerHTML = relatedHTML;
-    
-    // 모달 콘텐츠에 모든 섹션 추가
-    modalContent.appendChild(headerInfo);
-    modalContent.appendChild(programsInfo);
-    modalContent.appendChild(aliasesInfo);
-    modalContent.appendChild(addressesInfo);
-    modalContent.appendChild(relatedSanctionsInfo);
-    
-    // 관련 제재 상세 보기 버튼 이벤트 추가
-    setTimeout(() => {
-        const relatedButtons = modalContent.querySelectorAll('.view-related-details');
-        relatedButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const relatedId = this.getAttribute('data-id');
-                // 현재 모달 닫고 관련 제재 상세 정보 표시
-                closeModal();
-                showSanctionDetails(relatedId);
-            });
-        });
-    }, 0);
-    
-    return modalContent;
 }
 
 /**
@@ -1588,77 +791,516 @@ function createDetailModalContent(data) {
  * @param {number} count 결과 수
  */
 function updateResultsCount(count) {
-    const countElement = document.getElementById('results-count');
-    if (countElement) {
-        countElement.textContent = count;
-    }
+    const countElements = document.querySelectorAll('#results-count');
+    countElements.forEach(element => {
+        if (element) element.textContent = count;
+    });
 }
 
 /**
- * 로딩 상태 표시
+ * 검색 결과 표시 - 통합된 함수
+ * @param {Array} results 검색 결과 배열
  */
-function showLoading() {
+function displayResults(results) {
+    // 새로운 UI (grid 레이아웃)용 결과 표시
     const resultsContainer = document.getElementById('results-container');
+    // 이전 UI (list 레이아웃)용 결과 표시 호환성
+    const resultsList = document.getElementById('results-list');
+    
+    // 타겟 컨테이너 결정
+    const targetContainer = resultsContainer || resultsList;
+    if (!targetContainer) return;
+    
+    // 검색 결과가 없는 경우
+    if (!results || !results.length) {
+        targetContainer.innerHTML = '<div class="no-results">검색 결과가 없습니다.</div>';
+        return;
+    }
+    
+    // 전역 변수에 결과 저장 (상세 정보 표시용)
+    currentResults = results;
+    
+    // UI 타입에 따라 다른 형태의 결과 표시
     if (resultsContainer) {
-        resultsContainer.innerHTML = '<div class="loading-spinner"></div>';
+        // Grid UI 결과 표시 (모던 UI)
+        let html = '';
+        
+        results.forEach((result, index) => {
+            const resultTypeClass = result.type === '개인' || result.type === 'Individual' ? 'individual' : 'entity';
+            const resultType = result.type === '개인' || result.type === 'Individual' ? '개인' : '단체';
+            
+            html += `
+                <div class="result-card" data-id="${result.id}">
+                    <div class="result-header">
+                        <h3 class="result-title">${result.name}</h3>
+                        <span class="result-type ${resultTypeClass}">${resultType}</span>
+                    </div>
+                    <div class="result-body">
+                        <div class="result-info">
+                            <p><span class="info-label">국가:</span> ${result.country}</p>
+                            <p><span class="info-label">출처:</span> ${result.source || (result.programs && result.programs.join(', ')) || '-'}</p>
+                        </div>
+                        <div class="result-meta">
+                            ${result.date_listed ? `<p class="date-listed">등재일: ${result.date_listed}</p>` : ''}
+                        </div>
+                    </div>
+                    <div class="result-footer">
+                        <button class="btn-detail" onclick="showDetail('${result.id}')">상세 정보</button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        resultsContainer.innerHTML = html;
+        
+        // 카드 클릭 이벤트 등록 (상세 정보 표시)
+        const resultCards = document.querySelectorAll('.result-card');
+        resultCards.forEach(card => {
+            card.addEventListener('click', function(e) {
+                // 버튼 클릭은 무시 (이미 onclick 이벤트가 있음)
+                if (e.target.classList.contains('btn-detail')) return;
+                
+                // 카드 클릭 시 상세 정보 표시
+                const id = this.getAttribute('data-id');
+                showDetail(id);
+            });
+        });
+        
+    } else if (resultsList) {
+        // List UI 결과 표시 (기존 UI 호환성)
+        let html = '<ul class="results-list">';
+        
+        results.forEach((result, index) => {
+            html += `
+                <li class="result-item">
+                    <div class="result-info">
+                        <h3>${result.name}</h3>
+                        <p>${result.type} | ${result.country}</p>
+                        <p class="result-source">${result.source || (result.programs && result.programs.join(', ')) || '-'}</p>
+                    </div>
+                    <div class="result-actions">
+                        <button class="btn-detail" onclick="showDetail('${result.id}')">상세 정보</button>
+                    </div>
+                </li>
+            `;
+        });
+        
+        html += '</ul>';
+        resultsList.innerHTML = html;
     }
+    
+    // 결과 수 업데이트
+    updateResultsCount(results.length);
 }
 
 /**
- * 로딩 상태 숨김
+ * 상세 정보 표시
+ * @param {string|number} id 결과 ID 또는 인덱스
  */
-function hideLoading() {
-    // 로딩 스피너가 있으면 제거
-    const spinner = document.querySelector('.loading-spinner');
-    if (spinner) {
-        spinner.remove();
+function showDetail(id) {
+    let result;
+    
+    // ID가 숫자인 경우 인덱스로 처리 (이전 방식)
+    if (!isNaN(id)) {
+        if (!currentResults || !currentResults[id]) {
+            showAlert('상세 정보를 찾을 수 없습니다.', 'error');
+            return;
+        }
+        result = currentResults[id];
+    } else {
+        // ID가 문자열인 경우 ID로 검색 (새 방식)
+        if (!currentResults) {
+            showAlert('검색 결과가 없습니다.', 'error');
+            return;
+        }
+        result = currentResults.find(item => item.id === id);
+        if (!result) {
+            showAlert('상세 정보를 찾을 수 없습니다.', 'error');
+            return;
+        }
     }
-}
-
-/**
- * 검색 결과 정렬
- */
-function sortResults() {
-    const sortSelect = document.getElementById('sort-select');
-    const resultsContainer = document.getElementById('results-container');
     
-    if (!sortSelect || !resultsContainer) return;
+    const detailContent = document.getElementById('detail-content');
+    const detailModal = document.getElementById('detail-modal');
     
-    // 현재 결과 카드들 수집
-    const cards = Array.from(resultsContainer.querySelectorAll('.result-card'));
-    if (cards.length === 0) return;
+    if (!detailContent || !detailModal) return;
     
-    // 정렬 기준
-    const sortBy = sortSelect.value;
+    // UI 라이브러리에 의존하는 경우 함수 활용
+    if (typeof displayDetailView === 'function') {
+        displayDetailView(result);
+        return;
+    }
     
-    // 카드 정렬
-    cards.sort((a, b) => {
-        switch (sortBy) {
-            case 'date-desc':
-                const dateA = a.querySelector('.fa-calendar')?.parentNode.textContent.trim() || '';
-                const dateB = b.querySelector('.fa-calendar')?.parentNode.textContent.trim() || '';
-                return new Date(dateB) - new Date(dateA);
-                
-            case 'date-asc':
-                const dateAsc1 = a.querySelector('.fa-calendar')?.parentNode.textContent.trim() || '';
-                const dateAsc2 = b.querySelector('.fa-calendar')?.parentNode.textContent.trim() || '';
-                return new Date(dateAsc1) - new Date(dateAsc2);
-                
-            case 'name-asc':
-                const nameA = a.querySelector('h3').textContent.trim();
-                const nameB = b.querySelector('h3').textContent.trim();
-                return nameA.localeCompare(nameB);
-                
-            default: // relevance (기본값)
-                return 0;
+    // 기본 상세 정보 표시 로직
+    let contentHTML = `
+        <div class="detail-container">
+            <div class="detail-header">
+                <h3>${result.name}</h3>
+                <span class="detail-type ${result.type === '개인' ? 'individual' : 'entity'}">${result.type}</span>
+            </div>
+            <div class="detail-section">
+                <h3 class="section-title">기본 정보</h3>
+                <div class="detail-data">
+                    <div class="data-item">
+                        <span class="data-label">ID:</span>
+                        <span class="data-value">${result.id}</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">국가:</span>
+                        <span class="data-value">${result.country}</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">제재 프로그램:</span>
+                        <span class="data-value">${result.programs ? result.programs.join(', ') : '-'}</span>
+                    </div>
+                </div>
+            </div>
+    `;
+    
+    // 상세 정보가 있는 경우 추가
+    if (result.details) {
+        // 별칭 정보
+        if (result.details.aliases && result.details.aliases.length) {
+            contentHTML += `
+                <div class="detail-section">
+                    <h3 class="section-title">별칭</h3>
+                    <div class="detail-data">
+                        <div class="data-item">
+                            <ul class="aliases-list">
+                                ${result.details.aliases.map(alias => `<li>${alias}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 주소 정보
+        if (result.details.addresses && result.details.addresses.length) {
+            contentHTML += `
+                <div class="detail-section">
+                    <h3 class="section-title">주소</h3>
+                    <div class="detail-data">
+                        <div class="data-item">
+                            <ul class="addresses-list">
+                                ${result.details.addresses.map(address => `<li>${address}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    contentHTML += '</div>';
+    detailContent.innerHTML = contentHTML;
+    
+    // 모달 표시
+    detailModal.classList.add('show');
+    
+    // 닫기 버튼 이벤트 등록
+    const closeBtn = document.getElementById('detail-close');
+    if (closeBtn) {
+        closeBtn.onclick = function() {
+            detailModal.classList.remove('show');
+        };
+    }
+    
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && detailModal.classList.contains('show')) {
+            detailModal.classList.remove('show');
         }
     });
+}
+
+/**
+ * 초기 데이터 로드
+ */
+async function loadInitialData() {
+    try {
+        // 초기 데이터 로드 - 빈 검색으로 모든 결과 가져오기
+        await performSearch();
+        console.log('초기 데이터 로드 완료');
+    } catch (error) {
+        console.error('초기 데이터 로드 오류:', error);
+        showAlert('데이터 로드 중 오류가 발생했습니다.', 'error');
+    }
+}
+
+/**
+ * 검색 결과가 없을 때 추천 검색어 표시
+ * @param {Array<string>} suggestions 추천 검색어 배열
+ */
+function displaySearchSuggestions(suggestions) {
+    const container = document.createElement('div');
+    container.className = 'search-suggestions';
     
-    // 결과 컨테이너 비우기
-    resultsContainer.innerHTML = '';
+    const heading = document.createElement('h4');
+    heading.textContent = '다음 검색어는 어떠세요?';
+    container.appendChild(heading);
     
-    // 정렬된 카드 추가
-    cards.forEach(card => {
-        resultsContainer.appendChild(card);
+    const list = document.createElement('ul');
+    suggestions.forEach(suggestion => {
+        const item = document.createElement('li');
+        const link = document.createElement('a');
+        link.textContent = suggestion;
+        link.href = '#';
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('search-input').value = suggestion;
+            performSearch();
+        });
+        item.appendChild(link);
+        list.appendChild(item);
     });
+    
+    container.appendChild(list);
+    
+    // 결과 컨테이너에 추천어 추가
+    const resultsContainer = document.getElementById('results-container') || document.getElementById('results-list');
+    if (resultsContainer) {
+        resultsContainer.appendChild(container);
+    }
+}
+
+/**
+ * 검색어 자동완성 기능
+ */
+function setupAutocomplete() {
+    const searchInput = document.getElementById('search-input');
+    const autocompleteContainer = document.createElement('div');
+    autocompleteContainer.className = 'autocomplete-container';
+    autocompleteContainer.style.display = 'none';
+    
+    // 자동완성 컨테이너 추가
+    searchInput.parentNode.appendChild(autocompleteContainer);
+    
+    // 입력 이벤트에 자동완성 기능 연결
+    searchInput.addEventListener('input', debounce(async () => {
+        const query = searchInput.value.trim();
+        
+        if (query.length < 2) {
+            autocompleteContainer.style.display = 'none';
+            return;
+        }
+        
+        // 검색어 추천 가져오기
+        const suggestions = getSuggestedSearchTerms(query);
+        
+        if (suggestions.length > 0) {
+            // 자동완성 목록 표시
+            autocompleteContainer.innerHTML = '';
+            autocompleteContainer.style.display = 'block';
+            
+            suggestions.forEach(suggestion => {
+                const item = document.createElement('div');
+                item.className = 'autocomplete-item';
+                item.textContent = suggestion;
+                
+                // 클릭 이벤트 추가
+                item.addEventListener('click', () => {
+                    searchInput.value = suggestion;
+                    autocompleteContainer.style.display = 'none';
+                    performSearch();
+                });
+                
+                autocompleteContainer.appendChild(item);
+            });
+        } else {
+            autocompleteContainer.style.display = 'none';
+        }
+    }, 300));
+    
+    // 외부 클릭 시 자동완성 숨기기
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !autocompleteContainer.contains(e.target)) {
+            autocompleteContainer.style.display = 'none';
+        }
+    });
+}
+
+/**
+ * 고급 검색 토글 및 검색 유형 선택 이벤트 핸들러 설정
+ */
+function setupSearchOptions() {
+    // 고급 검색 토글
+    const advancedSearchButton = document.getElementById('advanced-search-button');
+    const advancedSearchOptions = document.querySelector('.advanced-search-options');
+    
+    if (advancedSearchButton && advancedSearchOptions) {
+        advancedSearchButton.addEventListener('click', () => {
+            const isVisible = advancedSearchOptions.style.display !== 'none';
+            advancedSearchOptions.style.display = isVisible ? 'none' : 'block';
+            
+            // 아이콘 회전
+            const icon = advancedSearchButton.querySelector('i');
+            if (icon) {
+                icon.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
+                icon.style.transition = 'transform 0.3s';
+            }
+        });
+    }
+    
+    // 검색 유형 라디오 버튼 이벤트 리스너
+    const searchTypeInputs = document.querySelectorAll('input[name="search-type"]');
+    const numberTypeOptions = document.querySelector('.number-type-options');
+    
+    if (searchTypeInputs.length && numberTypeOptions) {
+        searchTypeInputs.forEach(input => {
+            input.addEventListener('change', () => {
+                // 활성 클래스 이동
+                document.querySelectorAll('.search-type-options .search-option').forEach(option => {
+                    option.classList.remove('active');
+                });
+                input.closest('.search-option').classList.add('active');
+                
+                // 번호 유형 옵션 표시 여부
+                numberTypeOptions.style.display = input.value === 'number' ? 'flex' : 'none';
+            });
+        });
+    }
+    
+    // 번호 유형 라디오 버튼 이벤트 리스너
+    const numberTypeInputs = document.querySelectorAll('input[name="number-type"]');
+    if (numberTypeInputs.length) {
+        numberTypeInputs.forEach(input => {
+            input.addEventListener('change', () => {
+                // 활성 클래스 이동
+                document.querySelectorAll('.number-type-options .search-option').forEach(option => {
+                    option.classList.remove('active');
+                });
+                input.closest('.search-option').classList.add('active');
+            });
+        });
+    }
+    
+    // 정렬 옵션 변경 이벤트
+    const sortSelect = document.getElementById('sort-select');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', () => {
+            // 현재 표시된 결과 재정렬
+            const currentResults = [...document.querySelectorAll('.result-card')].map(card => {
+                return {
+                    element: card,
+                    name: card.querySelector('h3').textContent,
+                    date: card.dataset.date || '2000-01-01',
+                    relevance: parseInt(card.dataset.relevance || '0')
+                };
+            });
+            
+            // 정렬 로직
+            currentResults.sort((a, b) => {
+                switch (sortSelect.value) {
+                    case 'date-desc':
+                        return new Date(b.date) - new Date(a.date);
+                    case 'date-asc':
+                        return new Date(a.date) - new Date(b.date);
+                    case 'name-asc':
+                        return a.name.localeCompare(b.name, 'ko');
+                    default: // relevance
+                        return b.relevance - a.relevance;
+                }
+            });
+            
+            // 화면에 재배치
+            const resultsContainer = document.getElementById('results-container');
+            if (resultsContainer) {
+                resultsContainer.innerHTML = '';
+                currentResults.forEach(item => {
+                    resultsContainer.appendChild(item.element);
+                });
+            }
+        });
+    }
+}
+
+/**
+ * 회원가입 처리
+ * @param {Event} e 이벤트 객체
+ */
+function handleRegister(e) {
+    e.preventDefault();
+    
+    // 입력값 가져오기
+    const nameInput = document.getElementById('register-name');
+    const emailInput = document.getElementById('register-email');
+    const passwordInput = document.getElementById('register-password');
+    const passwordConfirmInput = document.getElementById('register-password-confirm');
+    const termsAgree = document.getElementById('terms-agree');
+    
+    // 입력값 검증
+    if (!nameInput.value.trim()) {
+        showAlert('이름을 입력해주세요.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        return;
+    }
+    
+    if (!emailInput.value.trim()) {
+        showAlert('이메일을 입력해주세요.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        return;
+    }
+    
+    // 이메일 형식 검증
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailInput.value)) {
+        showAlert('유효한 이메일 주소를 입력해주세요.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        return;
+    }
+    
+    if (!passwordInput.value) {
+        showAlert('비밀번호를 입력해주세요.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        return;
+    }
+    
+    if (passwordInput.value.length < 4) {
+        showAlert('비밀번호는 4자 이상이어야 합니다.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        return;
+    }
+    
+    if (passwordInput.value !== passwordConfirmInput.value) {
+        showAlert('비밀번호가 일치하지 않습니다.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        return;
+    }
+    
+    if (!termsAgree.checked) {
+        showAlert('이용약관 및 개인정보처리방침에 동의해주세요.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        return;
+    }
+    
+    // 이메일 중복 검사
+    const existingUser = users.find(user => user.email === emailInput.value);
+    if (existingUser) {
+        showAlert('이미 등록된 이메일입니다.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        return;
+    }
+    
+    // 회원 정보 저장
+    const newUser = {
+        id: Date.now().toString(),
+        name: nameInput.value,
+        email: emailInput.value,
+        password: passwordInput.value,
+        createdAt: new Date().toISOString()
+    };
+    
+    users.push(newUser);
+    localStorage.setItem('users', JSON.stringify(users));
+    
+    // 회원가입 성공 메시지
+    showAlert('회원가입이 완료되었습니다. 로그인해주세요.', 'success', { target: '#register-modal .alert-container', isStatic: true });
+    
+    // 폼 초기화 및 모달 닫기
+    setTimeout(() => {
+        const registerModal = document.getElementById('register-modal');
+        if (registerModal) {
+            registerModal.classList.remove('show');
+            
+            // 폼 초기화
+            nameInput.value = '';
+            emailInput.value = '';
+            passwordInput.value = '';
+            passwordConfirmInput.value = '';
+            termsAgree.checked = false;
+        }
+    }, 2000);
 }

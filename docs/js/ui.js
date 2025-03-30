@@ -52,7 +52,38 @@ function hideAllSections() {
 function showModal(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) {
-    modal.classList.add('active');
+    modal.classList.add('show');
+    document.body.classList.add('modal-open');
+    
+    // 닫기 버튼 이벤트 등록
+    const closeBtn = modal.querySelector('.close-btn');
+    if (closeBtn) {
+      closeBtn.onclick = function() {
+        closeModal(modalId);
+      };
+    }
+    
+    // 배경 클릭 시 모달 닫기
+    modal.onclick = function(e) {
+      if (e.target === modal) {
+        closeModal(modalId);
+      }
+    };
+    
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && modal.classList.contains('show')) {
+        closeModal(modalId);
+      }
+    });
+    
+    // 모달 컨텐츠 클릭 이벤트 전파 중단
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent) {
+      modalContent.onclick = function(e) {
+        e.stopPropagation();
+      };
+    }
   }
 }
 
@@ -63,7 +94,8 @@ function showModal(modalId) {
 function closeModal(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) {
-    modal.classList.remove('active');
+    modal.classList.remove('show');
+    document.body.classList.remove('modal-open');
   }
 }
 
@@ -275,36 +307,22 @@ function displaySearchResults(results) {
  */
 function displayDetailView(item) {
   const detailModal = document.getElementById('detail-modal');
-  if (!detailModal) return;
-  
-  // 모달 제목과 정보 설정
-  const detailTitle = document.getElementById('detail-title');
-  const detailType = document.getElementById('detail-type');
-  const detailCountry = document.getElementById('detail-country');
-  const detailDate = document.getElementById('detail-date');
-  const detailSource = document.getElementById('detail-source');
   const detailContent = document.getElementById('detail-content');
   
-  if (detailTitle) detailTitle.textContent = item.name;
-  if (detailType) detailType.textContent = formatEntityType(item.type);
-  if (detailCountry) detailCountry.textContent = item.country || '-';
-  
-  // 제재 일자
-  let sanctionDate = '-';
-  if (item.details && item.details.sanctions && item.details.sanctions.length > 0) {
-    sanctionDate = formatDate(item.details.sanctions[0].startDate) || '-';
+  if (!detailModal || !detailContent) {
+    console.error('상세 정보 모달 요소를 찾을 수 없습니다.');
+    return;
   }
-  if (detailDate) detailDate.textContent = sanctionDate;
   
-  // 출처
-  if (detailSource) detailSource.textContent = formatSource(item.source);
-  
-  // 상세 정보 콘텐츠 생성
-  if (detailContent) {
-    let contentHTML = '<div class="detail-sections">';
-    
-    // 기본 정보 섹션
-    contentHTML += `
+  let contentHTML = `
+    <div class="detail-container">
+      <div class="detail-header">
+        <h3>${item.name}</h3>
+        <span class="detail-type ${item.type.toLowerCase() === '개인' || item.type.toLowerCase() === 'individual' ? 'individual' : 'entity'}">
+          ${item.type}
+        </span>
+      </div>
+      
       <div class="detail-section">
         <h3 class="section-title">기본 정보</h3>
         <div class="detail-data">
@@ -313,64 +331,39 @@ function displayDetailView(item) {
             <span class="data-value">${item.id}</span>
           </div>
           <div class="data-item">
-            <span class="data-label">이름:</span>
-            <span class="data-value">${item.name}</span>
-          </div>
-          <div class="data-item">
-            <span class="data-label">유형:</span>
-            <span class="data-value">${formatEntityType(item.type)}</span>
-          </div>
-          <div class="data-item">
             <span class="data-label">국가:</span>
-            <span class="data-value">${item.country || '-'}</span>
+            <span class="data-value">${item.country}</span>
           </div>
           <div class="data-item">
             <span class="data-label">제재 프로그램:</span>
-            <span class="data-value">${formatPrograms(item.programs)}</span>
+            <span class="data-value">${Array.isArray(item.programs) ? item.programs.join(', ') : (item.program || '-')}</span>
           </div>
+          ${item.source ? `
+          <div class="data-item">
+            <span class="data-label">출처:</span>
+            <span class="data-value">${item.source}</span>
+          </div>
+          ` : ''}
+          ${item.date_listed ? `
+          <div class="data-item">
+            <span class="data-label">등재일:</span>
+            <span class="data-value">${item.date_listed}</span>
+          </div>
+          ` : ''}
+          ${item.reason ? `
+          <div class="data-item reason">
+            <span class="data-label">제재 이유:</span>
+            <span class="data-value">${item.reason}</span>
+          </div>
+          ` : ''}
         </div>
       </div>
-    `;
-    
-    // 제재 정보
-    if (item.details && item.details.sanctions && item.details.sanctions.length > 0) {
-      contentHTML += `
-        <div class="detail-section">
-          <h3 class="section-title">제재 정보</h3>
-          <div class="detail-data">
-      `;
-      
-      item.details.sanctions.forEach(sanction => {
-        contentHTML += `
-          <div class="sanction-item">
-            <div class="data-item">
-              <span class="data-label">프로그램:</span>
-              <span class="data-value">${sanction.program}</span>
-            </div>
-            ${sanction.startDate ? `
-              <div class="data-item">
-                <span class="data-label">시작일:</span>
-                <span class="data-value">${formatDate(sanction.startDate)}</span>
-              </div>
-            ` : ''}
-            ${sanction.reason ? `
-              <div class="data-item">
-                <span class="data-label">사유:</span>
-                <span class="data-value reason-text">${sanction.reason}</span>
-              </div>
-            ` : ''}
-          </div>
-        `;
-      });
-      
-      contentHTML += `
-          </div>
-        </div>
-      `;
-    }
-    
+  `;
+  
+  // 상세 정보가 있는 경우 추가
+  if (item.details) {
     // 별칭 정보
-    if (item.details && item.details.aliases && item.details.aliases.length > 0) {
+    if (item.details.aliases && item.details.aliases.length) {
       contentHTML += `
         <div class="detail-section">
           <h3 class="section-title">별칭</h3>
@@ -385,8 +378,56 @@ function displayDetailView(item) {
       `;
     }
     
+    // 주소 정보
+    if (item.details.addresses && item.details.addresses.length) {
+      contentHTML += `
+        <div class="detail-section">
+          <h3 class="section-title">주소</h3>
+          <div class="detail-data">
+            <div class="data-item">
+              <ul class="addresses-list">
+                ${item.details.addresses.map(address => `<li>${address}</li>`).join('')}
+              </ul>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // 신분증 정보
+    if (item.details.identifications && item.details.identifications.length) {
+      contentHTML += `
+        <div class="detail-section">
+          <h3 class="section-title">신분증 정보</h3>
+          <div class="detail-data">
+            <div class="data-item">
+              <ul class="id-list">
+                ${item.details.identifications.map(id => `<li><strong>${id.type}:</strong> ${id.number}</li>`).join('')}
+              </ul>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // 관련 제재 정보
+    if (item.details.relatedSanctions && item.details.relatedSanctions.length) {
+      contentHTML += `
+        <div class="detail-section">
+          <h3 class="section-title">관련 제재</h3>
+          <div class="detail-data">
+            <div class="data-item">
+              <ul class="related-list">
+                ${item.details.relatedSanctions.map(sanction => `<li>${sanction.name} (${sanction.type})</li>`).join('')}
+              </ul>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
     // 생년월일
-    if (item.details && item.details.birthDate) {
+    if (item.details.birthDate) {
       contentHTML += `
         <div class="detail-section">
           <h3 class="section-title">개인 정보</h3>
@@ -399,9 +440,25 @@ function displayDetailView(item) {
         </div>
       `;
     }
-    
-    contentHTML += '</div>';
-    detailContent.innerHTML = contentHTML;
+  }
+  
+  contentHTML += '</div>';
+  detailContent.innerHTML = contentHTML;
+  
+  // PDF 다운로드 버튼 이벤트
+  const downloadBtn = document.getElementById('detail-download');
+  if (downloadBtn) {
+    downloadBtn.onclick = function() {
+      alert('PDF 다운로드 기능은 현재 개발 중입니다.');
+    };
+  }
+  
+  // 인쇄 버튼 이벤트
+  const printBtn = document.getElementById('detail-print');
+  if (printBtn) {
+    printBtn.onclick = function() {
+      window.print();
+    };
   }
   
   // 모달 표시

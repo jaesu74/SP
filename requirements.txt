@@ -1,4 +1,19 @@
-requests==2.31.0
-beautifulsoup4==4.12.2
-lxml==4.9.3
-python-dotenv==1.0.0 
+# 글로벌 의존성
+requests>=2.28.0
+beautifulsoup4>=4.11.1
+flask>=2.3.0
+flask-cors>=4.0.0
+gunicorn>=23.0.0
+python-dotenv>=1.0.0
+schedule>=1.1.0
+
+# 백엔드 의존성
+fastapi>=0.115.0
+uvicorn>=0.34.0
+pymongo>=4.11.0
+pydantic[email]>=2.9.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-multipart>=0.0.9
+
+# Dependencies should be defined in a single central file rather than having multiple requirements.txt files 

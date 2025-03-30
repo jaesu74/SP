@@ -1,90 +1,145 @@
-# JNK 제재 정보 조회 시스템
+# 제재 정보 검색 시스템
 
-국제 제재 정보(UN, EU, US)를 검색하고 조회할 수 있는 웹 애플리케이션입니다. 사용자는 개인, 단체, 선박, 항공기 등 다양한 제재 대상을 검색하고 세부 정보를 확인할 수 있습니다.
+이 프로젝트는 UN, EU, US(OFAC) 등의 제재 정보를 수집, 통합하고 검색할 수 있는 시스템입니다.
 
 ## 주요 기능
 
-- **다중 데이터 소스 검색**: UN, EU, US 등 여러 제재 기관의 데이터를 통합 검색
-- **필터링 및 정렬**: 국가, 유형, 제재 기관 등 다양한 필터와 정렬 옵션 제공
-- **상세 정보 조회**: 제재 대상의 기본 정보와 함께 별칭, 주소, 관련 제재 정보 표시
-- **다중 선택 필터**: 여러 필터 옵션을 동시에 선택하여 검색 결과 정밀화
-- **반응형 디자인**: 모바일 및 데스크톱 환경에 최적화된 UI 제공
-- **Y2K 디자인 요소**: MZ 세대 트렌드에 맞춘 시각적 효과 적용
+- UN, EU, US(OFAC) 제재 데이터 자동 수집
+- 제재 정보 통합 및 중복 제거
+- 웹 기반 검색 인터페이스
+- 제재 대상 상세 정보 조회
 
 ## 프로젝트 구조
 
 ```
-public/
-├── css/               - 스타일시트
-│   ├── effects/       - 시각적 효과 CSS (Y2K, 애니메이션 등)
-│   ├── images/        - UI 요소용 이미지
-│   └── style.css      - 메인 스타일시트
-├── data/              - 처리된 제재 데이터
-│   ├── eu_sanctions.json
-│   ├── un_sanctions.json
-│   └── us_sanctions.json
-├── js/                - 자바스크립트 파일
-│   ├── api.js         - 데이터 접근 및 처리 로직
-│   ├── app.js         - 메인 애플리케이션 로직
-│   ├── auth.js        - 인증 관련 기능
-│   ├── config.js      - 환경 설정
-│   ├── ui.js          - UI 조작 함수
-│   └── update-data.js - 데이터 업데이트 기능
-└── index.html         - 메인 HTML 파일
+/
+├── backend/              # 백엔드 서버
+│   ├── app/              # 애플리케이션 코드
+│   │   ├── api/          # API 엔드포인트
+│   │   ├── core/         # 핵심 기능
+│   │   ├── models/       # 데이터 모델
+│   │   └── utils/        # 유틸리티 함수
+│   ├── main.py           # 백엔드 메인 진입점
+│   └── requirements.txt  # 백엔드 의존성
+│
+├── frontend/             # 프론트엔드
+│   ├── src/              # 소스 코드
+│   │   └── app.js        # 프론트엔드 메인 코드
+│   ├── index.html        # 메인 HTML 파일
+│   ├── server.py         # 개발용 프론트엔드 서버
+│   └── requirements.txt  # 프론트엔드 서버 의존성
+│
+├── docs/                 # GitHub Pages 배포 디렉토리
+│   ├── css/              # 스타일시트
+│   ├── js/               # 클라이언트 자바스크립트
+│   ├── images/           # 이미지 리소스
+│   ├── data/             # 제재 데이터 저장소
+│   │   ├── un_sanctions.json
+│   │   ├── eu_sanctions.json
+│   │   ├── us_sanctions.json
+│   │   └── sanctions.json    # 통합된 제재 데이터
+│   └── index.html        # 메인 HTML 파일
+│
+├── collectors/           # 제재 데이터 수집기 모듈
+│   ├── __init__.py
+│   ├── base.py           # 기본 수집기 클래스
+│   ├── un_collector.py   # UN 수집기
+│   ├── eu_collector.py   # EU 수집기
+│   ├── us_collector.py   # US 수집기
+│   └── integrator.py     # 데이터 통합기
+│
+├── temp/                 # 임시 파일 저장소
+│
+├── sanctions_collector.py # 통합 제재 데이터 수집기
+├── sanctions_scheduler.py # 데이터 수집 스케줄러
+└── requirements.txt       # 글로벌 의존성
 ```
 
-## 최근 업데이트 내용 (2025-03-29)
+## 설치 방법
 
-### 코드 최적화 및 구조 개선
-- 중복 코드 및 폴더 제거, 더 효율적인 구조로 재구성
-- 템플릿 리터럴 관련 문법 오류 수정
-- 유틸리티 함수 분리 및 재사용성 개선
+1. 저장소 클론
+```
+git clone https://github.com/username/sanctions-search.git
+cd sanctions-search
+```
 
-### 기능 개선
-- 다중 선택 가능한 필터 옵션 구현
-- 제재 대상 상세 정보 표시 기능 강화
-- 검색 및 필터링 알고리즘 최적화
+2. 의존성 설치
+```
+pip install -r requirements.txt
+```
 
-### UI/UX 개선
-- Y2K 스타일 요소 적용 (텍스처, 효과 등)
-- 반응형 레이아웃 개선
-- 회사 주소 및 정보 업데이트
-- 모달 포맷팅 개선 (이용약관, 개인정보처리방침, 도움말)
+3. 백엔드 의존성 설치
+```
+cd backend
+pip install -r requirements.txt
+```
 
-## 기술 스택
-
-- HTML5
-- CSS3 (애니메이션, 미디어 쿼리)
-- JavaScript (ES6+)
-- JSON (데이터 형식)
+4. 프론트엔드 의존성 설치
+```
+cd frontend
+pip install -r requirements.txt
+```
 
 ## 사용 방법
 
-1. 검색창에 이름, 단체명, 키워드 등을 입력하세요.
-2. 검색 결과에서 필터 옵션을 사용하여 원하는 결과를 찾으세요.
-   - 제재 기관 필터: UN, EU, US 등
-   - 유형 필터: 개인, 단체, 선박, 항공기 등
-   - 국가/지역 필터: 북한, 러시아, 이란, 시리아 등
-3. 검색 결과를 클릭하여 상세 정보를 확인하세요.
+### 제재 데이터 수집
 
-## 로컬 개발 환경 설정
+```
+python sanctions_collector.py
+```
 
-1. 저장소 클론
-   ```
-   git clone https://github.com/jaesu74/SP.git
-   ```
+### 스케줄러로 자동 수집 실행
 
-2. `index.html` 파일을 웹 브라우저에서 직접 실행하거나, 로컬 웹 서버를 사용하여 실행
-   ```
-   cd public
-   python -m http.server 8000  # Python 3
-   ```
+```
+python sanctions_scheduler.py
+```
 
-3. 브라우저에서 `http://localhost:8000` 접속
+### 프론트엔드 서버 실행
+
+```
+cd frontend
+python server.py
+```
+
+### 백엔드 서버 실행
+
+```
+cd backend
+python main.py
+```
+
+## 개발 정보
+
+### 통합 제재 수집기 (sanctions_collector.py)
+
+- UN, EU, US(OFAC) 제재 데이터를 통합적으로 수집
+- 중복 데이터 제거 및 정규화
+- JSON 형식으로 저장
+
+### 제재 데이터 스키마
+
+```json
+{
+  "id": "소스-고유ID",
+  "name": "제재 대상 이름",
+  "type": "Individual 또는 Entity",
+  "country": "국가",
+  "programs": ["제재 프로그램 목록"],
+  "source": "UN, EU, US-OFAC 등",
+  "details": {
+    "aliases": ["별칭 목록"],
+    "birthDate": "생년월일",
+    "sanctions": [{"program": "제재 프로그램", "startDate": "시작일", "reason": "이유"}],
+    "addresses": ["주소 목록"],
+    "nationalities": ["국적 목록"],
+    "identifications": [{"type": "문서유형", "number": "문서번호", "country": "발급국가"}]
+  }
+}
+```
 
 ## 라이선스
 
-MIT License - 자세한 내용은 LICENSE 파일을 참조하세요.
+이 프로젝트는 MIT 라이선스를 따릅니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
 
 ## 연락처
 
