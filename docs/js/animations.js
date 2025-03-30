@@ -232,4 +232,383 @@ window.addEventListener('load', () => {
     
     // 애니메이션 클래스 추가
     document.body.classList.add('animations-ready');
-}); 
+});
+
+/**
+ * 세계 경제 제재 검색 서비스
+ * 애니메이션 및 시각 효과 관련 스크립트
+ */
+
+// DOM이 로드된 후 애니메이션 초기화
+document.addEventListener('DOMContentLoaded', initializeAnimations);
+
+/**
+ * 모든 애니메이션 초기화
+ */
+function initializeAnimations() {
+    setupEntryAnimations();
+    setupScrollAnimations();
+    setupHoverEffects();
+    setupParallaxEffect();
+    setupFloatingElements();
+}
+
+/**
+ * 페이지 진입 애니메이션 설정
+ */
+function setupEntryAnimations() {
+    // 애니메이션 요소 선택
+    const animatedElements = document.querySelectorAll('.animated');
+    
+    // 지연 클래스 처리
+    animatedElements.forEach(element => {
+        const delay = element.classList.contains('delay-100') ? 100 :
+                    element.classList.contains('delay-200') ? 200 :
+                    element.classList.contains('delay-300') ? 300 :
+                    element.classList.contains('delay-400') ? 400 : 0;
+        
+        // 지연 후 표시 애니메이션 적용
+        setTimeout(() => {
+            element.classList.add('show');
+        }, delay);
+    });
+    
+    // 특수 로고 애니메이션
+    const logoElement = document.querySelector('.header-logo h1');
+    if (logoElement) {
+        setTimeout(() => {
+            logoElement.classList.add('animated-text');
+        }, 300);
+    }
+}
+
+/**
+ * 스크롤 기반 애니메이션 설정
+ */
+function setupScrollAnimations() {
+    // 스크롤 시 표시될 요소들
+    const scrollAnimElements = document.querySelectorAll('.scroll-anim');
+    
+    // 스크롤 이벤트 처리
+    function handleScroll() {
+        const scrollY = window.scrollY;
+        const windowHeight = window.innerHeight;
+        
+        scrollAnimElements.forEach(element => {
+            const elementTop = element.getBoundingClientRect().top + scrollY;
+            const elementVisible = 150; // 요소가 얼마나 보여야 애니메이션을 시작할지 설정
+            
+            if (scrollY + windowHeight > elementTop + elementVisible) {
+                element.classList.add('show');
+            }
+        });
+    }
+    
+    // 초기 로드 시 한 번 실행
+    handleScroll();
+    
+    // 스크롤 이벤트 리스너 등록
+    window.addEventListener('scroll', handleScroll);
+}
+
+/**
+ * 호버 효과 설정
+ */
+function setupHoverEffects() {
+    // 결과 카드 호버 효과
+    const resultCards = document.querySelectorAll('.result-card');
+    resultCards.forEach(card => {
+        card.addEventListener('mouseenter', () => {
+            addHoverEffect(card);
+        });
+        
+        card.addEventListener('mouseleave', () => {
+            removeHoverEffect(card);
+        });
+    });
+    
+    // 버튼 호버 효과
+    const buttons = document.querySelectorAll('.btn-primary, .btn-secondary');
+    buttons.forEach(button => {
+        button.addEventListener('mouseenter', (e) => {
+            addButtonHoverEffect(button, e);
+        });
+        
+        button.addEventListener('mouseleave', () => {
+            removeButtonHoverEffect(button);
+        });
+    });
+}
+
+/**
+ * 호버 효과 추가
+ * @param {HTMLElement} element 대상 요소
+ */
+function addHoverEffect(element) {
+    // 이미 효과가 있으면 제거
+    removeHoverEffect(element);
+    
+    // 그라데이션 효과 요소 생성
+    const gradient = document.createElement('div');
+    gradient.className = 'hover-gradient';
+    gradient.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, rgba(0,200,255,0.1) 0%, rgba(0,0,0,0) 50%, rgba(255,0,150,0.1) 100%);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: 1;
+    `;
+    
+    // 요소에 추가하고 애니메이션 적용
+    element.appendChild(gradient);
+    
+    // 페이드 인 애니메이션
+    setTimeout(() => {
+        gradient.style.opacity = '1';
+    }, 10);
+}
+
+/**
+ * 호버 효과 제거
+ * @param {HTMLElement} element 대상 요소
+ */
+function removeHoverEffect(element) {
+    const gradient = element.querySelector('.hover-gradient');
+    if (gradient) {
+        gradient.style.opacity = '0';
+        
+        // 트랜지션 완료 후 요소 제거
+        setTimeout(() => {
+            if (gradient.parentNode === element) {
+                element.removeChild(gradient);
+            }
+        }, 300);
+    }
+}
+
+/**
+ * 버튼 호버 효과 추가
+ * @param {HTMLElement} button 버튼 요소
+ * @param {Event} event 마우스 이벤트
+ */
+function addButtonHoverEffect(button, event) {
+    // 배경 효과 생성
+    const bgEffect = document.createElement('div');
+    bgEffect.className = 'button-bg-effect';
+    
+    // 마우스 위치 기준 효과 위치 계산
+    const rect = button.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    bgEffect.style.cssText = `
+        position: absolute;
+        top: ${y}px;
+        left: ${x}px;
+        width: 0;
+        height: 0;
+        background-color: rgba(255,255,255,0.2);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 0;
+    `;
+    
+    button.appendChild(bgEffect);
+    
+    // 확장 애니메이션 적용
+    setTimeout(() => {
+        const maxSize = Math.max(rect.width, rect.height) * 2.5;
+        bgEffect.style.width = `${maxSize}px`;
+        bgEffect.style.height = `${maxSize}px`;
+        bgEffect.style.transition = 'all 0.5s ease-out';
+    }, 10);
+}
+
+/**
+ * 버튼 호버 효과 제거
+ * @param {HTMLElement} button 버튼 요소
+ */
+function removeButtonHoverEffect(button) {
+    const bgEffect = button.querySelector('.button-bg-effect');
+    if (bgEffect) {
+        bgEffect.style.opacity = '0';
+        
+        // 트랜지션 완료 후 요소 제거
+        setTimeout(() => {
+            if (bgEffect.parentNode === button) {
+                button.removeChild(bgEffect);
+            }
+        }, 500);
+    }
+}
+
+/**
+ * 패럴랙스 효과 설정
+ */
+function setupParallaxEffect() {
+    const parallaxElements = document.querySelectorAll('.parallax');
+    
+    // 마우스 움직임 이벤트
+    document.addEventListener('mousemove', (e) => {
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
+        
+        parallaxElements.forEach(element => {
+            const speed = element.getAttribute('data-speed') || 0.1;
+            const x = (window.innerWidth / 2 - mouseX) * speed;
+            const y = (window.innerHeight / 2 - mouseY) * speed;
+            
+            element.style.transform = `translate(${x}px, ${y}px)`;
+        });
+    });
+}
+
+/**
+ * 메인 페이지 플로팅 요소 설정
+ */
+function setupFloatingElements() {
+    const floatingElements = document.querySelectorAll('.floating');
+    
+    floatingElements.forEach((element, index) => {
+        // 각 요소마다 다른 애니메이션 적용
+        const duration = 3 + (index % 3); // 3~5초 랜덤 기간
+        const delay = index * 0.2; // 약간의 시차
+        
+        element.style.animation = `float ${duration}s ease-in-out ${delay}s infinite alternate`;
+    });
+}
+
+/**
+ * 로딩 인디케이터 표시
+ * @param {string} containerId 로딩 인디케이터를 표시할 컨테이너 ID
+ * @param {string} message 표시할 메시지
+ * @returns {HTMLElement} 생성된 로딩 인디케이터 요소
+ */
+function showLoadingIndicator(containerId, message = '로딩 중...') {
+    const container = document.getElementById(containerId);
+    if (!container) return null;
+    
+    // 기존 로딩 인디케이터가 있으면 제거
+    const existing = container.querySelector('.loading-indicator');
+    if (existing) {
+        container.removeChild(existing);
+    }
+    
+    // 새 로딩 인디케이터 생성
+    const indicator = document.createElement('div');
+    indicator.className = 'loading-indicator';
+    indicator.innerHTML = `
+        <div class="spinner"></div>
+        <p class="loading-text">${message}</p>
+    `;
+    
+    container.appendChild(indicator);
+    
+    // 인디케이터 표시 애니메이션
+    setTimeout(() => {
+        indicator.classList.add('show');
+    }, 10);
+    
+    return indicator;
+}
+
+/**
+ * 로딩 인디케이터 숨기기
+ * @param {HTMLElement} indicator 숨길 로딩 인디케이터 요소
+ */
+function hideLoadingIndicator(indicator) {
+    if (!indicator) return;
+    
+    // 페이드 아웃 애니메이션
+    indicator.classList.remove('show');
+    indicator.classList.add('hide');
+    
+    // 애니메이션 완료 후 제거
+    setTimeout(() => {
+        if (indicator.parentNode) {
+            indicator.parentNode.removeChild(indicator);
+        }
+    }, 300);
+}
+
+/**
+ * 페이지 전환 애니메이션
+ * @param {HTMLElement} fromElement 전환 전 요소
+ * @param {HTMLElement} toElement 전환 후 요소
+ * @param {string} direction 전환 방향 ('left', 'right', 'up', 'down')
+ */
+function pageTransition(fromElement, toElement, direction = 'right') {
+    // 기본 속성 설정
+    fromElement.style.transition = 'all 0.5s ease-in-out';
+    toElement.style.transition = 'all 0.5s ease-in-out';
+    toElement.style.display = 'block';
+    
+    // 방향에 따른 시작 위치 설정
+    let fromStart, fromEnd, toStart, toEnd;
+    
+    switch (direction) {
+        case 'left':
+            fromStart = 'translateX(0)';
+            fromEnd = 'translateX(100%)';
+            toStart = 'translateX(-100%)';
+            toEnd = 'translateX(0)';
+            break;
+        case 'up':
+            fromStart = 'translateY(0)';
+            fromEnd = 'translateY(100%)';
+            toStart = 'translateY(-100%)';
+            toEnd = 'translateY(0)';
+            break;
+        case 'down':
+            fromStart = 'translateY(0)';
+            fromEnd = 'translateY(-100%)';
+            toStart = 'translateY(100%)';
+            toEnd = 'translateY(0)';
+            break;
+        case 'right':
+        default:
+            fromStart = 'translateX(0)';
+            fromEnd = 'translateX(-100%)';
+            toStart = 'translateX(100%)';
+            toEnd = 'translateX(0)';
+    }
+    
+    // 초기 상태 설정
+    fromElement.style.transform = fromStart;
+    fromElement.style.opacity = '1';
+    toElement.style.transform = toStart;
+    toElement.style.opacity = '0';
+    
+    // 애니메이션 시작
+    setTimeout(() => {
+        fromElement.style.transform = fromEnd;
+        fromElement.style.opacity = '0';
+        toElement.style.transform = toEnd;
+        toElement.style.opacity = '1';
+        
+        // 애니메이션 완료 후 정리
+        setTimeout(() => {
+            fromElement.style.display = 'none';
+            fromElement.style.transform = '';
+            toElement.style.transform = '';
+            fromElement.style.transition = '';
+            toElement.style.transition = '';
+        }, 500);
+    }, 50);
+}
+
+// 함수 내보내기
+export {
+    showLoadingIndicator,
+    hideLoadingIndicator,
+    addHoverEffect,
+    removeHoverEffect,
+    pageTransition,
+    setupHoverEffects
+}; 
