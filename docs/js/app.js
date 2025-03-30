@@ -19,89 +19,32 @@ let resultsCache = {};
 // 임시 데이터 저장소
 let temporaryData = null;
 
-// DOM이 로드된 후 초기화
-document.addEventListener('DOMContentLoaded', function() {
-    // 초기화 함수
-    initApp();
-});
+// DOM이 로드된 후 초기화 (한 번만 실행되도록 함)
+if (!window._appInitialized) { 
+    document.addEventListener('DOMContentLoaded', function() {
+        // 초기화 함수
+        initApp();
+        window._appInitialized = true;
+    });
+}
 
 /**
  * 앱 초기화
  */
 function initApp() {
+    // 이미 초기화된 경우 중복 실행 방지
+    if (window._appInitialized) {
+        console.log('앱이 이미 초기화되었습니다.');
+        return;
+    }
+    
+    console.log('앱 초기화 시작...');
+    
     // 테마 설정
     initTheme();
     
-    // 검색 버튼 이벤트 연결
-    const searchButton = document.getElementById('search-button');
-    if (searchButton) {
-        searchButton.addEventListener('click', handleSearch);
-    }
-    
-    // 검색 입력 필드 엔터키 이벤트
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-        searchInput.addEventListener('keyup', function(event) {
-            if (event.key === 'Enter') {
-                handleSearch();
-            }
-        });
-    }
-    
-    // 필터 토글 버튼
-    const filterToggle = document.getElementById('filter-toggle');
-    if (filterToggle) {
-        filterToggle.addEventListener('click', toggleFilterSection);
-    }
-    
-    // 필터 적용 버튼
-    const applyFilterButton = document.getElementById('apply-filter');
-    if (applyFilterButton) {
-        applyFilterButton.addEventListener('click', filterResults);
-    }
-    
-    // 필터 초기화 버튼
-    const resetFilterButton = document.getElementById('reset-filter');
-    if (resetFilterButton) {
-        resetFilterButton.addEventListener('click', resetFilters);
-    }
-    
-    // 로그인 처리
-    const loginForm = document.getElementById('login-form');
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
-    }
-    
-    // 로그아웃 처리
-    const logoutButton = document.getElementById('logout-button');
-    if (logoutButton) {
-        logoutButton.addEventListener('click', handleLogout);
-    }
-    
-    // 회원가입 폼 처리
-    const registerForm = document.getElementById('register-form');
-    if (registerForm) {
-        registerForm.addEventListener('submit', handleRegister);
-    }
-    
-    // 모달 닫기 버튼
-    const closeButtons = document.querySelectorAll('.close-modal');
-    closeButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const modalId = this.closest('.modal').id;
-            closeModal(modalId);
-        });
-    });
-    
-    // 모달 외부 클릭
-    const modals = document.querySelectorAll('.modal');
-    modals.forEach(modal => {
-        modal.addEventListener('click', function(event) {
-            if (event.target === this) {
-                closeModal(this.id);
-            }
-        });
-    });
+    // 이벤트 리스너 등록 (한 번만)
+    setupEventListenersOnce();
     
     // 필터 옵션 초기화
     initFilterOptions();
@@ -120,14 +63,112 @@ function initApp() {
     
     // 메모리 최적화를 위한 가비지 컬렉션 유도
     optimizeMemory();
+    
+    console.log('앱 초기화 완료.');
+}
+
+/**
+ * 이벤트 리스너를 한 번만 등록하는 함수
+ */
+function setupEventListenersOnce() {
+    // 검색 버튼 이벤트 연결
+    const searchButton = document.getElementById('search-button');
+    if (searchButton && !searchButton._hasClickListener) {
+        searchButton.addEventListener('click', handleSearch);
+        searchButton._hasClickListener = true;
+    }
+    
+    // 검색 입력 필드 엔터키 이벤트
+    const searchInput = document.getElementById('search-input');
+    if (searchInput && !searchInput._hasKeyupListener) {
+        searchInput.addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                handleSearch();
+            }
+        });
+        searchInput._hasKeyupListener = true;
+    }
+    
+    // 필터 토글 버튼
+    const filterToggle = document.getElementById('filter-toggle');
+    if (filterToggle && !filterToggle._hasClickListener) {
+        filterToggle.addEventListener('click', toggleFilterSection);
+        filterToggle._hasClickListener = true;
+    }
+    
+    // 필터 적용 버튼
+    const applyFilterButton = document.getElementById('apply-filter');
+    if (applyFilterButton && !applyFilterButton._hasClickListener) {
+        applyFilterButton.addEventListener('click', filterResults);
+        applyFilterButton._hasClickListener = true;
+    }
+    
+    // 필터 초기화 버튼
+    const resetFilterButton = document.getElementById('reset-filter');
+    if (resetFilterButton && !resetFilterButton._hasClickListener) {
+        resetFilterButton.addEventListener('click', resetFilters);
+        resetFilterButton._hasClickListener = true;
+    }
+    
+    // 로그인 처리
+    const loginForm = document.getElementById('login-form');
+    if (loginForm && !loginForm._hasSubmitListener) {
+        loginForm.addEventListener('submit', handleLogin);
+        loginForm._hasSubmitListener = true;
+    }
+    
+    // 로그아웃 처리
+    const logoutButton = document.getElementById('logout-button');
+    if (logoutButton && !logoutButton._hasClickListener) {
+        logoutButton.addEventListener('click', handleLogout);
+        logoutButton._hasClickListener = true;
+    }
+    
+    // 회원가입 폼 처리
+    const registerForm = document.getElementById('register-form');
+    if (registerForm && !registerForm._hasSubmitListener) {
+        registerForm.addEventListener('submit', handleRegister);
+        registerForm._hasSubmitListener = true;
+    }
+    
+    // 모달 닫기 버튼 - 한 번만 등록
+    if (!window._closeButtonsInitialized) {
+        const closeButtons = document.querySelectorAll('.close-modal');
+        closeButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const modalId = this.closest('.modal').id;
+                closeModal(modalId);
+            });
+        });
+        window._closeButtonsInitialized = true;
+    }
+    
+    // 모달 외부 클릭 - 한 번만 등록
+    if (!window._modalsInitialized) {
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => {
+            modal.addEventListener('click', function(event) {
+                if (event.target === this) {
+                    closeModal(this.id);
+                }
+            });
+        });
+        window._modalsInitialized = true;
+    }
 }
 
 /**
  * 메모리 사용 최적화
  */
 function optimizeMemory() {
-    // 주기적인 메모리 정리를 위한 타이머 설정
-    let memoryTimer;
+    // 이전 타이머가 있으면 제거
+    if (window._memoryCleanupTimer) {
+        clearInterval(window._memoryCleanupTimer);
+        window._memoryCleanupTimer = null;
+    }
+    
+    // 이전 스크롤 이벤트 리스너 제거
+    window.removeEventListener('scroll', window._scrollHandler);
     
     // 스크롤 최적화 - 디바운싱 및 스로틀링
     let ticking = false;
@@ -145,19 +186,15 @@ function optimizeMemory() {
             
             ticking = true;
         }
-        
-        // 메모리 최적화 타이머는 디바운싱으로 처리
-        clearTimeout(memoryTimer);
-        memoryTimer = setTimeout(cleanupResources, 2000);
     }
     
-    // 이전 스크롤 이벤트 리스너 제거
-    window.removeEventListener('scroll', onScroll);
+    // 전역 참조를 저장하여 나중에 제거할 수 있도록 함
+    window._scrollHandler = onScroll;
     
-    // 최적화된 스크롤 이벤트 리스너 등록
-    window.addEventListener('scroll', onScroll, { passive: true });
+    // 최적화된 스크롤 이벤트 리스너 등록 
+    window.addEventListener('scroll', window._scrollHandler, { passive: true });
     
-    // 불필요한 리소스 정리
+    // 리소스 정리 함수
     function cleanupResources() {
         // DOM에 현재 표시되지 않는 요소 참조 해제
         const cachedElements = document.querySelectorAll('.temp-cached-element');
@@ -181,18 +218,24 @@ function optimizeMemory() {
     // 이미지 지연 로딩 최적화
     const lazyImages = document.querySelectorAll('.lazy-image');
     if ('IntersectionObserver' in window) {
-        const imageObserver = new IntersectionObserver((entries) => {
+        // 이전 옵저버가 있으면 모든 관찰 중단
+        if (window._imageObserver) {
+            window._imageObserver.disconnect();
+        }
+        
+        // 새 옵저버 생성
+        window._imageObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const img = entry.target;
                     img.src = img.dataset.src;
                     img.classList.remove('lazy-image');
-                    imageObserver.unobserve(img);
+                    window._imageObserver.unobserve(img);
                 }
             });
         });
         
-        lazyImages.forEach(img => imageObserver.observe(img));
+        lazyImages.forEach(img => window._imageObserver.observe(img));
     } else {
         // IntersectionObserver를 지원하지 않는 브라우저용 폴백
         lazyImages.forEach(img => {
@@ -201,8 +244,11 @@ function optimizeMemory() {
         });
     }
     
-    // 정기적인 메모리 정리 타이머 (10분마다)
-    setInterval(cleanupResources, 600000);
+    // 초기 메모리 정리 실행 (한 번만 실행)
+    cleanupResources();
+    
+    // 전역 타이머 참조 저장
+    window._memoryCleanupTimer = setInterval(cleanupResources, 600000); // 10분마다 실행
 }
 
 /**
@@ -1259,7 +1305,8 @@ async function loadInitialData() {
         updateResultsCount(0);
         
         // 필터 초기화 및 활성화
-        activateFilters();
+        // 이미 initApp에서 실행하므로 여기서는 제거
+        // activateFilters();
         
         // 로딩 상태 제거
         hideLoading();
