@@ -2,75 +2,581 @@
  * api.js - 제재 데이터 API 및 데이터 처리 함수
  * 
  * UN, EU, US의 제재 데이터를 가져오고 검색, 필터링하는 기능을 제공합니다.
+ * 최적화된 버전: 메모리 효율성 향상 및 페이지네이션 구현
  */
 
 // 캐시 및 상태 관리
 const apiState = {
-    sanctions: null,
-    lastFetched: null,
+    // 데이터 캐시
+    indexCache: {
+        un: null,
+        eu: null,
+        us: null
+    },
+    chunkCache: {}, // 키: 'source_chunkIndex', 값: 청크 데이터
+    // 색인 만료 시간 (30분)
+    indexExpiry: 30 * 60 * 1000,
+    // 청크 만료 시간 (10분)
+    chunkExpiry: 10 * 60 * 1000,
+    // 마지막 업데이트 시간
+    lastFetched: {
+        un: null,
+        eu: null,
+        us: null
+    },
+    // 청크 마지막 접근 시간
+    chunkLastAccessed: {},
+    // 로딩 상태
     isLoading: false,
+    // 오류 정보
     error: null
+};
+
+// 메모리 관리 설정
+const MEMORY_CONFIG = {
+    // 최대 청크 캐시 크기
+    maxCachedChunks: 5,
+    // 청크 캐시 정리 주기 (밀리초)
+    cleanupInterval: 60 * 1000
 };
 
 /**
  * 제재 데이터를 가져옵니다.
- * @param {boolean} forceRefresh 캐시된 데이터가 있더라도 강제로 새로고침할지 여부
- * @returns {Promise<Array>} 제재 데이터 배열
+ * @param {Object} options 옵션 객체
+ * @param {boolean} options.forceRefresh 캐시된 데이터가 있더라도 강제로 새로고침할지 여부
+ * @param {number} options.page 페이지 번호 (1부터 시작)
+ * @param {number} options.pageSize 페이지당 항목 수
+ * @param {Array<string>} options.sources 가져올 데이터 소스 (un, eu, us)
+ * @returns {Promise<Object>} 페이지네이션이 적용된 제재 데이터
  */
-async function fetchSanctionsData(forceRefresh = false) {
-    // 이미 로딩 중이면 기존 데이터 반환
-    if (apiState.isLoading) {
-        return apiState.sanctions || [];
-    }
+async function fetchSanctionsData(options = {}) {
+    const {
+        forceRefresh = false,
+        page = 1,
+        pageSize = 50,
+        sources = ['un', 'eu', 'us']
+    } = options;
     
-    // 캐시된 데이터가 있고 30분 이내라면 캐시 사용
-    const now = new Date();
-    if (!forceRefresh && 
-        apiState.sanctions && 
-        apiState.lastFetched && 
-        (now - apiState.lastFetched) < 30 * 60 * 1000) {
-        return apiState.sanctions;
+    if (apiState.isLoading) {
+        console.log('이미 데이터를 로드 중입니다.');
+        return {
+            data: [],
+            pagination: { page, pageSize, total: 0, totalPages: 0 }
+        };
     }
     
     try {
         apiState.isLoading = true;
-        console.log('실제 제재 데이터 로드 중...');
+        console.log('제재 데이터 로드 중...');
         
-        // 모든 제재 데이터 병렬 로드
-        const [unData, euData, usData] = await Promise.all([
-            fetch('data/un_sanctions.json').then(res => res.json()),
-            fetch('data/eu_sanctions.json').then(res => res.json()),
-            fetch('data/us_sanctions.json').then(res => res.json())
-        ]);
+        // 색인 파일 로드
+        const indexPromises = sources.map(source => loadSourceIndex(source, forceRefresh));
+        const indices = await Promise.all(indexPromises);
         
-        console.log(`데이터 로드 완료: UN(${unData.length}), EU(${euData.length}), US(${usData.length})`);
+        // 총 항목 수 계산
+        const totalItems = indices.reduce((total, index) => total + (index ? index.totalItems : 0), 0);
+        const totalPages = Math.ceil(totalItems / pageSize);
         
-        // 모든 데이터 통합 및 정규화
-        const combinedData = [
-            ...processUNData(unData),
-            ...processEUData(euData),
-            ...processUSData(usData)
-        ];
+        // 페이지 범위 검증
+        const validPage = Math.max(1, Math.min(page, totalPages));
         
-        // 중복 제거 (같은 이름과 국가를 가진 항목)
-        const uniqueData = removeDuplicates(combinedData);
+        // 필요한 청크 결정
+        const neededChunks = determineNeededChunks(indices, validPage, pageSize);
         
-        console.log(`통합 데이터 생성 완료: ${uniqueData.length}개 항목`);
+        // 청크 로드
+        const chunkPromises = neededChunks.map(chunk => loadChunk(chunk.source, chunk.index));
+        const chunks = await Promise.all(chunkPromises);
         
-        apiState.sanctions = uniqueData;
-        apiState.lastFetched = now;
-        apiState.error = null;
+        // 데이터 통합
+        const startOffset = (validPage - 1) * pageSize;
+        const endOffset = startOffset + pageSize;
+        
+        // 페이지 데이터 구성
+        const paginatedData = extractPaginatedData(chunks, neededChunks, startOffset, endOffset);
+        
+        console.log(`데이터 로드 완료: ${paginatedData.length}개 항목 (페이지 ${validPage}/${totalPages})`);
         
         // 최신 업데이트 시간 표시
-        updateLastUpdateTime(now.toISOString());
+        updateLastUpdateTime(new Date().toISOString());
         
-        return uniqueData;
+        // 주기적으로 캐시 정리
+        scheduleCleanup();
+        
+        return {
+            data: paginatedData,
+            pagination: {
+                page: validPage,
+                pageSize,
+                total: totalItems,
+                totalPages
+            }
+        };
     } catch (error) {
         console.error('제재 데이터 로드 오류:', error);
         apiState.error = error.message;
-        return [];
+        
+        return {
+            data: [],
+            pagination: { page, pageSize, total: 0, totalPages: 0 }
+        };
     } finally {
         apiState.isLoading = false;
+    }
+}
+
+/**
+ * 소스 색인 파일을 로드합니다.
+ * @param {string} source 데이터 소스 (un, eu, us)
+ * @param {boolean} forceRefresh 강제 새로고침 여부
+ * @returns {Promise<Object>} 소스 색인 정보
+ */
+async function loadSourceIndex(source, forceRefresh = false) {
+    // 캐시된 색인이 있고 유효 기간 내라면 사용
+    const now = new Date();
+    if (!forceRefresh && 
+        apiState.indexCache[source] && 
+        apiState.lastFetched[source] && 
+        (now - apiState.lastFetched[source]) < apiState.indexExpiry) {
+        return apiState.indexCache[source];
+    }
+    
+    try {
+        // 분할된 데이터 색인 파일 로드 시도
+        const response = await fetch(`data/split/${source}_index.json`);
+        
+        if (response.ok) {
+            const indexData = await response.json();
+            apiState.indexCache[source] = indexData;
+            apiState.lastFetched[source] = now;
+            return indexData;
+        }
+        
+        // 분할 색인 파일이 없으면 (아직 분할이 안 된 경우) 전체 파일 처리 방식 사용
+        console.log(`${source} 분할 색인 파일이 없습니다. 전체 파일을 사용합니다.`);
+        apiState.indexCache[source] = {
+            source: source.toUpperCase(),
+            totalItems: 0,
+            totalChunks: 1,
+            chunks: [
+                {
+                    filename: `${source}_sanctions.json`,
+                    itemCount: 0,
+                    startIndex: 0,
+                    endIndex: 0
+                }
+            ]
+        };
+        apiState.lastFetched[source] = now;
+        return apiState.indexCache[source];
+    } catch (error) {
+        console.error(`${source} 색인 로드 오류:`, error);
+        return null;
+    }
+}
+
+/**
+ * 청크 데이터를 로드합니다.
+ * @param {string} source 데이터 소스 (un, eu, us)
+ * @param {number} chunkIndex 청크 인덱스
+ * @returns {Promise<Array>} 청크 데이터
+ */
+async function loadChunk(source, chunkIndex) {
+    const cacheKey = `${source}_${chunkIndex}`;
+    const now = new Date();
+    
+    // 캐시 접근 시간 업데이트
+    apiState.chunkLastAccessed[cacheKey] = now;
+    
+    // 캐시된 청크가 있으면 사용
+    if (apiState.chunkCache[cacheKey] && 
+        (now - apiState.chunkLastAccessed[cacheKey]) < apiState.chunkExpiry) {
+        return apiState.chunkCache[cacheKey];
+    }
+    
+    try {
+        // 분할된 청크 파일 로드 시도
+        const chunkPath = `data/split/${source}_sanctions_${chunkIndex + 1}.json`;
+        const response = await fetch(chunkPath);
+        
+        if (response.ok) {
+            const chunkData = await response.json();
+            
+            // 데이터 정규화 및 가공
+            const processedData = chunkData.data.map(item => ({
+                ...item,
+                // 소스 정보가 없으면 추가
+                id: item.id.startsWith(`${source.toUpperCase()}_`) ? item.id : `${source.toUpperCase()}_${item.id}`,
+                source: source.toUpperCase()
+            }));
+            
+            // 캐시 저장
+            apiState.chunkCache[cacheKey] = processedData;
+            
+            // 캐시 사이즈 관리
+            manageChunkCacheSize();
+            
+            return processedData;
+        }
+        
+        // 분할 파일이 없으면 전체 파일 로드
+        console.log(`${source} 분할 파일이 없습니다. 전체 파일을 로드합니다.`);
+        const fullDataPath = `data/${source}_sanctions.json`;
+        const fullDataResponse = await fetch(fullDataPath);
+        
+        if (fullDataResponse.ok) {
+            const fullData = await fullDataResponse.json();
+            let dataArray = [];
+            
+            // 데이터 형식에 따라 처리
+            if (fullData.data && Array.isArray(fullData.data)) {
+                dataArray = fullData.data;
+            } else if (Array.isArray(fullData)) {
+                dataArray = fullData;
+            }
+            
+            // 소스에 따른 데이터 정규화
+            const normalizedData = normalizeSourceData(dataArray, source);
+            
+            apiState.chunkCache[cacheKey] = normalizedData;
+            return normalizedData;
+        }
+        
+        throw new Error(`${source} 데이터 파일을 찾을 수 없습니다.`);
+    } catch (error) {
+        console.error(`${source} 청크 ${chunkIndex} 로드 오류:`, error);
+        return [];
+    }
+}
+
+/**
+ * 소스 데이터를 정규화합니다.
+ * @param {Array} data 원본 데이터 
+ * @param {string} source 데이터 소스
+ * @returns {Array} 정규화된 데이터
+ */
+function normalizeSourceData(data, source) {
+    if (!data || !Array.isArray(data)) return [];
+    
+    return data.map(item => {
+        const sourcePrefix = source.toUpperCase();
+        const id = item.id ? `${sourcePrefix}_${item.id}` : `${sourcePrefix}_${generateId(item)}`;
+        
+        return {
+            id,
+            name: item.name || getNameFromFields(item),
+            type: mapEntityType(item, source),
+            country: item.country || item.nationality || sourcePrefix,
+            programs: [`${sourcePrefix}_SANCTIONS`],
+            source: sourcePrefix,
+            details: {
+                aliases: getAliases(item, source),
+                addresses: item.addresses || [],
+                identifications: getIdentifications(item, source),
+                birthDate: getBirthDate(item, source),
+                description: getDescription(item, source),
+                sanctionDate: getSanctionDate(item, source)
+            }
+        };
+    });
+}
+
+/**
+ * 필요한 청크를 결정합니다.
+ * @param {Array} indices 색인 배열
+ * @param {number} page 페이지 번호
+ * @param {number} pageSize 페이지 크기
+ * @returns {Array} 필요한 청크 정보 배열
+ */
+function determineNeededChunks(indices, page, pageSize) {
+    const startOffset = (page - 1) * pageSize;
+    const endOffset = startOffset + pageSize - 1;
+    
+    const neededChunks = [];
+    let currentOffset = 0;
+    
+    for (const index of indices) {
+        if (!index) continue;
+        
+        const sourceItemCount = index.totalItems;
+        
+        // 이 소스의 데이터가 현재 페이지 범위에 포함되는지 확인
+        if (currentOffset + sourceItemCount <= startOffset) {
+            // 이 소스의 모든 항목이 시작 오프셋 이전에 있음
+            currentOffset += sourceItemCount;
+            continue;
+        }
+        
+        if (currentOffset > endOffset) {
+            // 이 소스의 모든 항목이 종료 오프셋 이후에 있음
+            break;
+        }
+        
+        // 이 소스의 일부 또는 전체 항목이 페이지 범위에 포함됨
+        for (let i = 0; i < index.totalChunks; i++) {
+            const chunk = index.chunks[i];
+            const chunkStartOffset = currentOffset + chunk.startIndex;
+            const chunkEndOffset = currentOffset + chunk.endIndex;
+            
+            // 청크가 페이지 범위와 겹치는지 확인
+            if (chunkEndOffset >= startOffset && chunkStartOffset <= endOffset) {
+                neededChunks.push({
+                    source: index.source.toLowerCase(),
+                    index: i,
+                    globalStartOffset: chunkStartOffset,
+                    globalEndOffset: chunkEndOffset,
+                    itemCount: chunk.itemCount
+                });
+            }
+        }
+        
+        currentOffset += sourceItemCount;
+    }
+    
+    return neededChunks;
+}
+
+/**
+ * 페이지네이션이 적용된 데이터를 추출합니다.
+ * @param {Array} chunks 청크 데이터 배열
+ * @param {Array} chunkInfo 청크 정보 배열
+ * @param {number} startOffset 시작 오프셋
+ * @param {number} endOffset 종료 오프셋
+ * @returns {Array} 페이지 데이터
+ */
+function extractPaginatedData(chunks, chunkInfo, startOffset, endOffset) {
+    const result = [];
+    
+    for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const info = chunkInfo[i];
+        
+        if (!chunk || !info) continue;
+        
+        // 이 청크에서 필요한 항목만 추출
+        for (let j = 0; j < chunk.length; j++) {
+            const globalIndex = info.globalStartOffset + j;
+            
+            if (globalIndex >= startOffset && globalIndex < endOffset) {
+                result.push(chunk[j]);
+                
+                // 충분한 항목을 얻었으면 중단
+                if (result.length >= (endOffset - startOffset)) {
+                    break;
+                }
+            }
+        }
+    }
+    
+    return result;
+}
+
+/**
+ * 캐시된 청크 수를 관리합니다.
+ */
+function manageChunkCacheSize() {
+    const chunkKeys = Object.keys(apiState.chunkCache);
+    
+    if (chunkKeys.length <= MEMORY_CONFIG.maxCachedChunks) {
+        return;
+    }
+    
+    // 가장 오래 접근하지 않은 청크부터 제거
+    const sortedKeys = chunkKeys.sort((a, b) => {
+        return apiState.chunkLastAccessed[a] - apiState.chunkLastAccessed[b];
+    });
+    
+    // 최대 캐시 크기를 초과하는 청크 제거
+    const keysToRemove = sortedKeys.slice(0, sortedKeys.length - MEMORY_CONFIG.maxCachedChunks);
+    
+    for (const key of keysToRemove) {
+        delete apiState.chunkCache[key];
+        delete apiState.chunkLastAccessed[key];
+    }
+    
+    console.log(`캐시 정리: ${keysToRemove.length}개 청크 제거됨`);
+}
+
+/**
+ * 주기적인 캐시 정리를 예약합니다.
+ */
+function scheduleCleanup() {
+    if (typeof window !== 'undefined' && !window._cacheCleanupScheduled) {
+        window._cacheCleanupScheduled = true;
+        
+        setInterval(() => {
+            manageChunkCacheSize();
+        }, MEMORY_CONFIG.cleanupInterval);
+    }
+}
+
+/**
+ * 명칭 필드에서 이름을 추출합니다.
+ * @param {Object} item 항목 데이터
+ * @returns {string} 이름
+ */
+function getNameFromFields(item) {
+    if (item.first_name || item.last_name) {
+        return [item.first_name, item.second_name, item.third_name, item.last_name]
+            .filter(Boolean)
+            .join(' ');
+    }
+    
+    return item.entity_name || '미상';
+}
+
+/**
+ * 항목 유형을 매핑합니다.
+ * @param {Object} item 항목 데이터
+ * @param {string} source 데이터 소스
+ * @returns {string} 매핑된 유형
+ */
+function mapEntityType(item, source) {
+    if (source === 'un') {
+        if (item.first_name) return '개인';
+        return '단체';
+    } else if (source === 'eu') {
+        return item.entity_type === 'person' ? '개인' : '단체';
+    } else if (source === 'us') {
+        return item.sdnType === 'individual' ? '개인' : '단체';
+    }
+    
+    return '기타';
+}
+
+/**
+ * 별칭 정보를 가져옵니다.
+ * @param {Object} item 항목 데이터
+ * @param {string} source 데이터 소스
+ * @returns {Array} 별칭 배열
+ */
+function getAliases(item, source) {
+    if (source === 'un' || source === 'eu') {
+        return item.aliases || [];
+    } else if (source === 'us') {
+        return item.aka || [];
+    }
+    
+    return [];
+}
+
+/**
+ * 식별 정보를 가져옵니다.
+ * @param {Object} item 항목 데이터
+ * @param {string} source 데이터 소스
+ * @returns {Array} 식별 정보 배열
+ */
+function getIdentifications(item, source) {
+    if (source === 'un') {
+        if (!item.documents || !Array.isArray(item.documents)) return [];
+        
+        return item.documents.map(doc => {
+            if (typeof doc === 'string') {
+                const parts = doc.split(':');
+                if (parts.length > 1) {
+                    return { type: parts[0], number: parts.slice(1).join(':') };
+                }
+                return { type: '기타', number: doc };
+            }
+            return doc;
+        });
+    } else if (source === 'eu') {
+        return Array.isArray(item.documents) ? item.documents : [];
+    } else if (source === 'us') {
+        return Array.isArray(item.idList) ? item.idList : [];
+    }
+    
+    return [];
+}
+
+/**
+ * 생년월일 정보를 가져옵니다.
+ * @param {Object} item 항목 데이터
+ * @param {string} source 데이터 소스
+ * @returns {string|null} 생년월일
+ */
+function getBirthDate(item, source) {
+    if (source === 'un') {
+        return item.birth_date || null;
+    } else if (source === 'eu') {
+        return item.date_of_birth || null;
+    } else if (source === 'us') {
+        return item.dateOfBirth || null;
+    }
+    
+    return null;
+}
+
+/**
+ * 설명 정보를 가져옵니다.
+ * @param {Object} item 항목 데이터
+ * @param {string} source 데이터 소스
+ * @returns {string} 설명
+ */
+function getDescription(item, source) {
+    if (source === 'un') {
+        return item.comments1 || '';
+    } else if (source === 'eu' || source === 'us') {
+        return item.remarks || '';
+    }
+    
+    return '';
+}
+
+/**
+ * 제재 지정일 정보를 가져옵니다.
+ * @param {Object} item 항목 데이터
+ * @param {string} source 데이터 소스
+ * @returns {string|null} 제재 지정일
+ */
+function getSanctionDate(item, source) {
+    if (source === 'un') {
+        return item.listed_on || null;
+    } else if (source === 'eu') {
+        return item.listing_date || null;
+    } else if (source === 'us') {
+        return item.listedDate || null;
+    }
+    
+    return null;
+}
+
+/**
+ * 항목 ID를 생성합니다.
+ * @param {Object} item 항목 데이터
+ * @returns {string} 생성된 ID
+ */
+function generateId(item) {
+    const hash = Math.abs(hashCode(JSON.stringify(item))).toString(16);
+    return hash.padStart(8, '0');
+}
+
+/**
+ * 문자열의 해시 코드를 계산합니다.
+ * @param {string} str 문자열
+ * @returns {number} 해시 코드
+ */
+function hashCode(str) {
+    let hash = 0;
+    if (str.length === 0) return hash;
+    
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    
+    return hash;
+}
+
+/**
+ * 최종 업데이트 시간을 표시합니다.
+ * @param {string} dateStr 날짜 문자열
+ */
+function updateLastUpdateTime(dateStr) {
+    const lastUpdateElement = document.getElementById('last-update-time');
+    if (lastUpdateElement) {
+        const date = new Date(dateStr);
+        lastUpdateElement.textContent = date.toLocaleString();
     }
 }
 
@@ -81,7 +587,7 @@ function processUNData(data) {
     return data.map(item => ({
         id: `UN_${item.id || generateId(item)}`,
         name: item.name || item.first_name + ' ' + item.last_name,
-        type: mapEntityType(item.type),
+        type: mapEntityType(item, 'un'),
         country: item.country || item.nationality || 'UN',
         programs: ['UN_SANCTIONS'],
         details: {
@@ -104,7 +610,7 @@ function processEUData(data) {
     return data.map(item => ({
         id: `EU_${item.id || generateId(item)}`,
         name: item.name || item.first_name + ' ' + item.last_name,
-        type: mapEntityType(item.entity_type),
+        type: mapEntityType(item, 'eu'),
         country: item.country_of_origin || item.nationality || 'EU',
         programs: ['EU_SANCTIONS'],
         details: {
@@ -127,7 +633,7 @@ function processUSData(data) {
     return data.map(item => ({
         id: `US_${item.id || generateId(item)}`,
         name: item.name || item.first_name + ' ' + item.last_name,
-        type: mapEntityType(item.sdnType),
+        type: mapEntityType(item, 'us'),
         country: item.country || item.nationality || 'US',
         programs: ['US_SANCTIONS'],
         details: {
@@ -186,59 +692,9 @@ function mapRelatedEntities(entities) {
     
     return entities.map(entity => ({
         name: entity.name || entity.entity_name || '',
-        type: mapEntityType(entity.type || entity.entity_type || ''),
+        type: mapEntityType(entity, entity.source || '기타'),
         relationship: entity.relationship || entity.relation_type || '관련'
     }));
-}
-
-/**
- * 엔티티 유형 매핑
- */
-function mapEntityType(type) {
-    if (!type) return '기타';
-    
-    type = type.toLowerCase();
-    
-    if (type.includes('individual') || type.includes('person') || type === 'individual') {
-        return '개인';
-    } else if (type.includes('entity') || type.includes('organization') || type.includes('vessel')) {
-        return '단체';
-    } else if (type.includes('vessel') || type.includes('ship')) {
-        return '선박';
-    } else if (type.includes('aircraft')) {
-        return '항공기';
-    } else {
-        return '기타';
-    }
-}
-
-/**
- * ID 생성 (이름 및 타입 기반)
- */
-function generateId(item) {
-    const name = item.name || item.first_name || '';
-    const type = item.type || item.entity_type || '';
-    return `${name}_${type}_${Date.now()}`.replace(/\s+/g, '_');
-}
-
-/**
- * 최신 업데이트 시간을 표시합니다.
- * @param {string} updateTime ISO 형식의 업데이트 시간
- */
-function updateLastUpdateTime(updateTime) {
-    const lastUpdateElement = document.getElementById('last-update');
-    if (lastUpdateElement) {
-        const date = new Date(updateTime);
-        const formattedDate = date.toLocaleString('ko-KR', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        });
-        lastUpdateElement.textContent = formattedDate;
-    }
 }
 
 /**
@@ -272,82 +728,121 @@ const similarTerms = {
  * 제재 데이터를 검색합니다.
  * @param {string} query 검색 쿼리
  * @param {Object} options 검색 옵션
- * @returns {Promise<Array>} 검색 결과
+ * @returns {Promise<Object>} 검색 결과
  */
 async function searchSanctions(query, options = {}) {
-    try {
-        // 기본 데이터 로드
-        const data = await fetchSanctionsData();
-        
-        if (!data || data.length === 0) {
-            console.log('검색할 데이터가 없습니다.');
-            return [];
-        }
-        
-        console.log(`검색 시작: "${query}"`, options);
-        
-        // 검색어가 없으면 모든 데이터 반환 (필터링만 적용)
-        if (!query || query.trim() === '') {
-            console.log('검색어 없음, 전체 데이터에 필터만 적용');
-            return applyFilters(data, options);
-        }
-        
-        // 검색 로직
-        const normalizedQuery = query.toLowerCase().trim();
-        
-        // 필터 적용 및 검색
-        let filteredData = applyFilters(data, options);
-        
-        // 이름, 설명, 국가 등에서 검색
-        const results = filteredData.filter(item => {
-            // 이름 검색
-            if (item.name && item.name.toLowerCase().includes(normalizedQuery)) {
-                return true;
-            }
+    // 실제 API가 개발되기 전까지 더미 데이터 사용
+    // TODO: 실제 API 구현 시 아래 코드 대체
+    return new Promise((resolve) => {
+        // 시뮬레이션된 API 지연 (500ms ~ 1500ms)
+        setTimeout(() => {
+            const dummyData = getDummySanctionsData();
+            let filteredData = [...dummyData];
             
-            // 국가 검색
-            if (item.country && item.country.toLowerCase().includes(normalizedQuery)) {
-                return true;
-            }
-            
-            // 타입 검색
-            if (item.type && item.type.toLowerCase().includes(normalizedQuery)) {
-                return true;
-            }
-            
-            // 상세 내용 검색
-            if (item.details) {
-                // 설명 검색
-                if (item.details.description && 
-                    item.details.description.toLowerCase().includes(normalizedQuery)) {
-                    return true;
-                }
+            // 검색어 필터링
+            if (query) {
+                const searchLower = query.toLowerCase();
                 
-                // 별칭 검색
-                if (item.details.aliases && 
-                    item.details.aliases.some(alias => 
-                        alias.toLowerCase().includes(normalizedQuery))) {
-                    return true;
-                }
+                // 검색 유형에 따라 다른 필터링 적용
+                const searchType = options.searchType || 'text';
                 
-                // 주소 검색
-                if (item.details.addresses && 
-                    item.details.addresses.some(address => 
-                        address.toLowerCase().includes(normalizedQuery))) {
-                    return true;
+                if (searchType === 'text') {
+                    // 일반 텍스트 검색 (이름, 별명 등)
+                    filteredData = filteredData.filter(item => {
+                        // 이름 검색
+                        if (item.name.toLowerCase().includes(searchLower)) {
+                            return true;
+                        }
+                        
+                        // 별명 검색
+                        if (item.details.aliases && item.details.aliases.some(alias => 
+                            alias.toLowerCase().includes(searchLower))) {
+                            return true;
+                        }
+                        
+                        // 설명 검색
+                        if (item.details.description && 
+                            item.details.description.toLowerCase().includes(searchLower)) {
+                            return true;
+                        }
+                        
+                        return false;
+                    });
+                } else if (searchType === 'id') {
+                    // ID 검색
+                    filteredData = filteredData.filter(item => 
+                        item.id.toLowerCase().includes(searchLower));
+                } else if (searchType === 'number') {
+                    // 식별 번호 검색 (여권, 신분증 등)
+                    const numberType = options.numberType || 'passport';
+                    
+                    filteredData = filteredData.filter(item => {
+                        if (!item.details.identifications) return false;
+                        
+                        return item.details.identifications.some(id => {
+                            if (numberType === 'all' || id.type.toLowerCase() === numberType) {
+                                return id.number.toLowerCase().includes(searchLower);
+                            }
+                            return false;
+                        });
+                    });
                 }
             }
             
-            return false;
-        });
-        
-        console.log(`검색 결과: ${results.length}개 항목`);
-        return results;
-    } catch (error) {
-        console.error('검색 중 오류 발생:', error);
-        // 에러 발생 시 빈 배열이 아닌 더미 데이터 반환
-        return getDummySanctionsData();
-    }
+            // 국가 필터링
+            if (options.countries && options.countries.length > 0) {
+                filteredData = filteredData.filter(item => 
+                    options.countries.includes(item.country));
+            }
+            
+            // 프로그램 필터링
+            if (options.programs && options.programs.length > 0) {
+                filteredData = filteredData.filter(item => 
+                    item.programs.some(program => options.programs.includes(program)));
+            }
+            
+            // 날짜 필터링
+            if (options.startDate) {
+                const startDate = new Date(options.startDate);
+                filteredData = filteredData.filter(item => {
+                    if (!item.details.sanctionDate) return true;
+                    const sanctionDate = new Date(item.details.sanctionDate);
+                    return sanctionDate >= startDate;
+                });
+            }
+            
+            if (options.endDate) {
+                const endDate = new Date(options.endDate);
+                filteredData = filteredData.filter(item => {
+                    if (!item.details.sanctionDate) return true;
+                    const sanctionDate = new Date(item.details.sanctionDate);
+                    return sanctionDate <= endDate;
+                });
+            }
+            
+            // 페이지네이션 처리
+            const page = options.page || 1;
+            const pageSize = options.pageSize || 20;
+            const totalItems = filteredData.length;
+            const totalPages = Math.ceil(totalItems / pageSize);
+            
+            // 현재 페이지 데이터 추출
+            const startIndex = (page - 1) * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, totalItems);
+            const paginatedData = filteredData.slice(startIndex, endIndex);
+            
+            // 결과 반환
+            resolve({
+                data: paginatedData,
+                pagination: {
+                    page: page,
+                    pageSize: pageSize,
+                    total: totalItems,
+                    totalPages: totalPages
+                }
+            });
+        }, Math.random() * 1000 + 500); // 0.5초~1.5초 지연
+    });
 }
 
 /**
@@ -357,95 +852,34 @@ async function searchSanctions(query, options = {}) {
  */
 async function getSanctionDetails(id) {
     try {
-        const data = await fetchSanctionsData();
+        // ID에서 소스 추출
+        const idParts = id.split('_');
+        const source = idParts[0].toLowerCase();
         
-        if (!data || data.length === 0) {
-            throw new Error('상세 정보를 가져올 수 없습니다.');
+        // 모든 소스 색인 로드
+        const index = await loadSourceIndex(source);
+        
+        if (!index) {
+            throw new Error(`소스 ${source}의 색인 정보를 찾을 수 없습니다.`);
         }
         
-        const item = data.find(item => item.id === id);
-        
-        if (!item) {
-            // ID에 해당하는 항목을 찾지 못한 경우 더미 데이터 중에서 찾기
-            const dummyData = getDummySanctionsData();
-            const dummyItem = dummyData.find(dummy => dummy.id === id);
+        // 모든 청크를 순회하며 검색
+        for (let i = 0; i < index.totalChunks; i++) {
+            const chunkData = await loadChunk(source, i);
             
-            if (dummyItem) {
-                return dummyItem;
+            if (chunkData && chunkData.length > 0) {
+                const item = chunkData.find(item => item.id === id);
+                if (item) return item;
             }
-            
-            throw new Error('해당 ID를 가진 제재 정보를 찾을 수 없습니다.');
         }
         
-        return item;
+        // 아이템을 찾지 못한 경우 더미 데이터 반환
+        throw new Error(`ID ${id}를 가진 항목을 찾을 수 없습니다.`);
     } catch (error) {
         console.error('상세 정보 조회 오류:', error);
-        // 에러 상황에서도 사용자에게 정보를 보여주기 위해 더미 데이터 반환
         const dummyData = getDummySanctionsData();
-        return dummyData[0]; // 첫 번째 더미 데이터 반환
+        return dummyData[0];
     }
-}
-
-/**
- * 필터를 적용합니다.
- * @param {Array} data 원본 데이터
- * @param {Object} options 필터 옵션
- * @returns {Array} 필터링된 데이터
- */
-function applyFilters(data, options = {}) {
-    // 필터링할 데이터가 없으면 원본 반환
-    if (!data || data.length === 0) {
-        return data;
-    }
-    
-    let filtered = [...data];
-    
-    // 국가 필터
-    if (options.countries && options.countries.size > 0) {
-        filtered = filtered.filter(item => 
-            options.countries.has(item.country) || 
-            options.countries.has('기타') && !Array.from(options.countries).some(c => c !== '기타' && item.country === c)
-        );
-    }
-    
-    // 프로그램 필터
-    if (options.programs && options.programs.size > 0) {
-        filtered = filtered.filter(item => 
-            item.programs && item.programs.some(program => 
-                Array.from(options.programs).some(p => program.includes(p))
-            )
-        );
-    }
-    
-    // 날짜 필터
-    if (options.startDate || options.endDate) {
-        filtered = filtered.filter(item => {
-            // 항목의 제재 날짜
-            let itemDate = null;
-            if (item.details && item.details.sanctionDate) {
-                itemDate = new Date(item.details.sanctionDate);
-            }
-            
-            // 날짜가 없는 항목은 통과
-            if (!itemDate) return true;
-            
-            // 시작일 체크
-            if (options.startDate) {
-                const startDate = new Date(options.startDate);
-                if (itemDate < startDate) return false;
-            }
-            
-            // 종료일 체크
-            if (options.endDate) {
-                const endDate = new Date(options.endDate);
-                if (itemDate > endDate) return false;
-            }
-            
-            return true;
-        });
-    }
-    
-    return filtered;
 }
 
 /**

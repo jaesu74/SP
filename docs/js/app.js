@@ -646,8 +646,15 @@ function handleSearch() {
     // 로딩 상태 표시
     showLoading();
     
+    // 현재 페이지
+    const currentPage = 1;
+    const pageSize = 20;
+    
     // 필터 옵션 수집
     const options = {
+        page: currentPage,
+        pageSize: pageSize,
+        sources: ['un', 'eu', 'us'],
         countries: activeFilters.countries,
         programs: activeFilters.programs,
         startDate: document.getElementById('start-date')?.value,
@@ -658,15 +665,196 @@ function handleSearch() {
     
     // 검색 API 호출
     searchSanctions(query, options)
-        .then(results => {
+        .then(result => {
             // 결과 표시
-            displayResults(results);
-            updateResultsCount(results.length);
+            displayResults(result.data);
+            updateResultsCount(result.pagination.total);
+            
+            // 페이지네이션 업데이트
+            updatePagination(result.pagination);
+            
+            // 로딩 상태 제거
             hideLoading();
         })
         .catch(error => {
             console.error('검색 오류:', error);
             showAlert('검색 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+            hideLoading();
+        });
+}
+
+/**
+ * 페이지 변경 처리
+ * @param {number} page 이동할 페이지 번호
+ */
+function changePage(page) {
+    // 현재 검색어 가져오기
+    const searchInput = document.getElementById('search-input');
+    const query = searchInput ? searchInput.value.trim() : '';
+    
+    // 로딩 상태 표시
+    showLoading();
+    
+    // 페이지 크기
+    const pageSize = 20;
+    
+    // 필터 옵션 수집
+    const options = {
+        page: page,
+        pageSize: pageSize,
+        sources: ['un', 'eu', 'us'],
+        countries: activeFilters.countries,
+        programs: activeFilters.programs,
+        startDate: document.getElementById('start-date')?.value,
+        endDate: document.getElementById('end-date')?.value,
+        searchType: document.querySelector('input[name="search-type"]:checked')?.value || 'text',
+        numberType: document.querySelector('input[name="number-type"]:checked')?.value || 'passport'
+    };
+    
+    // 검색 API 호출
+    searchSanctions(query, options)
+        .then(result => {
+            // 결과 표시
+            displayResults(result.data);
+            
+            // 페이지네이션 업데이트
+            updatePagination(result.pagination);
+            
+            // 로딩 상태 제거
+            hideLoading();
+            
+            // 결과 상단으로 스크롤
+            document.getElementById('results-section').scrollIntoView({
+                behavior: 'smooth'
+            });
+        })
+        .catch(error => {
+            console.error('페이지 변경 오류:', error);
+            showAlert('페이지 로드 중 오류가 발생했습니다.', 'error');
+            hideLoading();
+        });
+}
+
+/**
+ * 페이지네이션 UI 업데이트
+ * @param {Object} pagination 페이지네이션 정보
+ */
+function updatePagination(pagination) {
+    const paginationContainer = document.getElementById('pagination');
+    if (!paginationContainer) return;
+    
+    const { page, totalPages } = pagination;
+    
+    // 페이지가 하나뿐이면 페이지네이션 숨김
+    if (totalPages <= 1) {
+        paginationContainer.innerHTML = '';
+        paginationContainer.style.display = 'none';
+        return;
+    }
+    
+    paginationContainer.style.display = 'flex';
+    
+    let paginationHTML = '';
+    
+    // 이전 페이지 버튼
+    paginationHTML += `
+        <button class="pagination-button ${page <= 1 ? 'disabled' : ''}" 
+            ${page <= 1 ? 'disabled' : `onclick="changePage(${page - 1})"`}>
+            <i class="fas fa-chevron-left"></i>
+        </button>
+    `;
+    
+    // 페이지 번호 버튼
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    // 시작 페이지 조정
+    if (endPage - startPage + 1 < maxVisiblePages) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    // 처음 페이지 표시
+    if (startPage > 1) {
+        paginationHTML += `
+            <button class="pagination-button" onclick="changePage(1)">1</button>
+        `;
+        
+        if (startPage > 2) {
+            paginationHTML += `<span class="pagination-ellipsis">...</span>`;
+        }
+    }
+    
+    // 페이지 번호 표시
+    for (let i = startPage; i <= endPage; i++) {
+        paginationHTML += `
+            <button class="pagination-button ${i === page ? 'active' : ''}" 
+                onclick="changePage(${i})">${i}</button>
+        `;
+    }
+    
+    // 마지막 페이지 표시
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            paginationHTML += `<span class="pagination-ellipsis">...</span>`;
+        }
+        
+        paginationHTML += `
+            <button class="pagination-button" onclick="changePage(${totalPages})">${totalPages}</button>
+        `;
+    }
+    
+    // 다음 페이지 버튼
+    paginationHTML += `
+        <button class="pagination-button ${page >= totalPages ? 'disabled' : ''}" 
+            ${page >= totalPages ? 'disabled' : `onclick="changePage(${page + 1})"`}>
+            <i class="fas fa-chevron-right"></i>
+        </button>
+    `;
+    
+    paginationContainer.innerHTML = paginationHTML;
+}
+
+/**
+ * 필터 결과 적용
+ */
+function filterResults() {
+    // 현재 검색어 가져오기
+    const searchInput = document.getElementById('search-input');
+    const query = searchInput ? searchInput.value.trim() : '';
+    
+    // 필터 옵션 수집
+    const options = {
+        page: 1,
+        pageSize: 20,
+        sources: ['un', 'eu', 'us'],
+        countries: activeFilters.countries,
+        programs: activeFilters.programs,
+        startDate: document.getElementById('start-date')?.value,
+        endDate: document.getElementById('end-date')?.value,
+        searchType: document.querySelector('input[name="search-type"]:checked')?.value || 'text',
+        numberType: document.querySelector('input[name="number-type"]:checked')?.value || 'passport'
+    };
+    
+    // 로딩 상태 표시
+    showLoading();
+    
+    // 검색 API 호출
+    searchSanctions(query, options)
+        .then(result => {
+            // 결과 표시
+            displayResults(result.data);
+            updateResultsCount(result.pagination.total);
+            
+            // 페이지네이션 업데이트
+            updatePagination(result.pagination);
+            
+            // 로딩 상태 제거
+            hideLoading();
+        })
+        .catch(error => {
+            console.error('필터 적용 오류:', error);
+            showAlert('필터 적용 중 오류가 발생했습니다.', 'error');
             hideLoading();
         });
 }
@@ -823,35 +1011,6 @@ function activateFilters() {
             }
         });
     }
-}
-
-/**
- * 필터 결과 적용
- */
-function filterResults() {
-    // 현재 검색어 가져오기
-    const searchInput = document.getElementById('search-input');
-    const query = searchInput ? searchInput.value.trim() : '';
-    
-    // 필터 옵션 수집
-    const options = {
-        countries: activeFilters.countries,
-        programs: activeFilters.programs,
-        startDate: document.getElementById('start-date')?.value,
-        endDate: document.getElementById('end-date')?.value
-    };
-    
-    // 검색 API 호출
-    searchSanctions(query, options)
-        .then(results => {
-            // 결과 표시
-            displayResults(results);
-            updateResultsCount(results.length);
-        })
-        .catch(error => {
-            console.error('필터 적용 오류:', error);
-            showAlert('필터 적용 중 오류가 발생했습니다.', 'error');
-        });
 }
 
 /**

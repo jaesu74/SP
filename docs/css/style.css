@@ -1819,4 +1819,56 @@ button.view-details-button:hover {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
+}
+
+/* 페이지네이션 스타일 */
+#pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 2rem 0;
+    gap: 0.5rem;
+}
+
+.pagination-button {
+    min-width: 40px;
+    height: 40px;
+    border: 1px solid var(--border-color);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pagination-button:hover {
+    background-color: var(--secondary-color);
+    color: var(--text-color-inverted);
+}
+
+.pagination-button.active {
+    background-color: var(--primary-color);
+    color: var(--text-color-inverted);
+    border-color: var(--primary-color);
+}
+
+.pagination-button.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-button.disabled:hover {
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+.pagination-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    height: 40px;
 } 
