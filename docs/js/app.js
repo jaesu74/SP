@@ -13,28 +13,224 @@ let activeFilters = {
 };
 let users = JSON.parse(localStorage.getItem('users')) || [];
 
+// 검색 결과 캐시
+let resultsCache = {};
+
+// 임시 데이터 저장소
+let temporaryData = null;
+
 // DOM이 로드된 후 초기화
-document.addEventListener('DOMContentLoaded', initializeApp);
+document.addEventListener('DOMContentLoaded', function() {
+    // 초기화 함수
+    initApp();
+});
 
 /**
- * 애플리케이션 초기화
+ * 앱 초기화
  */
-function initializeApp() {
-    console.log('세계 경제 제재 검색 서비스 초기화...');
+function initApp() {
+    // 테마 설정
+    initTheme();
     
-    // 로그인 상태 확인
-    checkLoginStatus();
+    // 검색 버튼 이벤트 연결
+    const searchButton = document.getElementById('search-button');
+    if (searchButton) {
+        searchButton.addEventListener('click', handleSearch);
+    }
     
-    // 이벤트 리스너 등록
-    setupEventListeners();
+    // 검색 입력 필드 엔터키 이벤트
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                handleSearch();
+            }
+        });
+    }
     
-    // 필터 및 검색 옵션 설정
-    setupFilterOptions();
-    setupSearchOptions();
-    setupAutocomplete();
+    // 필터 토글 버튼
+    const filterToggle = document.getElementById('filter-toggle');
+    if (filterToggle) {
+        filterToggle.addEventListener('click', toggleFilterSection);
+    }
     
-    // 초기 데이터 로드
-    loadInitialData();
+    // 필터 적용 버튼
+    const applyFilterButton = document.getElementById('apply-filter');
+    if (applyFilterButton) {
+        applyFilterButton.addEventListener('click', filterResults);
+    }
+    
+    // 필터 초기화 버튼
+    const resetFilterButton = document.getElementById('reset-filter');
+    if (resetFilterButton) {
+        resetFilterButton.addEventListener('click', resetFilters);
+    }
+    
+    // 로그인 처리
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLogin);
+    }
+    
+    // 로그아웃 처리
+    const logoutButton = document.getElementById('logout-button');
+    if (logoutButton) {
+        logoutButton.addEventListener('click', handleLogout);
+    }
+    
+    // 회원가입 폼 처리
+    const registerForm = document.getElementById('register-form');
+    if (registerForm) {
+        registerForm.addEventListener('submit', handleRegister);
+    }
+    
+    // 모달 닫기 버튼
+    const closeButtons = document.querySelectorAll('.close-modal');
+    closeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const modalId = this.closest('.modal').id;
+            closeModal(modalId);
+        });
+    });
+    
+    // 모달 외부 클릭
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        modal.addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeModal(this.id);
+            }
+        });
+    });
+    
+    // 필터 옵션 초기화
+    initFilterOptions();
+    
+    // 인증 UI 업데이트
+    updateAuthUI();
+    
+    // 초기 필터 설정
+    resetFilters();
+    
+    // 애니메이션 초기화
+    initAnimations();
+    
+    // 터치 디바이스 감지 및 최적화
+    detectTouchDevice();
+    
+    // 메모리 최적화를 위한 가비지 컬렉션 유도
+    optimizeMemory();
+}
+
+/**
+ * 메모리 사용 최적화
+ */
+function optimizeMemory() {
+    // 주기적인 메모리 정리를 위한 타이머 설정
+    let memoryTimer;
+    
+    // 스크롤 최적화 - 디바운싱 및 스로틀링
+    let ticking = false;
+    let lastScrollY = window.scrollY;
+    
+    function onScroll() {
+        lastScrollY = window.scrollY;
+        
+        if (!ticking) {
+            // 브라우저의 다음 렌더링 프레임에 실행 예약
+            window.requestAnimationFrame(() => {
+                // 여기서 스크롤 관련 처리
+                ticking = false;
+            });
+            
+            ticking = true;
+        }
+        
+        // 메모리 최적화 타이머는 디바운싱으로 처리
+        clearTimeout(memoryTimer);
+        memoryTimer = setTimeout(cleanupResources, 2000);
+    }
+    
+    // 이전 스크롤 이벤트 리스너 제거
+    window.removeEventListener('scroll', onScroll);
+    
+    // 최적화된 스크롤 이벤트 리스너 등록
+    window.addEventListener('scroll', onScroll, { passive: true });
+    
+    // 불필요한 리소스 정리
+    function cleanupResources() {
+        // DOM에 현재 표시되지 않는 요소 참조 해제
+        const cachedElements = document.querySelectorAll('.temp-cached-element');
+        cachedElements.forEach(el => {
+            if (el && el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
+        });
+        
+        // 큰 객체 참조 해제
+        temporaryData = null;
+        
+        // 필요없는 결과 캐시 정리
+        for (let key in resultsCache) {
+            if (Date.now() - resultsCache[key].timestamp > 300000) { // 5분 이상 지난 캐시
+                delete resultsCache[key];
+            }
+        }
+    }
+    
+    // 이미지 지연 로딩 최적화
+    const lazyImages = document.querySelectorAll('.lazy-image');
+    if ('IntersectionObserver' in window) {
+        const imageObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    img.src = img.dataset.src;
+                    img.classList.remove('lazy-image');
+                    imageObserver.unobserve(img);
+                }
+            });
+        });
+        
+        lazyImages.forEach(img => imageObserver.observe(img));
+    } else {
+        // IntersectionObserver를 지원하지 않는 브라우저용 폴백
+        lazyImages.forEach(img => {
+            img.src = img.dataset.src;
+            img.classList.remove('lazy-image');
+        });
+    }
+    
+    // 정기적인 메모리 정리 타이머 (10분마다)
+    setInterval(cleanupResources, 600000);
+}
+
+/**
+ * 터치 디바이스 감지 및 최적화
+ */
+function detectTouchDevice() {
+    const isTouchDevice = 'ontouchstart' in window || 
+                          navigator.maxTouchPoints > 0 || 
+                          navigator.msMaxTouchPoints > 0;
+    
+    if (isTouchDevice) {
+        document.body.classList.add('touch-device');
+        
+        // 터치 이벤트 최적화
+        document.addEventListener('touchstart', function() {}, {passive: true});
+        document.addEventListener('touchmove', function() {}, {passive: true});
+    }
+}
+
+/**
+ * 캐시 정리
+ */
+function clearCache() {
+    // 이전 검색 결과 캐시 정리
+    resultsCache = {};
+    
+    // 사용하지 않는 큰 객체 참조 해제
+    temporaryData = null;
 }
 
 /**

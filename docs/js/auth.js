@@ -121,6 +121,49 @@ function checkLoginStatus() {
   return userInfo;
 }
 
+/**
+ * 로그인 처리 함수
+ * @param {Event} event 폼 제출 이벤트
+ */
+function handleLogin(event) {
+    event.preventDefault();
+    
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    
+    // 간단한 유효성 검사
+    if (!email || !password) {
+        showAlert('이메일과 비밀번호를 모두 입력해주세요.', 'error');
+        return;
+    }
+    
+    // 테스트 계정 확인 (실제 구현에서는 서버 API 호출로 대체)
+    if ((email === 'test@example.com' && password === 'password123') || 
+        (email === 'admin@example.com' && password === 'admin123') ||
+        (email === 'jaesu@kakao.com' && password === '1234') || 
+        (email === TEST_CREDENTIALS.email && password === TEST_CREDENTIALS.password)) {
+        
+        // 로그인 성공 상태 저장
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userEmail', email);
+        localStorage.setItem('userName', email.split('@')[0]);
+        
+        // 로그인 모달 닫기
+        closeModal('login-modal');
+        
+        // UI 업데이트
+        updateAuthUI();
+        
+        // 성공 메시지
+        showAlert('로그인 성공!', 'success');
+        
+        return;
+    }
+    
+    // 로그인 실패
+    showAlert('이메일 또는 비밀번호가 올바르지 않습니다.', 'error');
+}
+
 // 모듈 내보내기
 export {
   login,
