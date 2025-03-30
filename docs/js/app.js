@@ -3,7 +3,10 @@
  * 메인 애플리케이션 파일
  */
 
-import { fetchSanctionsData, searchSanctions, getSanctionDetails } from './api.js';
+// 이미 초기화 되었는지 확인하는 전역 변수
+if (typeof window._sanctionsAppInitialized === 'undefined') {
+    window._sanctionsAppInitialized = false;
+}
 
 // 전역 변수
 let currentResults = [];
@@ -19,26 +22,44 @@ let resultsCache = {};
 // 임시 데이터 저장소
 let temporaryData = null;
 
-// DOM이 로드된 후 초기화 (한 번만 실행되도록 함)
-if (!window._appInitialized) { 
-    document.addEventListener('DOMContentLoaded', function() {
-        // 초기화 함수
-        initApp();
-        window._appInitialized = true;
-    });
-}
+// DOM이 로드된 후 정확히 한 번만 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    // 이미 초기화되었는지 확인
+    if (window._sanctionsAppInitialized === true) {
+        console.log('앱이 이미 초기화되었습니다.');
+        return;
+    }
+    
+    // 초기화 함수 실행
+    console.log('앱 초기화 시작...');
+    initApp();
+    
+    // 초기화 완료 표시
+    window._sanctionsAppInitialized = true;
+    console.log('앱 초기화 완료.');
+});
 
 /**
  * 앱 초기화
  */
 function initApp() {
-    // 이미 초기화된 경우 중복 실행 방지
-    if (window._appInitialized) {
-        console.log('앱이 이미 초기화되었습니다.');
-        return;
+    // 중복 체크는 이미 DOMContentLoaded에서 했으므로 제거
+    
+    // 전역 이벤트 리스너 클리어
+    if (window._scrollHandler) {
+        window.removeEventListener('scroll', window._scrollHandler);
     }
     
-    console.log('앱 초기화 시작...');
+    if (window._memoryCleanupTimer) {
+        clearInterval(window._memoryCleanupTimer);
+        window._memoryCleanupTimer = null;
+    }
+    
+    // 이미지 옵저버 중단
+    if (window._imageObserver) {
+        window._imageObserver.disconnect();
+        window._imageObserver = null;
+    }
     
     // 테마 설정
     initTheme();
@@ -63,36 +84,49 @@ function initApp() {
     
     // 메모리 최적화를 위한 가비지 컬렉션 유도
     optimizeMemory();
-    
-    console.log('앱 초기화 완료.');
 }
 
 /**
  * 이벤트 리스너를 한 번만 등록하는 함수
  */
 function setupEventListenersOnce() {
+    // 이벤트 리스너 중복 등록 방지를 위한 플래그 사용
+    
     // 검색 버튼 이벤트 연결
     const searchButton = document.getElementById('search-button');
     if (searchButton && !searchButton._hasClickListener) {
-        searchButton.addEventListener('click', handleSearch);
+        if (searchButton._clickListener) {
+            searchButton.removeEventListener('click', searchButton._clickListener);
+        }
+        searchButton._clickListener = handleSearch;
+        searchButton.addEventListener('click', searchButton._clickListener, {passive: false});
         searchButton._hasClickListener = true;
     }
     
     // 검색 입력 필드 엔터키 이벤트
     const searchInput = document.getElementById('search-input');
     if (searchInput && !searchInput._hasKeyupListener) {
-        searchInput.addEventListener('keyup', function(event) {
+        const keyupHandler = function(event) {
             if (event.key === 'Enter') {
                 handleSearch();
             }
-        });
+        };
+        if (searchInput._keyupListener) {
+            searchInput.removeEventListener('keyup', searchInput._keyupListener);
+        }
+        searchInput._keyupListener = keyupHandler;
+        searchInput.addEventListener('keyup', keyupHandler, {passive: true});
         searchInput._hasKeyupListener = true;
     }
     
     // 필터 토글 버튼
     const filterToggle = document.getElementById('filter-toggle');
     if (filterToggle && !filterToggle._hasClickListener) {
-        filterToggle.addEventListener('click', toggleFilterSection);
+        if (filterToggle._clickListener) {
+            filterToggle.removeEventListener('click', filterToggle._clickListener);
+        }
+        filterToggle._clickListener = toggleFilterSection;
+        filterToggle.addEventListener('click', filterToggle._clickListener, {passive: false});
         filterToggle._hasClickListener = true;
     }
     
@@ -133,12 +167,23 @@ function setupEventListenersOnce() {
     
     // 모달 닫기 버튼 - 한 번만 등록
     if (!window._closeButtonsInitialized) {
+        // 기존 리스너가 있으면 제거
+        document.querySelectorAll('.close-modal').forEach(button => {
+            const oldListener = button._closeListener;
+            if (oldListener) {
+                button.removeEventListener('click', oldListener);
+            }
+        });
+        
+        // 새 리스너 등록
         const closeButtons = document.querySelectorAll('.close-modal');
         closeButtons.forEach(button => {
-            button.addEventListener('click', function() {
+            const closeHandler = function() {
                 const modalId = this.closest('.modal').id;
                 closeModal(modalId);
-            });
+            };
+            button._closeListener = closeHandler;
+            button.addEventListener('click', closeHandler, {passive: false});
         });
         window._closeButtonsInitialized = true;
     }
@@ -168,87 +213,117 @@ function optimizeMemory() {
     }
     
     // 이전 스크롤 이벤트 리스너 제거
-    window.removeEventListener('scroll', window._scrollHandler);
+    if (window._scrollHandler) {
+        window.removeEventListener('scroll', window._scrollHandler);
+    }
     
-    // 스크롤 최적화 - 디바운싱 및 스로틀링
-    let ticking = false;
-    let lastScrollY = window.scrollY;
-    
-    function onScroll() {
-        lastScrollY = window.scrollY;
-        
-        if (!ticking) {
-            // 브라우저의 다음 렌더링 프레임에 실행 예약
-            window.requestAnimationFrame(() => {
-                // 여기서 스크롤 관련 처리
-                ticking = false;
-            });
+    // 스크롤 성능 최적화 함수
+    function optimizedScrollHandler() {
+        // 스로틀링 구현
+        if (!window._isScrollThrottled) {
+            window._isScrollThrottled = true;
             
-            ticking = true;
+            // requestAnimationFrame을 사용하여 스크롤 처리 최적화
+            requestAnimationFrame(() => {
+                // 스크롤 이벤트 처리 코드
+                window._isScrollThrottled = false;
+            });
         }
     }
     
-    // 전역 참조를 저장하여 나중에 제거할 수 있도록 함
-    window._scrollHandler = onScroll;
-    
-    // 최적화된 스크롤 이벤트 리스너 등록 
+    // 새 스크롤 핸들러 등록 (passive: true로 성능 개선)
+    window._scrollHandler = optimizedScrollHandler;
     window.addEventListener('scroll', window._scrollHandler, { passive: true });
     
-    // 리소스 정리 함수
+    // 리소스 정리 함수 - 특정 시간(10분)마다 실행
     function cleanupResources() {
-        // DOM에 현재 표시되지 않는 요소 참조 해제
-        const cachedElements = document.querySelectorAll('.temp-cached-element');
-        cachedElements.forEach(el => {
+        console.log('메모리 정리 수행...');
+        
+        // 임시 DOM 요소 정리
+        document.querySelectorAll('.temp-element').forEach(el => {
             if (el && el.parentNode) {
                 el.parentNode.removeChild(el);
             }
         });
         
-        // 큰 객체 참조 해제
+        // 대용량 임시 데이터 해제
         temporaryData = null;
         
-        // 필요없는 결과 캐시 정리
-        for (let key in resultsCache) {
-            if (Date.now() - resultsCache[key].timestamp > 300000) { // 5분 이상 지난 캐시
+        // 오래된 캐시 정리 (5분 이상)
+        const now = Date.now();
+        Object.keys(resultsCache).forEach(key => {
+            const cacheTime = resultsCache[key]?.timestamp || 0;
+            if (now - cacheTime > 300000) {
                 delete resultsCache[key];
             }
+        });
+        
+        // 가비지 컬렉션 유도
+        if (window.gc) {
+            try {
+                window.gc();
+            } catch (e) {}
         }
     }
     
-    // 이미지 지연 로딩 최적화
-    const lazyImages = document.querySelectorAll('.lazy-image');
+    // 최초 1회 리소스 정리 실행
+    cleanupResources();
+    
+    // 주기적인 메모리 정리를 위한 타이머 설정 (10분마다)
+    window._memoryCleanupTimer = setInterval(cleanupResources, 600000);
+    
+    // 이미지 지연 로딩 (한 번만 설정)
+    if (!window._lazyImagesInitialized) {
+        setupLazyImages();
+        window._lazyImagesInitialized = true;
+    }
+}
+
+/**
+ * 이미지 지연 로딩 설정
+ */
+function setupLazyImages() {
+    // 이전 옵저버가 있다면 중단
+    if (window._imageObserver) {
+        window._imageObserver.disconnect();
+    }
+    
+    // 지연 로딩할 이미지 선택
+    const lazyImages = document.querySelectorAll('img.lazy-image');
+    
+    if (lazyImages.length === 0) return;
+    
+    // IntersectionObserver 지원 여부 확인
     if ('IntersectionObserver' in window) {
-        // 이전 옵저버가 있으면 모든 관찰 중단
-        if (window._imageObserver) {
-            window._imageObserver.disconnect();
-        }
-        
         // 새 옵저버 생성
         window._imageObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const img = entry.target;
-                    img.src = img.dataset.src;
-                    img.classList.remove('lazy-image');
-                    window._imageObserver.unobserve(img);
+                    if (img.dataset.src) {
+                        img.src = img.dataset.src;
+                        img.classList.remove('lazy-image');
+                        window._imageObserver.unobserve(img);
+                    }
                 }
             });
         });
         
-        lazyImages.forEach(img => window._imageObserver.observe(img));
+        // 각 이미지 관찰 시작
+        lazyImages.forEach(img => {
+            if (img.dataset.src) {
+                window._imageObserver.observe(img);
+            }
+        });
     } else {
         // IntersectionObserver를 지원하지 않는 브라우저용 폴백
         lazyImages.forEach(img => {
-            img.src = img.dataset.src;
-            img.classList.remove('lazy-image');
+            if (img.dataset.src) {
+                img.src = img.dataset.src;
+                img.classList.remove('lazy-image');
+            }
         });
     }
-    
-    // 초기 메모리 정리 실행 (한 번만 실행)
-    cleanupResources();
-    
-    // 전역 타이머 참조 저장
-    window._memoryCleanupTimer = setInterval(cleanupResources, 600000); // 10분마다 실행
 }
 
 /**
