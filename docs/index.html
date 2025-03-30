@@ -350,7 +350,7 @@
 
     <!-- JS 파일 -->
     <script type="module">
-        import { checkLoginStatus, handleLogin, handleLogout, showAlert, performSearch, showDetail } from './js/app.js';
+        import { checkSession, handleLogin, handleLogout, showAlert, performSearch, showDetail } from './js/app.js';
         import { initThemeSwitcher, THEMES, applyTheme } from './js/theme-switcher.js';
         import { initUpdateModule } from './js/update-data.js';
         
@@ -364,7 +364,7 @@
         // DOM이 로드된 후 초기화
         document.addEventListener('DOMContentLoaded', function() {
             // 로그인 상태 확인
-            checkLoginStatus();
+            checkSession();
             
             // 테마 스위처 초기화
             initThemeSwitcher();
