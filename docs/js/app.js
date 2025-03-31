@@ -25,10 +25,10 @@ document.addEventListener('DOMContentLoaded', initializeApp);
 function initializeApp() {
     console.log('세계 경제 제재 검색 서비스 초기화...');
     
-    // 로그인 상태 확인
-    checkSession();
+    // 맥시멀리즘 UI 스타일 적용
+    applyMaximalistStyle();
     
-    // 이벤트 리스너 등록
+    // 이벤트 리스너 등록 (세션 체크 전에 등록하여 요소들이 준비되도록)
     setupEventListeners();
     
     // 필터 및 검색 옵션 설정
@@ -36,11 +36,16 @@ function initializeApp() {
     setupSearchOptions();
     setupAutocomplete();
     
+    // 로그인 상태 확인 (이벤트 리스너 등록 후에 실행)
+    setTimeout(() => {
+        checkSession();
+        console.log('세션 체크 완료');
+    }, 100);
+    
     // 초기 데이터 로드
     loadInitialData();
     
-    // 맥시멀리즘 UI 스타일 적용
-    applyMaximalistStyle();
+    console.log('세계 경제 제재 검색 서비스 초기화 완료');
 }
 
 /**
@@ -135,20 +140,61 @@ function checkSession() {
  * @param {string} email 사용자 이메일
  */
 function showMainSection(email) {
+    console.log('메인 섹션 표시 호출됨', email);
+    
     const loginSection = document.getElementById('login-section');
     const mainSection = document.getElementById('main-section');
     
-    if (loginSection) loginSection.style.display = 'none';
-    if (mainSection) mainSection.style.display = 'block';
+    console.log('로그인 섹션:', loginSection);
+    console.log('메인 섹션:', mainSection);
+    
+    if (loginSection) {
+        loginSection.style.display = 'none';
+        console.log('로그인 섹션 숨김 처리됨');
+    }
+    
+    if (mainSection) {
+        mainSection.style.display = 'block';
+        console.log('메인 섹션 표시 처리됨');
+    } else {
+        console.error('메인 섹션 요소를 찾을 수 없음');
+    }
+    
+    // 사용자 정보 설정
+    let userName = '';
+    
+    // 1. 전달된 이메일이 있는 경우 사용
+    if (email) {
+        userName = email.split('@')[0];
+    } 
+    // 2. currentUser가 있는 경우 사용
+    else if (currentUser && currentUser.name) {
+        userName = currentUser.name;
+    } 
+    // 3. localStorage에서 가져오기
+    else {
+        const { name } = getUserFromStorage();
+        userName = name || '사용자';
+    }
     
     // 사용자 이름 표시
-    const { name } = getUserFromStorage();
-    const userName = name || email.split('@')[0];
     const userNameElement = document.getElementById('user-name');
-    if (userNameElement) userNameElement.textContent = userName;
+    if (userNameElement) {
+        userNameElement.textContent = userName;
+        console.log('사용자 이름 설정됨:', userName);
+    } else {
+        console.error('사용자 이름 요소를 찾을 수 없음');
+    }
+    
+    // localStorage에도 로그인 상태 저장
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('userEmail', email || (currentUser && currentUser.email) || '');
+    localStorage.setItem('userName', userName);
     
     // 푸터 스타일 조정
     adjustFooterForMainSection();
+    
+    console.log('메인 섹션 표시 완료');
 }
 
 /**
@@ -683,11 +729,15 @@ function showInfoModal(type) {
  */
 function handleLogin(e) {
     if (e) e.preventDefault();
+    console.log('로그인 처리 시작');
     
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     
-    if(!emailInput || !passwordInput) return;
+    if(!emailInput || !passwordInput) {
+        console.error('이메일 또는 비밀번호 입력 필드를 찾을 수 없음');
+        return;
+    }
     
     const email = emailInput.value.trim();
     const password = passwordInput.value;
@@ -698,8 +748,12 @@ function handleLogin(e) {
         return;
     }
     
+    console.log('로그인 시도:', email);
+    
     // 테스트 계정 확인 - 항상 로그인 성공
     if(email === 'jaesu@kakao.com' && password === '1234') {
+        console.log('테스트 계정 로그인 성공');
+        
         // 로그인 성공 - 테스트 계정
         currentUser = {
             email: 'jaesu@kakao.com',
@@ -708,9 +762,15 @@ function handleLogin(e) {
         
         // 세션에 사용자 정보 저장
         sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+        localStorage.setItem('isLoggedIn', 'true');
         
-        // 메인 섹션 표시
-        showMainSection(email);
+        // 성공 메시지
+        showAlert('로그인 성공!', 'success');
+        
+        // 약간의 지연 후 메인 섹션 표시 (알림이 표시될 시간을 확보)
+        setTimeout(() => {
+            showMainSection(email);
+        }, 500);
         return;
     }
     
@@ -718,6 +778,8 @@ function handleLogin(e) {
     const user = authenticateUser(email, password);
     
     if(user) {
+        console.log('일반 계정 로그인 성공:', user);
+        
         // 로그인 성공
         currentUser = user;
         
@@ -727,10 +789,16 @@ function handleLogin(e) {
             name: user.name
         }));
         
-        // 메인 섹션 표시
-        showMainSection(email);
+        // 성공 메시지
+        showAlert('로그인 성공!', 'success');
+        
+        // 약간의 지연 후 메인 섹션 표시
+        setTimeout(() => {
+            showMainSection(email);
+        }, 500);
     } else {
         // 로그인 실패
+        console.log('로그인 실패');
         showAlert('이메일 또는 비밀번호가 올바르지 않습니다.', 'error');
         passwordInput.value = '';
     }
@@ -1527,6 +1595,8 @@ function getSuggestedSearchTerms(query) {
  * @param {Object} options 옵션 객체
  */
 function showAlert(message, type = 'info', options = {}) {
+    console.log(`알림 표시: "${message}" (타입: ${type})`, options);
+    
     const defaults = {
         duration: 3000,            // 알림 표시 시간 (ms)
         isStatic: false,           // true면 자동으로 사라지지 않음
@@ -1534,9 +1604,24 @@ function showAlert(message, type = 'info', options = {}) {
     };
     
     const settings = { ...defaults, ...options };
+    console.log('알림 설정:', settings);
     
     const alertContainer = document.querySelector(settings.target);
-    if (!alertContainer) return;
+    if (!alertContainer) {
+        console.error(`알림 컨테이너를 찾을 수 없음: ${settings.target}`);
+        return;
+    }
+    
+    // 동일한 알림이 이미 표시중인지 확인
+    const existingAlerts = alertContainer.querySelectorAll('.alert');
+    for (let i = 0; i < existingAlerts.length; i++) {
+        const existingAlert = existingAlerts[i];
+        const alertContent = existingAlert.querySelector('.alert-content');
+        if (alertContent && alertContent.textContent === message) {
+            console.log('동일한 알림이 이미 표시되어 있음. 중복 제거');
+            return;
+        }
+    }
     
     // 새 알림 생성
     const alertElement = document.createElement('div');
@@ -1555,12 +1640,14 @@ function showAlert(message, type = 'info', options = {}) {
         setTimeout(() => {
             if (alertContainer.contains(alertElement)) {
                 alertContainer.removeChild(alertElement);
+                console.log('알림 닫힘 (사용자 클릭)');
             }
         }, 300);
     });
     
     // 컨테이너에 알림 추가
     alertContainer.appendChild(alertElement);
+    console.log('알림 요소가 DOM에 추가됨');
     
     // 일정 시간 후 자동으로 사라지기
     if (!settings.isStatic) {
@@ -1569,12 +1656,12 @@ function showAlert(message, type = 'info', options = {}) {
             setTimeout(() => {
                 if (alertContainer.contains(alertElement)) {
                     alertContainer.removeChild(alertElement);
+                    console.log('알림 자동 닫힘 (시간 경과)');
                 }
             }, 300);
         }, settings.duration);
     }
 }
-
 
 /**
  * 제재 데이터 검색 API 호출 시뮬레이션
