@@ -3,6 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="세계 경제 제재 검색 서비스 - UN, EU, US 제재 대상 검색">
+    <meta name="keywords" content="경제 제재, 제재 검색, UN 제재, EU 제재, US 제재, 북한 제재, 러시아 제재">
+    <meta name="author" content="WVL">
+    <!-- 성능 관련 메타 태그 -->
+    <meta name="performance-mode" content="medium">
+    <meta name="application-version" content="1.1.0">
+    
     <title>세계 경제 제재 검색 서비스</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/textures.css">
@@ -410,28 +417,28 @@
         
         // 검색 가이드 모달 설정
         function setupSearchGuideModal() {
-            const infoButton = document.querySelector('.search-info-button');
-            const modal = document.getElementById('search-info-modal');
-            const closeButton = modal.querySelector('.close-btn');
-            
-            if (infoButton) {
-                infoButton.addEventListener('click', () => {
-                    modal.classList.add('show');
+            // 검색 도움말 아이콘 클릭 시 가이드 표시
+            const searchHelpIcon = document.getElementById('search-help-icon');
+            if (searchHelpIcon) {
+                searchHelpIcon.addEventListener('click', function() {
+                    const guideContent = `
+                        <div class="search-guide">
+                            <h3>검색 가이드</h3>
+                            <ul>
+                                <li><strong>기본 검색:</strong> 이름, 별칭, 국가명을 입력하여 검색</li>
+                                <li><strong>번호 검색:</strong> 여권번호, 신분증번호 등으로 검색</li>
+                                <li><strong>필터링:</strong> 국가, 제재 프로그램, 등재일로 결과 필터링</li>
+                            </ul>
+                            <p>예시: '김정은', 'Putin', 'NK passport', 'Iran missile'</p>
+                        </div>
+                    `;
+                    showAlert(guideContent, 'info', { 
+                        isStatic: true, 
+                        duration: 10000,
+                        className: 'large-alert'
+                    });
                 });
             }
-            
-            if (closeButton) {
-                closeButton.addEventListener('click', () => {
-                    modal.classList.remove('show');
-                });
-            }
-            
-            // ESC 키로 모달 닫기
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && modal.classList.contains('show')) {
-                    modal.classList.remove('show');
-                }
-            });
         }
     </script>
 </body>

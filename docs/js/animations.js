@@ -3,17 +3,65 @@
  * MZ 세대 트렌드에 맞춘 인터랙티브 애니메이션
  */
 
+// 성능 설정 (전역 접근 가능하도록 export)
+export const PERFORMANCE_CONFIG = {
+    // 기본값: 중간 수준의 애니메이션
+    enableParallax: false,         // 패럴랙스 효과 (배경 이동)
+    enableHoverEffects: true,      // 호버 효과 (카드, 버튼 등)
+    enableScrollAnimations: true,  // 스크롤 애니메이션 효과
+    enableFloatingElements: false  // 부유 요소 애니메이션
+};
+
 document.addEventListener('DOMContentLoaded', function() {
-    // 스크롤 애니메이션 요소 초기화
-    initScrollAnimations();
+    // URL 파라미터로 성능 모드 확인
+    const urlParams = new URLSearchParams(window.location.search);
+    const performanceMode = urlParams.get('performance');
     
-    // 틸트 효과 초기화
-    initTiltEffects();
+    if (performanceMode === 'high') {
+        // 고성능 모드 - 애니메이션 최소화
+        PERFORMANCE_CONFIG.enableParallax = false;
+        PERFORMANCE_CONFIG.enableHoverEffects = false;
+        PERFORMANCE_CONFIG.enableScrollAnimations = false;
+        PERFORMANCE_CONFIG.enableFloatingElements = false;
+        console.log('고성능 모드가 활성화되었습니다. 애니메이션이 최소화됩니다.');
+    } else if (performanceMode === 'medium') {
+        // 중간 성능 모드 - 일부 애니메이션만 활성화
+        PERFORMANCE_CONFIG.enableParallax = false;
+        PERFORMANCE_CONFIG.enableHoverEffects = true;
+        PERFORMANCE_CONFIG.enableScrollAnimations = true;
+        PERFORMANCE_CONFIG.enableFloatingElements = false;
+        console.log('중간 성능 모드가 활성화되었습니다.');
+    } else if (performanceMode === 'low') {
+        // 저성능 모드 - 모든 애니메이션 활성화
+        PERFORMANCE_CONFIG.enableParallax = true;
+        PERFORMANCE_CONFIG.enableHoverEffects = true;
+        PERFORMANCE_CONFIG.enableScrollAnimations = true;
+        PERFORMANCE_CONFIG.enableFloatingElements = true;
+        console.log('모든 애니메이션이 활성화되었습니다.');
+    }
+
+    // 성능 설정에 따라 애니메이션 초기화
+    if (PERFORMANCE_CONFIG.enableScrollAnimations) {
+        // 스크롤 애니메이션 요소 초기화
+        initScrollAnimations();
+        
+        // 스크롤 트리거 애니메이션 적용
+        initScrollTriggers();
+    } else {
+        // 스크롤 애니메이션이 비활성화된 경우 모든 요소 즉시 표시
+        document.querySelectorAll('.animated').forEach(el => {
+            el.style.opacity = '1';
+            el.style.transform = 'none';
+            el.classList.add('animated-in');
+        });
+    }
     
-    // 스크롤 트리거 애니메이션 적용
-    initScrollTriggers();
+    if (PERFORMANCE_CONFIG.enableHoverEffects) {
+        // 틸트 효과 초기화
+        initTiltEffects();
+    }
     
-    // 결과 아이템 애니메이션 초기화
+    // 결과 아이템 애니메이션 초기화 (항상 활성화)
     initResultsAnimations();
 });
 
@@ -238,14 +286,6 @@ window.addEventListener('load', () => {
  * 세계 경제 제재 검색 서비스
  * 애니메이션 및 시각 효과 관련 스크립트
  */
-
-// 성능 최적화를 위한 설정
-const PERFORMANCE_CONFIG = {
-    enableParallax: false,  // 패럴랙스 효과 비활성화
-    enableHoverEffects: true,  // 호버 효과 활성화
-    enableScrollAnimations: true,  // 스크롤 애니메이션 활성화
-    enableFloatingElements: false   // 플로팅 요소 비활성화
-};
 
 // DOM이 로드된 후 애니메이션 초기화
 document.addEventListener('DOMContentLoaded', initializeAnimations);
