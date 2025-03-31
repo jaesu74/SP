@@ -353,6 +353,37 @@
         import { checkSession, handleLogin, handleLogout, showAlert, performSearch, showDetail } from './js/app.js';
         import { initThemeSwitcher, THEMES, applyTheme } from './js/theme-switcher.js';
         import { initUpdateModule } from './js/update-data.js';
+        import { PERFORMANCE_CONFIG } from './js/animations.js';
+        
+        // 성능 설정 초기화
+        // URL 파라미터로 성능 모드 지정 가능 (?performance=high)
+        function initPerformanceSettings() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const performanceMode = urlParams.get('performance');
+            
+            if (performanceMode === 'high') {
+                // 고성능 모드 - 애니메이션 최소화
+                PERFORMANCE_CONFIG.enableParallax = false;
+                PERFORMANCE_CONFIG.enableHoverEffects = false;
+                PERFORMANCE_CONFIG.enableScrollAnimations = false;
+                PERFORMANCE_CONFIG.enableFloatingElements = false;
+                console.log('고성능 모드가 활성화되었습니다. 애니메이션이 최소화됩니다.');
+            } else if (performanceMode === 'medium') {
+                // 중간 성능 모드 - 일부 애니메이션만 활성화
+                PERFORMANCE_CONFIG.enableParallax = false;
+                PERFORMANCE_CONFIG.enableHoverEffects = true;
+                PERFORMANCE_CONFIG.enableScrollAnimations = true;
+                PERFORMANCE_CONFIG.enableFloatingElements = false;
+                console.log('중간 성능 모드가 활성화되었습니다.');
+            } else if (performanceMode === 'low') {
+                // 저성능 모드 - 모든 애니메이션 활성화
+                PERFORMANCE_CONFIG.enableParallax = true;
+                PERFORMANCE_CONFIG.enableHoverEffects = true;
+                PERFORMANCE_CONFIG.enableScrollAnimations = true;
+                PERFORMANCE_CONFIG.enableFloatingElements = true;
+                console.log('모든 애니메이션이 활성화되었습니다.');
+            }
+        }
         
         // 전역 함수로 노출
         window.showDetail = showDetail;
@@ -363,6 +394,9 @@
         
         // DOM이 로드된 후 초기화
         document.addEventListener('DOMContentLoaded', function() {
+            // 성능 설정 초기화
+            initPerformanceSettings();
+            
             // 로그인 상태 확인
             checkSession();
             

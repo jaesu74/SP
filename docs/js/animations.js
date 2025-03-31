@@ -239,6 +239,14 @@ window.addEventListener('load', () => {
  * 애니메이션 및 시각 효과 관련 스크립트
  */
 
+// 성능 최적화를 위한 설정
+const PERFORMANCE_CONFIG = {
+    enableParallax: false,  // 패럴랙스 효과 비활성화
+    enableHoverEffects: true,  // 호버 효과 활성화
+    enableScrollAnimations: true,  // 스크롤 애니메이션 활성화
+    enableFloatingElements: false   // 플로팅 요소 비활성화
+};
+
 // DOM이 로드된 후 애니메이션 초기화
 document.addEventListener('DOMContentLoaded', initializeAnimations);
 
@@ -246,11 +254,23 @@ document.addEventListener('DOMContentLoaded', initializeAnimations);
  * 모든 애니메이션 초기화
  */
 function initializeAnimations() {
-    setupEntryAnimations();
-    setupScrollAnimations();
-    setupHoverEffects();
-    setupParallaxEffect();
-    setupFloatingElements();
+    // 성능 설정에 따라 기능 선택적 활성화
+    if (PERFORMANCE_CONFIG.enableScrollAnimations) {
+        setupEntryAnimations();
+        setupScrollAnimations();
+    }
+    
+    if (PERFORMANCE_CONFIG.enableHoverEffects) {
+        setupHoverEffects();
+    }
+    
+    if (PERFORMANCE_CONFIG.enableParallax) {
+        setupParallaxEffect();
+    }
+    
+    if (PERFORMANCE_CONFIG.enableFloatingElements) {
+        setupFloatingElements();
+    }
 }
 
 /**
@@ -282,6 +302,9 @@ function setupEntryAnimations() {
     }
 }
 
+// 스크롤 이벤트 디바운싱을 위한 변수
+let scrollTimeout;
+
 /**
  * 스크롤 기반 애니메이션 설정
  */
@@ -289,54 +312,88 @@ function setupScrollAnimations() {
     // 스크롤 시 표시될 요소들
     const scrollAnimElements = document.querySelectorAll('.scroll-anim');
     
-    // 스크롤 이벤트 처리
+    if (scrollAnimElements.length === 0) return; // 요소가 없으면 리스너 추가하지 않음
+    
+    // 스크롤 이벤트 처리 - 디바운싱 적용
     function handleScroll() {
-        const scrollY = window.scrollY;
-        const windowHeight = window.innerHeight;
+        // 이전 타임아웃 취소
+        if (scrollTimeout) {
+            clearTimeout(scrollTimeout);
+        }
         
-        scrollAnimElements.forEach(element => {
-            const elementTop = element.getBoundingClientRect().top + scrollY;
-            const elementVisible = 150; // 요소가 얼마나 보여야 애니메이션을 시작할지 설정
+        // 16ms 후에 실행 (약 60fps)
+        scrollTimeout = setTimeout(() => {
+            const scrollY = window.scrollY;
+            const windowHeight = window.innerHeight;
             
-            if (scrollY + windowHeight > elementTop + elementVisible) {
-                element.classList.add('show');
-            }
-        });
+            scrollAnimElements.forEach(element => {
+                const elementTop = element.getBoundingClientRect().top + scrollY;
+                const elementVisible = 150; // 요소가 얼마나 보여야 애니메이션을 시작할지 설정
+                
+                if (scrollY + windowHeight > elementTop + elementVisible) {
+                    element.classList.add('show');
+                }
+            });
+        }, 16);
     }
     
     // 초기 로드 시 한 번 실행
     handleScroll();
     
     // 스크롤 이벤트 리스너 등록
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
 }
 
 /**
  * 호버 효과 설정
+ * 이벤트 위임을 사용하여 이벤트 리스너 수 최소화
  */
 function setupHoverEffects() {
-    // 결과 카드 호버 효과
-    const resultCards = document.querySelectorAll('.result-card');
-    resultCards.forEach(card => {
-        card.addEventListener('mouseenter', () => {
-            addHoverEffect(card);
-        });
+    // 결과 카드 컨테이너에 이벤트 위임
+    const resultsContainer = document.getElementById('results-container');
+    if (resultsContainer) {
+        resultsContainer.addEventListener('mouseenter', (e) => {
+            // 결과 카드에만 적용
+            if (e.target.classList.contains('result-card') || e.target.closest('.result-card')) {
+                const card = e.target.classList.contains('result-card') ? 
+                    e.target : e.target.closest('.result-card');
+                addHoverEffect(card);
+            }
+        }, { passive: true });
         
-        card.addEventListener('mouseleave', () => {
-            removeHoverEffect(card);
-        });
-    });
+        resultsContainer.addEventListener('mouseleave', (e) => {
+            // 결과 카드에만 적용
+            if (e.target.classList.contains('result-card') || e.target.closest('.result-card')) {
+                const card = e.target.classList.contains('result-card') ? 
+                    e.target : e.target.closest('.result-card');
+                removeHoverEffect(card);
+            }
+        }, { passive: true });
+    }
     
-    // 버튼 호버 효과
-    const buttons = document.querySelectorAll('.btn-primary, .btn-secondary');
-    buttons.forEach(button => {
-        button.addEventListener('mouseenter', (e) => {
-            addButtonHoverEffect(button, e);
-        });
+    // 버튼 컨테이너에 이벤트 위임 (모달 및 공통 컨테이너)
+    const containers = [
+        document.querySelector('.modal-content'),
+        document.querySelector('.search-section'),
+        document.querySelector('.login-container')
+    ];
+    
+    containers.forEach(container => {
+        if (!container) return;
         
-        button.addEventListener('mouseleave', () => {
-            removeButtonHoverEffect(button);
-        });
+        container.addEventListener('mouseenter', (e) => {
+            const button = e.target.closest('.btn-primary, .btn-secondary');
+            if (button) {
+                addButtonHoverEffect(button, e);
+            }
+        }, { passive: true });
+        
+        container.addEventListener('mouseleave', (e) => {
+            const button = e.target.closest('.btn-primary, .btn-secondary');
+            if (button) {
+                removeButtonHoverEffect(button);
+            }
+        }, { passive: true });
     });
 }
 
@@ -397,6 +454,9 @@ function removeHoverEffect(element) {
  * @param {Event} event 마우스 이벤트
  */
 function addButtonHoverEffect(button, event) {
+    // 이미 효과가 있으면 실행 안함
+    if (button.querySelector('.button-bg-effect')) return;
+    
     // 배경 효과 생성
     const bgEffect = document.createElement('div');
     bgEffect.className = 'button-bg-effect';
@@ -422,12 +482,12 @@ function addButtonHoverEffect(button, event) {
     button.appendChild(bgEffect);
     
     // 확장 애니메이션 적용
-    setTimeout(() => {
+    requestAnimationFrame(() => {
         const maxSize = Math.max(rect.width, rect.height) * 2.5;
         bgEffect.style.width = `${maxSize}px`;
         bgEffect.style.height = `${maxSize}px`;
         bgEffect.style.transition = 'all 0.5s ease-out';
-    }, 10);
+    });
 }
 
 /**
@@ -448,24 +508,55 @@ function removeButtonHoverEffect(button) {
     }
 }
 
+// 마우스 움직임 이벤트 쓰로틀링을 위한 변수
+let parallaxThrottleTimeout;
+let lastParallaxExecTime = 0;
+
 /**
- * 패럴랙스 효과 설정
+ * 패럴랙스 효과 설정 (성능 최적화)
  */
 function setupParallaxEffect() {
     const parallaxElements = document.querySelectorAll('.parallax');
     
-    // 마우스 움직임 이벤트
+    if (parallaxElements.length === 0) return; // 요소가 없으면 리스너 추가하지 않음
+    
+    // 마우스 움직임 이벤트 쓰로틀링
     document.addEventListener('mousemove', (e) => {
-        const mouseX = e.clientX;
-        const mouseY = e.clientY;
+        const now = Date.now();
         
-        parallaxElements.forEach(element => {
-            const speed = element.getAttribute('data-speed') || 0.1;
-            const x = (window.innerWidth / 2 - mouseX) * speed;
-            const y = (window.innerHeight / 2 - mouseY) * speed;
+        // 50ms마다 실행 (초당 최대 20회)
+        if (now - lastParallaxExecTime >= 50) {
+            lastParallaxExecTime = now;
+            updateParallaxPositions(e, parallaxElements);
+        } else {
+            // 이전 타임아웃 취소
+            if (parallaxThrottleTimeout) {
+                clearTimeout(parallaxThrottleTimeout);
+            }
             
-            element.style.transform = `translate(${x}px, ${y}px)`;
-        });
+            // 다음 실행 시간까지 대기
+            parallaxThrottleTimeout = setTimeout(() => {
+                lastParallaxExecTime = Date.now();
+                updateParallaxPositions(e, parallaxElements);
+            }, 50 - (now - lastParallaxExecTime));
+        }
+    }, { passive: true });
+}
+
+/**
+ * 패럴랙스 요소 위치 업데이트
+ */
+function updateParallaxPositions(e, elements) {
+    const mouseX = e.clientX;
+    const mouseY = e.clientY;
+    
+    elements.forEach(element => {
+        const speed = element.getAttribute('data-speed') || 0.1;
+        const x = (window.innerWidth / 2 - mouseX) * speed;
+        const y = (window.innerHeight / 2 - mouseY) * speed;
+        
+        // GPU 가속을 위해 transform 사용
+        element.style.transform = `translate3d(${x}px, ${y}px, 0)`;
     });
 }
 
@@ -475,6 +566,9 @@ function setupParallaxEffect() {
 function setupFloatingElements() {
     const floatingElements = document.querySelectorAll('.floating');
     
+    // 요소가 없으면 리턴
+    if (floatingElements.length === 0) return;
+    
     floatingElements.forEach((element, index) => {
         // 각 요소마다 다른 애니메이션 적용
         const duration = 3 + (index % 3); // 3~5초 랜덤 기간
@@ -482,6 +576,25 @@ function setupFloatingElements() {
         
         element.style.animation = `float ${duration}s ease-in-out ${delay}s infinite alternate`;
     });
+}
+
+/**
+ * 이벤트 리스너 정리 함수
+ * 페이지 언로드 시 호출하여 메모리 누수 방지
+ */
+function cleanupEventListeners() {
+    // 불필요한 이벤트 리스너 제거
+    window.removeEventListener('scroll', handleScroll);
+    document.removeEventListener('mousemove', updateParallaxPositions);
+    
+    // 타임아웃 정리
+    if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+    }
+    
+    if (parallaxThrottleTimeout) {
+        clearTimeout(parallaxThrottleTimeout);
+    }
 }
 
 /**
@@ -511,9 +624,9 @@ function showLoadingIndicator(containerId, message = '로딩 중...') {
     container.appendChild(indicator);
     
     // 인디케이터 표시 애니메이션
-    setTimeout(() => {
+    requestAnimationFrame(() => {
         indicator.classList.add('show');
-    }, 10);
+    });
     
     return indicator;
 }
@@ -586,7 +699,7 @@ function pageTransition(fromElement, toElement, direction = 'right') {
     toElement.style.opacity = '0';
     
     // 애니메이션 시작
-    setTimeout(() => {
+    requestAnimationFrame(() => {
         fromElement.style.transform = fromEnd;
         fromElement.style.opacity = '0';
         toElement.style.transform = toEnd;
@@ -600,8 +713,11 @@ function pageTransition(fromElement, toElement, direction = 'right') {
             fromElement.style.transition = '';
             toElement.style.transition = '';
         }, 500);
-    }, 50);
+    });
 }
+
+// 페이지 언로드 시 이벤트 리스너 정리
+window.addEventListener('beforeunload', cleanupEventListeners);
 
 // 함수 내보내기
 export {
@@ -610,5 +726,6 @@ export {
     addHoverEffect,
     removeHoverEffect,
     pageTransition,
-    setupHoverEffects
+    setupHoverEffects,
+    PERFORMANCE_CONFIG
 }; 
