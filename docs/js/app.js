@@ -94,7 +94,7 @@ function checkSession() {
         console.log('자동 로그인 활성화');
         currentUser = {
             email: 'jaesu@kakao.com',
-            name: '김재수'
+            name: '류재수'
         };
         
         // 세션에 사용자 정보 저장
@@ -681,10 +681,11 @@ function showInfoModal(type) {
  * 로그인 처리
  * @param {Event} e 이벤트 객체
  */
-function handleLogin() {
+function handleLogin(e) {
+    if (e) e.preventDefault();
+    
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
-    const alertContainer = document.querySelector('#login-section .alert-container');
     
     if(!emailInput || !passwordInput) return;
     
@@ -693,7 +694,7 @@ function handleLogin() {
     
     // 입력 확인
     if(!email || !password) {
-        showAlert(alertContainer, '이메일과 비밀번호를 모두 입력해주세요.', 'error');
+        showAlert('이메일과 비밀번호를 모두 입력해주세요.', 'error');
         return;
     }
     
@@ -709,7 +710,7 @@ function handleLogin() {
         sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
         
         // 메인 섹션 표시
-        showMainSection();
+        showMainSection(email);
         return;
     }
     
@@ -727,10 +728,10 @@ function handleLogin() {
         }));
         
         // 메인 섹션 표시
-        showMainSection();
+        showMainSection(email);
     } else {
         // 로그인 실패
-        showAlert(alertContainer, '이메일 또는 비밀번호가 올바르지 않습니다.', 'error');
+        showAlert('이메일 또는 비밀번호가 올바르지 않습니다.', 'error');
         passwordInput.value = '';
     }
 }
@@ -1574,111 +1575,6 @@ function showAlert(message, type = 'info', options = {}) {
     }
 }
 
-/**
- * 샘플 제재 데이터 생성
- * @returns {Array} 샘플 제재 데이터 배열
- */
-function getSampleSanctionsData() {
-    return [
-        {
-            id: 'NK001',
-            name: '김정은',
-            alias: 'Kim Jong Un',
-            country: 'NK',
-            type: '개인',
-            program: 'UN_SANCTIONS',
-            listDate: '2016-03-02',
-            details: {
-                birthDate: '1984-01-08',
-                nationality: '북한',
-                passportNumbers: ['123456789', '987654321'],
-                idNumbers: ['ID12345'],
-                position: '국무위원장',
-                reason: 'UN 결의안 1718, 2270호 위반',
-                address: '평양시 중구'
-            }
-        },
-        {
-            id: 'RU002',
-            name: '블라디미르 푸틴',
-            alias: 'Vladimir Putin',
-            country: 'RU',
-            type: '개인',
-            program: 'US_SANCTIONS',
-            listDate: '2022-02-25',
-            details: {
-                birthDate: '1952-10-07',
-                nationality: '러시아',
-                passportNumbers: ['654321'],
-                position: '대통령',
-                reason: '우크라이나 침공',
-                address: '모스크바'
-            }
-        },
-        {
-            id: 'IR003',
-            name: '이란 혁명수비대',
-            alias: 'IRGC',
-            country: 'IR',
-            type: '단체',
-            program: 'EU_SANCTIONS',
-            listDate: '2023-01-15',
-            details: {
-                establishDate: '1979-05-05',
-                sector: '군사',
-                reason: '테러 지원 및 인권 침해',
-                address: '테헤란'
-            }
-        },
-        {
-            id: 'NK004',
-            name: '조선무역은행',
-            alias: 'Korea Trade Bank',
-            country: 'NK',
-            type: '단체',
-            program: 'UN_SANCTIONS',
-            listDate: '2017-06-02',
-            details: {
-                establishDate: '1965-01-01',
-                sector: '금융',
-                reason: '핵무기 관련 자금 세탁',
-                address: '평양시 중구'
-            }
-        },
-        {
-            id: 'SY005',
-            name: '바샤르 알아사드',
-            alias: 'Bashar al-Assad',
-            country: 'SY',
-            type: '개인',
-            program: 'EU_SANCTIONS',
-            listDate: '2018-09-12',
-            details: {
-                birthDate: '1965-09-11',
-                nationality: '시리아',
-                position: '대통령',
-                reason: '인권 침해 및 화학무기 사용',
-                address: '다마스쿠스'
-            }
-        },
-        {
-            id: 'IR006',
-            name: '마흐무드 아마디네자드',
-            alias: 'Mahmoud Ahmadinejad',
-            country: 'IR',
-            type: '개인',
-            program: 'US_SANCTIONS',
-            listDate: '2009-11-23',
-            details: {
-                birthDate: '1956-10-28',
-                nationality: '이란',
-                position: '전 대통령',
-                reason: '핵무기 개발 프로그램 지원',
-                address: '테헤란'
-            }
-        }
-    ];
-}
 
 /**
  * 제재 데이터 검색 API 호출 시뮬레이션

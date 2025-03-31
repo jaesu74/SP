@@ -22,7 +22,7 @@
             </div>
             <div class="login-body">
                 <div class="alert-container"></div>
-                <form id="login-form">
+                <form id="login-form" onsubmit="handleLogin(); return false;">
                     <div class="form-group">
                         <label for="email">이메일</label>
                         <input type="email" id="email" placeholder="이메일을 입력하세요" required>
@@ -219,10 +219,10 @@
             <div class="footer-content">
                 <!-- 회사 정보 -->
                 <div class="company-info">
-                    <h3>주식회사 WVL</h3>
+                    <h3>주식회사 팩션</h3>
                     <p>주소: 서울특별시 강남구 테헤란로 123</p>
                     <p>이메일: info@wvl.co.kr</p>
-                    <p>전화: 02-123-4567</p>
+ 
                 </div>
                 
                 <!-- 푸터 링크 그룹 -->
@@ -232,7 +232,6 @@
                         <div class="footer-link-category">
                             <h3>회사 정보</h3>
                             <ul>
-                                <li><a href="#" id="about-link">회사 소개</a></li>
                                 <li><a href="#" id="terms-link">이용약관</a></li>
                                 <li><a href="#" id="privacy-link">개인정보처리방침</a></li>
                             </ul>
@@ -245,7 +244,6 @@
                             <h3>고객 지원</h3>
                             <ul>
                                 <li><a href="#" id="help-link">도움말</a></li>
-                                <li><a href="#" id="contact-link">문의하기</a></li>
                             </ul>
                         </div>
                     </div>
@@ -300,9 +298,7 @@
     <div id="contact-content" style="display: none;">
         <div class="info-content">
             <h3>문의하기</h3>
-            <p>서비스 이용 중 궁금한 점이나 문제가 있으시면 아래 연락처로 문의해주세요.</p>
-            <p>이메일: support@wvl.co.kr</p>
-            <p>전화: 02-123-4567 (평일 09:00 - 18:00)</p>
+              <p>이메일: support@wvl.co.kr</p>
         </div>
     </div>
 
