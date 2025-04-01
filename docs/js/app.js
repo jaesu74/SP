@@ -9,7 +9,9 @@ import { fetchSanctionsData, searchSanctions, getSanctionDetails } from './api.j
 let currentResults = [];
 let activeFilters = {
     countries: new Set(),
-    programs: new Set()
+    programs: new Set(),
+    startDate: null,
+    endDate: null
 };
 let users = JSON.parse(localStorage.getItem('users')) || [];
 
@@ -34,6 +36,7 @@ function initializeApp() {
     // 필터 및 검색 옵션 설정
     setupFilterOptions();
     setupSearchOptions();
+    setupAdvancedSearch();
     setupAutocomplete();
     
     // 로그인 상태 확인 (이벤트 리스너 등록 후에 실행)
@@ -99,6 +102,11 @@ function checkSession() {
         // 하드코딩된 테스트 사용자 세션 확인 - URL 파라미터로 autologin=true가 있으면 강제 로그인
         const urlParams = new URLSearchParams(window.location.search);
         
+        // 디버깅을 위한 로그 추가
+        console.log('URL 파라미터:', urlParams.toString());
+        console.log('자동 로그인 파라미터 존재 여부:', urlParams.has('autologin'));
+        console.log('자동 로그인 값:', urlParams.get('autologin'));
+        
         if (urlParams.get('autologin') === 'true') {
             console.log('자동 로그인 파라미터 감지됨');
             // 테스트 계정으로 자동 로그인
@@ -110,12 +118,16 @@ function checkSession() {
             try {
                 sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
                 localStorage.setItem('isLoggedIn', 'true');
+                console.log('세션 및 로컬 스토리지에 저장 완료!');
+                console.log('현재 사용자:', JSON.parse(sessionStorage.getItem('currentUser')));
+                console.log('로그인 상태:', localStorage.getItem('isLoggedIn'));
             } catch (storageError) {
                 console.warn('자동 로그인 - 스토리지 저장 실패:', storageError);
             }
             
             // 메인 섹션 표시
             showMainSection('jaesu@kakao.com');
+            console.log('메인 섹션 표시 완료');
             return true;
         }
         
@@ -129,6 +141,7 @@ function checkSession() {
             if (userInfoStr) {
                 userInfo = JSON.parse(userInfoStr);
             }
+            console.log('스토리지 확인 결과:', { isLoggedIn, userInfo });
         } catch (storageError) {
             console.warn('스토리지 읽기 실패:', storageError);
         }
@@ -141,6 +154,7 @@ function checkSession() {
             
             // 메인 섹션 표시
             showMainSection(userInfo.email);
+            console.log('세션 기반 로그인 성공 - 메인 섹션 표시됨');
             return true;
         }
         
@@ -154,10 +168,12 @@ function checkSession() {
         if (loginSection) {
             loginSection.style.display = 'block';
             adjustFooterForLoginSection();
+            console.log('로그인 섹션 표시됨');
         }
         
         if (mainSection) {
             mainSection.style.display = 'none';
+            console.log('메인 섹션 숨김');
         }
         
         return false;
@@ -262,48 +278,31 @@ function showLoginSection() {
  * 필터 옵션 설정 (다중 선택 UI로 변경)
  */
 function setupFilterOptions() {
-    // 필터 옵션들 설정
-    setupCountryFilter();
-    setupProgramFilter();
-    setupDateFilter();
+    // 국가 필터 설정
+    setupCountryFilters();
     
-    // 고급 검색 토글 버튼
-    const advancedSearchButton = document.getElementById('advanced-search-button');
-    const advancedSearchOptions = document.getElementById('advanced-search-options');
+    // 프로그램 필터 설정
+    setupProgramFilters();
     
-    if (advancedSearchButton && advancedSearchOptions) {
-        advancedSearchButton.addEventListener('click', function() {
-            advancedSearchOptions.classList.toggle('show');
-            
-            // 아이콘 회전
-            const icon = this.querySelector('i');
-            if (icon) {
-                if (advancedSearchOptions.classList.contains('show')) {
-                    icon.style.transform = 'rotate(180deg)';
-                } else {
-                    icon.style.transform = 'rotate(0)';
-                }
-            }
-        });
-    }
+    // 날짜 필터 설정
+    setupDateFilters();
 }
 
 /**
  * 국가 필터 설정
  */
-function setupCountryFilter() {
-    const filterContainer = document.querySelector('.filter-group.country-filter');
-    if (!filterContainer) return;
+function setupCountryFilters() {
+    const countryOptions = document.querySelectorAll('.country-filter .filter-option');
     
-    const options = filterContainer.querySelectorAll('.filter-option');
-    options.forEach(option => {
+    countryOptions.forEach(option => {
         option.addEventListener('click', function() {
-            const value = this.getAttribute('data-value');
+            const countryValue = this.getAttribute('data-value');
             
-            // 모든 국가 선택 시
-            if (!value) {
-                options.forEach(opt => {
-                    if (opt.getAttribute('data-value')) {
+            // "모든 국가" 옵션 처리
+            if (!countryValue) {
+                // 모든 국가 선택 시 다른 필터 해제
+                countryOptions.forEach(opt => {
+                    if (opt !== this) {
                         opt.classList.remove('selected');
                     } else {
                         opt.classList.add('selected');
@@ -311,30 +310,25 @@ function setupCountryFilter() {
                 });
                 activeFilters.countries.clear();
             } else {
-                // 개별 국가 선택 시
-                options[0].classList.remove('selected'); // '모든 국가' 옵션 해제
+                // "모든 국가" 옵션 해제
+                countryOptions[0].classList.remove('selected');
                 
+                // 현재 옵션 토글
                 this.classList.toggle('selected');
                 
-                // 필터 상태 업데이트
                 if (this.classList.contains('selected')) {
-                    activeFilters.countries.add(value);
+                    activeFilters.countries.add(countryValue);
                 } else {
-                    activeFilters.countries.delete(value);
+                    activeFilters.countries.delete(countryValue);
                 }
                 
-                // 아무것도 선택되지 않으면 '모든 국가' 다시 선택
-                const hasSelectedCountry = Array.from(options).some(opt => 
-                    opt.getAttribute('data-value') && opt.classList.contains('selected')
-                );
-                
-                if (!hasSelectedCountry) {
-                    options[0].classList.add('selected');
+                // 선택된 항목이 없으면 "모든 국가" 자동 선택
+                if (activeFilters.countries.size === 0) {
+                    countryOptions[0].classList.add('selected');
                 }
             }
             
-            // 검색 결과 업데이트
-            performSearch();
+            console.log('활성화된 국가 필터:', Array.from(activeFilters.countries));
         });
     });
 }
@@ -342,19 +336,18 @@ function setupCountryFilter() {
 /**
  * 프로그램 필터 설정
  */
-function setupProgramFilter() {
-    const filterContainer = document.querySelector('.filter-group.program-filter');
-    if (!filterContainer) return;
+function setupProgramFilters() {
+    const programOptions = document.querySelectorAll('.program-filter .filter-option');
     
-    const options = filterContainer.querySelectorAll('.filter-option');
-    options.forEach(option => {
+    programOptions.forEach(option => {
         option.addEventListener('click', function() {
-            const value = this.getAttribute('data-value');
+            const programValue = this.getAttribute('data-value');
             
-            // 모든 프로그램 선택 시
-            if (!value) {
-                options.forEach(opt => {
-                    if (opt.getAttribute('data-value')) {
+            // "모든 프로그램" 옵션 처리
+            if (!programValue) {
+                // 모든 프로그램 선택 시 다른 필터 해제
+                programOptions.forEach(opt => {
+                    if (opt !== this) {
                         opt.classList.remove('selected');
                     } else {
                         opt.classList.add('selected');
@@ -362,30 +355,25 @@ function setupProgramFilter() {
                 });
                 activeFilters.programs.clear();
             } else {
-                // 개별 프로그램 선택 시
-                options[0].classList.remove('selected'); // '모든 프로그램' 옵션 해제
+                // "모든 프로그램" 옵션 해제
+                programOptions[0].classList.remove('selected');
                 
+                // 현재 옵션 토글
                 this.classList.toggle('selected');
                 
-                // 필터 상태 업데이트
                 if (this.classList.contains('selected')) {
-                    activeFilters.programs.add(value);
+                    activeFilters.programs.add(programValue);
                 } else {
-                    activeFilters.programs.delete(value);
+                    activeFilters.programs.delete(programValue);
                 }
                 
-                // 아무것도 선택되지 않으면 '모든 프로그램' 다시 선택
-                const hasSelectedProgram = Array.from(options).some(opt => 
-                    opt.getAttribute('data-value') && opt.classList.contains('selected')
-                );
-                
-                if (!hasSelectedProgram) {
-                    options[0].classList.add('selected');
+                // 선택된 항목이 없으면 "모든 프로그램" 자동 선택
+                if (activeFilters.programs.size === 0) {
+                    programOptions[0].classList.add('selected');
                 }
             }
             
-            // 검색 결과 업데이트
-            performSearch();
+            console.log('활성화된 프로그램 필터:', Array.from(activeFilters.programs));
         });
     });
 }
@@ -393,22 +381,20 @@ function setupProgramFilter() {
 /**
  * 날짜 필터 설정
  */
-function setupDateFilter() {
+function setupDateFilters() {
     const startDateInput = document.getElementById('start-date');
     const endDateInput = document.getElementById('end-date');
     
     if (startDateInput && endDateInput) {
-        // 날짜 입력 이벤트
-        startDateInput.addEventListener('change', performSearch);
-        endDateInput.addEventListener('change', performSearch);
+        startDateInput.addEventListener('change', function() {
+            activeFilters.startDate = this.value ? new Date(this.value) : null;
+            console.log('시작일 필터:', activeFilters.startDate);
+        });
         
-        // 오늘 날짜 기준 최근 1년을 기본값으로 설정
-        const today = new Date();
-        const lastYear = new Date();
-        lastYear.setFullYear(today.getFullYear() - 1);
-        
-        endDateInput.valueAsDate = today;
-        startDateInput.valueAsDate = lastYear;
+        endDateInput.addEventListener('change', function() {
+            activeFilters.endDate = this.value ? new Date(this.value) : null;
+            console.log('종료일 필터:', activeFilters.endDate);
+        });
     }
 }
 
@@ -787,6 +773,9 @@ function handleLogin(e) {
     const email = emailInput.value.trim();
     const password = passwordInput.value;
     
+    console.log('입력된 이메일:', email);
+    console.log('입력된 비밀번호 길이:', password.length);
+    
     // 입력 확인
     if(!email || !password) {
         showAlert('이메일과 비밀번호를 모두 입력해주세요.', 'error');
@@ -810,6 +799,11 @@ function handleLogin(e) {
             try {
                 sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
                 localStorage.setItem('isLoggedIn', 'true');
+                console.log('사용자 정보 저장 완료:', {
+                    currentUser: currentUser,
+                    sessionStorage: sessionStorage.getItem('currentUser'),
+                    localStorage: localStorage.getItem('isLoggedIn')
+                });
             } catch (storageError) {
                 console.warn('스토리지 저장 실패:', storageError);
                 // 스토리지 에러가 있어도 로그인은 계속 진행
@@ -819,8 +813,11 @@ function handleLogin(e) {
             showAlert('로그인 성공!', 'success');
             
             // 약간의 지연 후 메인 섹션 표시 (알림이 표시될 시간을 확보)
+            console.log('메인 섹션 표시 준비 중...');
             setTimeout(() => {
+                console.log('메인 섹션 표시 시작...');
                 showMainSection(email);
+                console.log('메인 섹션 표시 완료');
             }, 500);
             return;
         }
@@ -840,6 +837,11 @@ function handleLogin(e) {
             try {
                 sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
                 localStorage.setItem('isLoggedIn', 'true');
+                console.log('사용자 정보 저장 완료:', {
+                    currentUser: currentUser,
+                    sessionStorage: sessionStorage.getItem('currentUser'),
+                    localStorage: localStorage.getItem('isLoggedIn')
+                });
             } catch (storageError) {
                 console.warn('스토리지 저장 실패:', storageError);
                 // 스토리지 에러가 있어도 로그인은 계속 진행
@@ -849,8 +851,11 @@ function handleLogin(e) {
             showAlert('로그인 성공!', 'success');
             
             // 약간의 지연 후 메인 섹션 표시
+            console.log('메인 섹션 표시 준비 중...');
             setTimeout(() => {
+                console.log('메인 섹션 표시 시작...');
                 showMainSection(email);
+                console.log('메인 섹션 표시 완료');
             }, 500);
             return;
         }
@@ -1187,162 +1192,274 @@ function displayResults(results) {
 
 /**
  * 상세 정보 표시
- * @param {string|number} id 결과 ID 또는 인덱스
+ * @param {string} id 제재 대상 ID
  */
 function showDetail(id) {
-    let result;
+    console.log('상세 정보 표시:', id);
     
-    console.log("상세정보 표시 호출, ID:", id, "현재 결과:", currentResults);
-    
-    // ID가 숫자인 경우 인덱스로 처리 (이전 방식)
-    if (!isNaN(id)) {
-        if (!currentResults || !currentResults[id]) {
-            showAlert('상세 정보를 찾을 수 없습니다.', 'error');
-            return;
-        }
-        result = currentResults[id];
-    } else {
-        // ID가 문자열인 경우 ID로 검색 (새 방식)
-        if (!currentResults) {
-            showAlert('검색 결과가 없습니다.', 'error');
-            return;
-        }
-        result = currentResults.find(item => item.id === id);
-        if (!result) {
-            showAlert('상세 정보를 찾을 수 없습니다.', 'error');
-            return;
-        }
-    }
-    
-    console.log("상세정보 표시 항목:", result);
-    
-    // UI 라이브러리에 의존하는 경우 함수 활용
-    if (typeof displayDetailView === 'function') {
-        displayDetailView(result);
-        return;
-    }
-    
+    // 모달 및 컨텐츠 요소
+    const modal = document.getElementById('detail-modal');
     const detailContent = document.getElementById('detail-content');
-    const detailModal = document.getElementById('detail-modal');
     
-    if (!detailContent || !detailModal) {
-        console.error("상세정보 모달 요소를 찾을 수 없습니다.");
+    if (!modal || !detailContent) {
+        console.error('모달 요소를 찾을 수 없습니다.');
         return;
     }
     
-    // 기본 상세 정보 표시 로직
-    let contentHTML = `
-        <div class="detail-container">
-            <div class="detail-header">
-                <h3>${result.name}</h3>
-                <span class="detail-type ${result.type === '개인' ? 'individual' : 'entity'}">${result.type}</span>
-            </div>
-            <div class="detail-section">
-                <h3 class="section-title">기본 정보</h3>
-                <div class="detail-data">
-                    <div class="data-item">
-                        <span class="data-label">ID:</span>
-                        <span class="data-value">${result.id}</span>
-                    </div>
-                    <div class="data-item">
-                        <span class="data-label">국가:</span>
-                        <span class="data-value">${result.country}</span>
-                    </div>
-                    <div class="data-item">
-                        <span class="data-label">제재 프로그램:</span>
-                        <span class="data-value">${result.programs ? result.programs.join(', ') : '-'}</span>
-                    </div>
-                </div>
-            </div>
-    `;
-    
-    // 상세 정보가 있는 경우 추가
-    if (result.details) {
-        // 별칭 정보
-        if (result.details.aliases && result.details.aliases.length) {
-            contentHTML += `
-                <div class="detail-section">
-                    <h3 class="section-title">별칭</h3>
-                    <div class="detail-data">
-                        <div class="data-item">
-                            <ul class="aliases-list">
-                                ${result.details.aliases.map(alias => `<li>${alias}</li>`).join('')}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // 주소 정보
-        if (result.details.addresses && result.details.addresses.length) {
-            contentHTML += `
-                <div class="detail-section">
-                    <h3 class="section-title">주소</h3>
-                    <div class="detail-data">
-                        <div class="data-item">
-                            <ul class="addresses-list">
-                                ${result.details.addresses.map(address => `<li>${address}</li>`).join('')}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // 신분증 정보
-        if (result.details.identifications && result.details.identifications.length) {
-            contentHTML += `
-                <div class="detail-section">
-                    <h3 class="section-title">신분증 정보</h3>
-                    <div class="detail-data">
-                        <div class="data-item">
-                            <ul class="id-list">
-                                ${result.details.identifications.map(id => `<li><strong>${id.type}:</strong> ${id.number}</li>`).join('')}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // 관련 제재 정보
-        if (result.details.relatedSanctions && result.details.relatedSanctions.length) {
-            contentHTML += `
-                <div class="detail-section">
-                    <h3 class="section-title">관련 제재</h3>
-                    <div class="detail-data">
-                        <div class="data-item">
-                            <ul class="related-list">
-                                ${result.details.relatedSanctions.map(sanction => `<li>${sanction.name} (${sanction.type})</li>`).join('')}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-    }
-    
-    contentHTML += '</div>';
-    detailContent.innerHTML = contentHTML;
+    // 상세 정보 로딩 표시
+    detailContent.innerHTML = '<div class="loading-spinner">로딩 중...</div>';
     
     // 모달 표시
-    detailModal.classList.add('show');
+    modal.style.display = 'block';
+    document.body.classList.add('modal-open');
     
-    // 닫기 버튼 이벤트 등록
-    const closeBtn = document.getElementById('detail-close');
+    // 닫기 버튼 이벤트 리스너
+    const closeBtn = modal.querySelector('#detail-close');
     if (closeBtn) {
         closeBtn.onclick = function() {
-            detailModal.classList.remove('show');
+            modal.style.display = 'none';
+            document.body.classList.remove('modal-open');
         };
     }
     
-    // ESC 키로 모달 닫기
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && detailModal.classList.contains('show')) {
-            detailModal.classList.remove('show');
+    // 인쇄 버튼 이벤트 리스너
+    const printBtn = modal.querySelector('#detail-print');
+    if (printBtn) {
+        printBtn.onclick = function() {
+            window.print();
+        };
+    }
+    
+    // 결과에서 해당 항목 찾기
+    const item = currentResults.find(result => result.id === id);
+    
+    if (item) {
+        // 로컬 데이터로 상세 정보 표시
+        displayDetailContent(item);
+    } else {
+        // API에서 상세 정보 가져오기
+        getSanctionDetails(id)
+            .then(data => {
+                displayDetailContent(data);
+            })
+            .catch(error => {
+                console.error('상세 정보 가져오기 오류:', error);
+                detailContent.innerHTML = `
+                    <div class="error-message">
+                        <h3>데이터 로딩 오류</h3>
+                        <p>상세 정보를 불러오는 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.</p>
+                    </div>
+                `;
+            });
+    }
+}
+
+/**
+ * 상세 정보 내용 표시
+ * @param {Object} data 상세 정보 데이터
+ */
+function displayDetailContent(data) {
+    const detailContent = document.getElementById('detail-content');
+    
+    if (!detailContent || !data) return;
+    
+    // 유형에 따른 아이콘과 클래스
+    let typeIcon, typeClass;
+    switch ((data.type || '').toLowerCase()) {
+        case 'individual':
+        case '개인':
+            typeIcon = 'user';
+            typeClass = 'individual';
+            break;
+        case 'entity':
+        case '단체':
+            typeIcon = 'building';
+            typeClass = 'entity';
+            break;
+        case 'vessel':
+        case '선박':
+            typeIcon = 'ship';
+            typeClass = 'vessel';
+            break;
+        case 'aircraft':
+        case '항공기':
+            typeIcon = 'plane';
+            typeClass = 'aircraft';
+            break;
+        default:
+            typeIcon = 'flag';
+            typeClass = 'other';
+    }
+    
+    // 날짜 형식화
+    const formattedDate = data.listDate 
+        ? new Date(data.listDate).toLocaleDateString('ko-KR') 
+        : '정보 없음';
+    
+    // HTML 생성
+    let html = `
+        <div class="detail-header">
+            <h3>${data.name || '이름 없음'}</h3>
+            <span class="detail-type ${typeClass}">
+                <i class="fas fa-${typeIcon}"></i> ${data.type || '미분류'}
+            </span>
+        </div>
+    `;
+    
+    // 기본 정보 섹션
+    html += `
+        <div class="detail-section">
+            <h4 class="section-title">기본 정보</h4>
+            <div class="detail-data">
+                <div class="data-item">
+                    <div class="data-label">국가</div>
+                    <div class="data-value">${data.country || '정보 없음'}</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">등재일</div>
+                    <div class="data-value">${formattedDate}</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">제재 프로그램</div>
+                    <div class="data-value">${data.program || '정보 없음'}</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 상세 정보 섹션 (설명, 이유 등)
+    if (data.description || data.reason) {
+        html += `
+            <div class="detail-section">
+                <h4 class="section-title">상세 설명</h4>
+                <div class="detail-data">
+        `;
+        
+        if (data.description) {
+            html += `
+                <div class="data-item">
+                    <div class="data-label">설명</div>
+                    <div class="data-value">${data.description}</div>
+                </div>
+            `;
         }
-    });
+        
+        if (data.reason) {
+            html += `
+                <div class="data-item">
+                    <div class="data-label">제재 이유</div>
+                    <div class="data-value">${data.reason}</div>
+                </div>
+            `;
+        }
+        
+        html += `
+                </div>
+            </div>
+        `;
+    }
+    
+    // 별칭 정보 섹션
+    if (data.aliases && data.aliases.length > 0) {
+        html += `
+            <div class="detail-section">
+                <h4 class="section-title">다른 이름 / 별칭</h4>
+                <ul class="aliases-list">
+        `;
+        
+        data.aliases.forEach(alias => {
+            html += `<li>${alias}</li>`;
+        });
+        
+        html += `
+                </ul>
+            </div>
+        `;
+    }
+    
+    // 식별 번호 섹션
+    if (data.identifiers && data.identifiers.length > 0) {
+        html += `
+            <div class="detail-section">
+                <h4 class="section-title">식별 번호</h4>
+                <ul class="id-list">
+        `;
+        
+        data.identifiers.forEach(id => {
+            html += `
+                <li>
+                    <strong>${id.type || '번호'}:</strong> ${id.value || '정보 없음'}
+                    ${id.country ? `(${id.country})` : ''}
+                </li>
+            `;
+        });
+        
+        html += `
+                </ul>
+            </div>
+        `;
+    }
+    
+    // 주소 정보 섹션
+    if (data.addresses && data.addresses.length > 0) {
+        html += `
+            <div class="detail-section">
+                <h4 class="section-title">주소 정보</h4>
+                <ul class="addresses-list">
+        `;
+        
+        data.addresses.forEach(address => {
+            html += `<li>${address}</li>`;
+        });
+        
+        html += `
+                </ul>
+            </div>
+        `;
+    }
+    
+    // 관련 단체/개인 섹션
+    if (data.related && data.related.length > 0) {
+        html += `
+            <div class="detail-section">
+                <h4 class="section-title">관련 단체/개인</h4>
+                <ul class="related-list">
+        `;
+        
+        data.related.forEach(relation => {
+            html += `
+                <li>
+                    <strong>${relation.name || '이름 없음'}</strong>
+                    ${relation.relationship ? ` - ${relation.relationship}` : ''}
+                </li>
+            `;
+        });
+        
+        html += `
+                </ul>
+            </div>
+        `;
+    }
+    
+    // 출처 및 정보 제공자 섹션
+    html += `
+        <div class="detail-section">
+            <h4 class="section-title">정보 출처</h4>
+            <div class="detail-data">
+                <div class="data-item">
+                    <div class="data-label">제재 주체</div>
+                    <div class="data-value">${data.authority || data.program || '정보 없음'}</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">최종 업데이트</div>
+                    <div class="data-value">${new Date().toLocaleDateString('ko-KR')}</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 최종 HTML 삽입
+    detailContent.innerHTML = html;
 }
 
 /**
