@@ -2,7 +2,7 @@ name: Deploy Sanctions Search System
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   schedule:
     - cron: '0 0 * * *'  # Daily at midnight UTC
 
@@ -21,14 +21,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests beautifulsoup4 lxml
+          pip install requests beautifulsoup4 lxml psutil
 
       - name: Update sanctions data
         run: |
-          python update_sanctions_data.py
+          python sanctions_collector.py
           mkdir -p docs/data
-          cp sanctions.json docs/data/
-
+          
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
