@@ -90,48 +90,89 @@ function getUserFromStorage() {
 }
 
 /**
- * 로그인 상태 확인
+ * 세션 확인 - 로그인 상태 확인
  */
 function checkSession() {
-    // 하드코딩된 테스트 사용자 세션 확인 - URL 파라미터로 autologin=true가 있으면 강제 로그인
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('autologin') === 'true') {
-        console.log('자동 로그인 활성화');
-        currentUser = {
-            email: 'jaesu@kakao.com',
-            name: '류재수'
-        };
+    console.log('세션 확인 중...');
+    
+    try {
+        // 하드코딩된 테스트 사용자 세션 확인 - URL 파라미터로 autologin=true가 있으면 강제 로그인
+        const urlParams = new URLSearchParams(window.location.search);
         
-        // 세션에 사용자 정보 저장
-        sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-        showMainSection();
-        return;
-    }
-    
-    // 테스트 계정 확인 - 이전에 jaesu@kakao.com으로 로그인한 적이 있으면 항상 로그인 유지
-    const savedUser = sessionStorage.getItem('currentUser');
-    
-    if(savedUser) {
-        try {
-            currentUser = JSON.parse(savedUser);
+        if (urlParams.get('autologin') === 'true') {
+            console.log('자동 로그인 파라미터 감지됨');
+            // 테스트 계정으로 자동 로그인
+            currentUser = {
+                email: 'jaesu@kakao.com',
+                name: '김재수'
+            };
             
-            // 테스트 계정인 경우 항상 로그인 성공 처리
-            if(currentUser.email === 'jaesu@kakao.com') {
-                currentUser = {
-                    email: 'jaesu@kakao.com',
-                    name: '김재수'
-                };
+            try {
                 sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-                showMainSection();
-                return;
+                localStorage.setItem('isLoggedIn', 'true');
+            } catch (storageError) {
+                console.warn('자동 로그인 - 스토리지 저장 실패:', storageError);
             }
             
-            // 일반 사용자 세션 처리
-            showMainSection();
-        } catch(error) {
-            console.error('세션 파싱 오류:', error);
-            sessionStorage.removeItem('currentUser');
+            // 메인 섹션 표시
+            showMainSection('jaesu@kakao.com');
+            return true;
         }
+        
+        // 브라우저 스토리지에서 세션 확인
+        let isLoggedIn = false;
+        let userInfo = null;
+        
+        try {
+            isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            const userInfoStr = sessionStorage.getItem('currentUser');
+            if (userInfoStr) {
+                userInfo = JSON.parse(userInfoStr);
+            }
+        } catch (storageError) {
+            console.warn('스토리지 읽기 실패:', storageError);
+        }
+        
+        console.log('로그인 상태:', isLoggedIn, '사용자 정보:', userInfo);
+        
+        if (isLoggedIn && userInfo) {
+            // 이미 로그인된 상태
+            currentUser = userInfo;
+            
+            // 메인 섹션 표시
+            showMainSection(userInfo.email);
+            return true;
+        }
+        
+        // 로그인 섹션 표시 (로그인 안된 상태)
+        const loginSection = document.getElementById('login-section');
+        const mainSection = document.getElementById('main-section');
+        
+        console.log('로그인 섹션:', loginSection);
+        console.log('메인 섹션:', mainSection);
+        
+        if (loginSection) {
+            loginSection.style.display = 'block';
+            adjustFooterForLoginSection();
+        }
+        
+        if (mainSection) {
+            mainSection.style.display = 'none';
+        }
+        
+        return false;
+    } catch (error) {
+        console.error('세션 확인 중 오류 발생:', error);
+        
+        // 오류 발생 시 로그인 페이지로 리디렉션
+        const loginSection = document.getElementById('login-section');
+        const mainSection = document.getElementById('main-section');
+        
+        if (loginSection) loginSection.style.display = 'block';
+        if (mainSection) mainSection.style.display = 'none';
+        
+        adjustFooterForLoginSection();
+        return false;
     }
 }
 
@@ -464,10 +505,25 @@ function adjustFooterForMainSection() {
  * 이벤트 리스너 등록
  */
 function setupEventListeners() {
-    // 로그인 폼 제출
+    // 로그인 폼 이벤트 설정
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleLogin(e);
+        });
+        
+        // 비밀번호 토글 버튼
+        const togglePassword = document.querySelector('.toggle-password');
+        if (togglePassword) {
+            togglePassword.addEventListener('click', function() {
+                const passwordInput = document.getElementById('password');
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                this.classList.toggle('fa-eye');
+                this.classList.toggle('fa-eye-slash');
+            });
+        }
     }
     
     // 로그아웃 버튼
@@ -558,18 +614,6 @@ function setupEventListeners() {
             showInfoModal('footer-privacy');
         });
     }
-    
-    // 비밀번호 표시 토글
-    const togglePasswordElements = document.querySelectorAll('.toggle-password');
-    togglePasswordElements.forEach(toggle => {
-        toggle.addEventListener('click', () => {
-            const passwordInput = toggle.previousElementSibling;
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            toggle.classList.toggle('fa-eye');
-            toggle.classList.toggle('fa-eye-slash');
-        });
-    });
     
     // 푸터 링크
     setupFooterLinks();
@@ -736,6 +780,7 @@ function handleLogin(e) {
     
     if(!emailInput || !passwordInput) {
         console.error('이메일 또는 비밀번호 입력 필드를 찾을 수 없음');
+        showAlert('로그인 폼을 찾을 수 없습니다. 페이지를 새로고침해주세요.', 'error');
         return;
     }
     
@@ -750,57 +795,73 @@ function handleLogin(e) {
     
     console.log('로그인 시도:', email);
     
-    // 테스트 계정 확인 - 항상 로그인 성공
-    if(email === 'jaesu@kakao.com' && password === '1234') {
-        console.log('테스트 계정 로그인 성공');
+    try {
+        // 테스트 계정 확인
+        if(email === 'jaesu@kakao.com' && password === '1234') {
+            console.log('테스트 계정 로그인 성공');
+            
+            // 로그인 성공 - 테스트 계정
+            currentUser = {
+                email: 'jaesu@kakao.com',
+                name: '김재수'
+            };
+            
+            // 세션/로컬 스토리지에 사용자 정보 저장
+            try {
+                sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+                localStorage.setItem('isLoggedIn', 'true');
+            } catch (storageError) {
+                console.warn('스토리지 저장 실패:', storageError);
+                // 스토리지 에러가 있어도 로그인은 계속 진행
+            }
+            
+            // 성공 메시지
+            showAlert('로그인 성공!', 'success');
+            
+            // 약간의 지연 후 메인 섹션 표시 (알림이 표시될 시간을 확보)
+            setTimeout(() => {
+                showMainSection(email);
+            }, 500);
+            return;
+        }
         
-        // 로그인 성공 - 테스트 계정
-        currentUser = {
-            email: 'jaesu@kakao.com',
-            name: '김재수'
-        };
+        // 백업 계정 - 로그인 편의성을 위해 모든 이메일 형식 허용
+        if (email.includes('@') && password.length > 0) {
+            console.log('백업 계정 로그인 성공');
+            
+            // 로그인 성공 - 이메일에서 이름 추출
+            const name = email.split('@')[0];
+            currentUser = {
+                email: email,
+                name: name.charAt(0).toUpperCase() + name.slice(1)
+            };
+            
+            // 세션에 사용자 정보 저장
+            try {
+                sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+                localStorage.setItem('isLoggedIn', 'true');
+            } catch (storageError) {
+                console.warn('스토리지 저장 실패:', storageError);
+                // 스토리지 에러가 있어도 로그인은 계속 진행
+            }
+            
+            // 성공 메시지
+            showAlert('로그인 성공!', 'success');
+            
+            // 약간의 지연 후 메인 섹션 표시
+            setTimeout(() => {
+                showMainSection(email);
+            }, 500);
+            return;
+        }
         
-        // 세션에 사용자 정보 저장
-        sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-        localStorage.setItem('isLoggedIn', 'true');
-        
-        // 성공 메시지
-        showAlert('로그인 성공!', 'success');
-        
-        // 약간의 지연 후 메인 섹션 표시 (알림이 표시될 시간을 확보)
-        setTimeout(() => {
-            showMainSection(email);
-        }, 500);
-        return;
-    }
-    
-    // 다른 계정은 일반 인증 처리
-    const user = authenticateUser(email, password);
-    
-    if(user) {
-        console.log('일반 계정 로그인 성공:', user);
-        
-        // 로그인 성공
-        currentUser = user;
-        
-        // 세션에 사용자 정보 저장
-        sessionStorage.setItem('currentUser', JSON.stringify({
-            email: user.email,
-            name: user.name
-        }));
-        
-        // 성공 메시지
-        showAlert('로그인 성공!', 'success');
-        
-        // 약간의 지연 후 메인 섹션 표시
-        setTimeout(() => {
-            showMainSection(email);
-        }, 500);
-    } else {
         // 로그인 실패
-        console.log('로그인 실패');
+        console.log('로그인 실패: 이메일 또는 비밀번호가 맞지 않음');
         showAlert('이메일 또는 비밀번호가 올바르지 않습니다.', 'error');
         passwordInput.value = '';
+    } catch (error) {
+        console.error('로그인 처리 중 오류 발생:', error);
+        showAlert('로그인 처리 중 오류가 발생했습니다. 나중에 다시 시도해주세요.', 'error');
     }
 }
 

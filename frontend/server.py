@@ -71,160 +71,184 @@ def api_proxy(path):
 
 # 개발 환경용 테스트 API 핸들러
 def handle_sanctions_api(path, method, args):
+    """
+    개발 환경용 제재 API 핸들러
+    
+    Args:
+        path: API 경로
+        method: HTTP 메서드
+        args: 요청 인자
+        
+    Returns:
+        JSON 응답
+    """
     # 제재 검색 API
     if path == "sanctions/search" and method == "GET":
-        query = args.get('query', '')
-        
-        # 테스트 데이터
-        data = {
-            "count": 5,
-            "results": [
-                {
-                    "id": "UN-DPRK-1",
-                    "name": "Kim Jong Un",
-                    "type": "Individual",
-                    "country": "North Korea",
-                    "reason": "UN 안전보장이사회 결의안 위반",
-                    "source": "UN",
-                    "program": "DPRK",
-                    "date_listed": "2023-01-15"
-                },
-                {
-                    "id": "OFAC-RUS-1",
-                    "name": "Acme Corporation",
-                    "type": "Entity",
-                    "country": "Russia",
-                    "reason": "국제 무역 규제 위반",
-                    "source": "OFAC",
-                    "program": "RUSSIA",
-                    "date_listed": "2022-03-08"
-                },
-                {
-                    "id": "EU-SYR-1",
-                    "name": "Mohammad Al-Assad",
-                    "type": "Individual",
-                    "country": "Syria",
-                    "reason": "인권 침해",
-                    "source": "EU",
-                    "program": "SYRIA",
-                    "date_listed": "2022-07-22"
-                },
-                {
-                    "id": "UN-IRAN-1",
-                    "name": "Tehran Trading Ltd",
-                    "type": "Entity",
-                    "country": "Iran",
-                    "reason": "핵 개발 프로그램 자금 지원",
-                    "source": "UN",
-                    "program": "IRAN",
-                    "date_listed": "2021-11-30"
-                },
-                {
-                    "id": "UK-BLR-1",
-                    "name": "Alexander Lukashenko",
-                    "type": "Individual",
-                    "country": "Belarus",
-                    "reason": "인권 침해 및 선거 조작",
-                    "source": "UK",
-                    "program": "BELARUS",
-                    "date_listed": "2022-12-05"
-                }
-            ]
-        }
-        
-        # 쿼리 필터링
-        if query:
-            query = query.lower()
-            data['results'] = [item for item in data['results'] if query in item['name'].lower()]
-            data['count'] = len(data['results'])
-        
-        # 검색 타입 필터링
-        sanction_type = args.get('type')
-        if sanction_type and sanction_type != 'all':
-            data['results'] = [item for item in data['results'] if item['type'] == sanction_type]
-            data['count'] = len(data['results'])
-        
-        # 국가 필터링
-        country = args.get('country')
-        if country and country != 'all':
-            data['results'] = [item for item in data['results'] if item['country'] == country]
-            data['count'] = len(data['results'])
-        
-        # 프로그램 필터링
-        program = args.get('program')
-        if program and program != 'all':
-            data['results'] = [item for item in data['results'] if item['program'] == program]
-            data['count'] = len(data['results'])
-        
-        return jsonify(data)
+        return handle_sanctions_search(args)
     
     # 제재 상세 정보 API
     elif path.startswith("sanctions/") and method == "GET":
         # 제재 ID 추출
         sanction_id = path.split("/")[1]
-        
-        # 테스트 데이터
-        test_data = {
-            "UN-DPRK-1": {
-                "id": "UN-DPRK-1",
-                "name": "Kim Jong Un",
-                "type": "Individual",
-                "country": "North Korea",
-                "reason": "UN 안전보장이사회 결의안 위반",
-                "source": "UN",
-                "program": "DPRK",
-                "date_listed": "2023-01-15"
-            },
-            "OFAC-RUS-1": {
-                "id": "OFAC-RUS-1",
-                "name": "Acme Corporation",
-                "type": "Entity",
-                "country": "Russia",
-                "reason": "국제 무역 규제 위반",
-                "source": "OFAC",
-                "program": "RUSSIA",
-                "date_listed": "2022-03-08"
-            },
-            "EU-SYR-1": {
-                "id": "EU-SYR-1",
-                "name": "Mohammad Al-Assad",
-                "type": "Individual",
-                "country": "Syria",
-                "reason": "인권 침해",
-                "source": "EU",
-                "program": "SYRIA",
-                "date_listed": "2022-07-22"
-            },
-            "UN-IRAN-1": {
-                "id": "UN-IRAN-1",
-                "name": "Tehran Trading Ltd",
-                "type": "Entity",
-                "country": "Iran",
-                "reason": "핵 개발 프로그램 자금 지원",
-                "source": "UN",
-                "program": "IRAN",
-                "date_listed": "2021-11-30"
-            },
-            "UK-BLR-1": {
-                "id": "UK-BLR-1",
-                "name": "Alexander Lukashenko",
-                "type": "Individual",
-                "country": "Belarus",
-                "reason": "인권 침해 및 선거 조작",
-                "source": "UK",
-                "program": "BELARUS",
-                "date_listed": "2022-12-05"
-            }
-        }
-        
-        if sanction_id in test_data:
-            return jsonify(test_data[sanction_id])
-        else:
-            return jsonify({"error": "Sanction not found"}), 404
+        return handle_sanction_detail(sanction_id)
     
-    else:
-        # 지원되지 않는 API 경로
-        return jsonify({"error": "API endpoint not found"}), 404
+    return jsonify({"error": "지원하지 않는 API 경로"}), 404
+
+def get_test_data():
+    """테스트용 제재 데이터를 반환합니다."""
+    return [
+        {
+            "id": "UN-DPRK-1",
+            "name": "Kim Jong Un",
+            "type": "Individual",
+            "country": "North Korea",
+            "reason": "UN 안전보장이사회 결의안 위반",
+            "source": "UN",
+            "program": "DPRK",
+            "date_listed": "2023-01-15"
+        },
+        {
+            "id": "OFAC-RUS-1",
+            "name": "Acme Corporation",
+            "type": "Entity",
+            "country": "Russia",
+            "reason": "국제 무역 규제 위반",
+            "source": "OFAC",
+            "program": "RUSSIA",
+            "date_listed": "2022-03-08"
+        },
+        {
+            "id": "EU-SYR-1",
+            "name": "Mohammad Al-Assad",
+            "type": "Individual",
+            "country": "Syria",
+            "reason": "인권 침해",
+            "source": "EU",
+            "program": "SYRIA",
+            "date_listed": "2022-07-22"
+        },
+        {
+            "id": "UN-IRAN-1",
+            "name": "Tehran Trading Ltd",
+            "type": "Entity",
+            "country": "Iran",
+            "reason": "핵 개발 프로그램 자금 지원",
+            "source": "UN",
+            "program": "IRAN",
+            "date_listed": "2021-11-30"
+        },
+        {
+            "id": "UK-BLR-1",
+            "name": "Alexander Lukashenko",
+            "type": "Individual",
+            "country": "Belarus",
+            "reason": "인권 침해 및 선거 조작",
+            "source": "UK",
+            "program": "BELARUS",
+            "date_listed": "2022-12-05"
+        }
+    ]
+
+def handle_sanctions_search(args):
+    """
+    제재 검색 요청 처리
+    
+    Args:
+        args: HTTP 요청 인자
+        
+    Returns:
+        JSON 응답
+    """
+    # 테스트 데이터
+    results = get_test_data()
+    
+    # 필터링 적용
+    filtered_results = apply_search_filters(results, args)
+    
+    # 페이지네이션 적용
+    page = int(args.get('page', 1))
+    limit = int(args.get('limit', 20))
+    
+    # 페이지네이션 계산
+    total_count = len(filtered_results)
+    start_idx = (page - 1) * limit
+    end_idx = min(start_idx + limit, total_count)
+    
+    paginated_results = filtered_results[start_idx:end_idx]
+    
+    # 응답 생성
+    response = {
+        "count": total_count,
+        "results": paginated_results,
+        "pagination": {
+            "page": page,
+            "limit": limit,
+            "total": total_count,
+            "pages": (total_count + limit - 1) // limit
+        }
+    }
+    
+    return jsonify(response)
+
+def apply_search_filters(results, args):
+    """
+    검색 필터를 적용합니다.
+    
+    Args:
+        results: 원본 결과 리스트
+        args: HTTP 요청 인자
+        
+    Returns:
+        필터링된 결과 리스트
+    """
+    filtered_results = results.copy()
+    
+    # 쿼리 필터링
+    query = args.get('query', '')
+    if query:
+        query = query.lower()
+        filtered_results = [item for item in filtered_results if query in item['name'].lower()]
+    
+    # 검색 타입 필터링
+    sanction_type = args.get('type')
+    if sanction_type and sanction_type != 'all':
+        filtered_results = [item for item in filtered_results if item['type'] == sanction_type]
+    
+    # 국가 필터링
+    country = args.get('country')
+    if country and country != 'all':
+        filtered_results = [item for item in filtered_results if item['country'] == country]
+    
+    # 프로그램 필터링
+    program = args.get('program')
+    if program and program != 'all':
+        filtered_results = [item for item in filtered_results if item['program'] == program]
+    
+    # 소스 필터링
+    source = args.get('source')
+    if source and source != 'all':
+        filtered_results = [item for item in filtered_results if item['source'] == source]
+    
+    return filtered_results
+
+def handle_sanction_detail(sanction_id):
+    """
+    제재 상세 정보 요청 처리
+    
+    Args:
+        sanction_id: 제재 ID
+        
+    Returns:
+        JSON 응답
+    """
+    # 테스트 데이터 사전으로 변환
+    test_data = {item['id']: item for item in get_test_data()}
+    
+    # ID로 제재 정보 찾기
+    if sanction_id in test_data:
+        return jsonify(test_data[sanction_id])
+    
+    return jsonify({"error": "제재 정보를 찾을 수 없습니다"}), 404
 
 if __name__ == '__main__':
     # 개발 환경에서는 디버그 모드로 실행

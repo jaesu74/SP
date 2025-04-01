@@ -15,12 +15,21 @@ load_dotenv()
 
 # 환경 변수 설정
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/sanctions-search")
-JWT_SECRET = os.getenv("JWT_SECRET", "sanctions-search-secret-key")
+JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET:
+    import secrets
+    JWT_SECRET = secrets.token_hex(32)
+    print("경고: JWT_SECRET 환경변수가 설정되지 않았습니다. 임시 키가 생성되었습니다.")
+    
 PORT = int(os.getenv("PORT", "3001"))
 
-# JWT 설정
+# 상수 정의
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+DEFAULT_TOKEN_EXPIRE_MINUTES = 15
+DB_NAME = "sanctions-search"
+USERS_COLLECTION = "users"
+SANCTIONS_COLLECTION = "sanctions"
 
 # FastAPI 앱 인스턴스 생성
 app = FastAPI(title="제재 대상 검색 API", 
@@ -41,8 +50,8 @@ try:
     client = pymongo.MongoClient(MONGODB_URI)
     db = client.get_database()
     # 컬렉션 설정
-    users_collection = db["users"]
-    sanctions_collection = db["sanctions"]
+    users_collection = db[USERS_COLLECTION]
+    sanctions_collection = db[SANCTIONS_COLLECTION]
     
     # 이메일 필드에 인덱스 생성 (중복 방지)
     users_collection.create_index([("email", pymongo.ASCENDING)], unique=True)
@@ -77,9 +86,16 @@ class Sanction(SanctionBase):
 class SanctionInDB(SanctionBase):
     id: str
 
+class PaginationParams(BaseModel):
+    page: int = 1
+    limit: int = 20
+    total: int = 0
+    pages: int = 0
+
 class SanctionSearchResults(BaseModel):
     count: int
     results: List[Sanction]
+    pagination: PaginationParams
 
 class UserBase(BaseModel):
     email: EmailStr
@@ -125,7 +141,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.utcnow() + timedelta(minutes=DEFAULT_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET, algorithm=ALGORITHM)
     return encoded_jwt
@@ -258,8 +274,29 @@ async def search_sanctions(
     country: Optional[str] = None,
     program: Optional[str] = None,
     source: Optional[str] = None,
+    page: int = 1,
+    limit: int = 20,
     current_user: UserInDB = Depends(get_current_user)
 ):
+    """
+    제재 정보를 검색합니다. 페이지네이션을 지원합니다.
+    
+    Args:
+        query: 텍스트 검색어
+        type: 타입으로 필터링 (Individual/Entity)
+        country: 국가로 필터링
+        program: 프로그램으로 필터링
+        source: 출처로 필터링 (UN, EU, US 등)
+        page: 페이지 번호 (1부터 시작)
+        limit: 페이지당 결과 수
+    """
+    # 페이지네이션 값 검증
+    if page < 1:
+        page = 1
+    if limit < 1 or limit > 100:
+        limit = 20
+    
+    # 데이터베이스 쿼리 최적화
     filter_query = {}
     
     # 검색어가 있으면 텍스트 검색 필터 추가
@@ -276,17 +313,37 @@ async def search_sanctions(
     if source:
         filter_query["source"] = source
     
-    results = list(sanctions_collection.find(filter_query))
+    # 총 결과 수 계산 (DB 쿼리 최적화 - 카운트만 가져옴)
+    total_count = sanctions_collection.count_documents(filter_query)
+    
+    # 페이지네이션 계산
+    skip = (page - 1) * limit
+    total_pages = (total_count + limit - 1) // limit  # 올림 나눗셈
+    
+    # 최적화된 쿼리 실행 (필요한 문서만 가져옴)
+    cursor = sanctions_collection.find(filter_query).skip(skip).limit(limit)
     
     # DB에서 가져온 문서를 Pydantic 모델로 변환
     sanctions = []
-    for doc in results:
+    for doc in cursor:
         # 날짜를 ISO 형식 문자열로 변환
         if isinstance(doc.get('date_listed'), datetime):
             doc['date_listed'] = doc['date_listed'].isoformat()
         sanctions.append(Sanction(**doc))
     
-    return SanctionSearchResults(count=len(sanctions), results=sanctions)
+    # 페이지네이션 정보 생성
+    pagination = PaginationParams(
+        page=page,
+        limit=limit,
+        total=total_count,
+        pages=total_pages
+    )
+    
+    return SanctionSearchResults(
+        count=total_count, 
+        results=sanctions,
+        pagination=pagination
+    )
 
 @app.get("/api/sanctions/{sanction_id}", response_model=Sanction)
 async def get_sanction(
