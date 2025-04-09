@@ -754,123 +754,6 @@ function showInfoModal(type) {
 }
 
 /**
- * 로그인 처리
- * @param {Event} e 이벤트 객체
- */
-function handleLogin(e) {
-    if (e) e.preventDefault();
-    console.log('로그인 처리 시작');
-    
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    
-    if(!emailInput || !passwordInput) {
-        console.error('이메일 또는 비밀번호 입력 필드를 찾을 수 없음');
-        showAlert('로그인 폼을 찾을 수 없습니다. 페이지를 새로고침해주세요.', 'error');
-        return;
-    }
-    
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
-    
-    console.log('입력된 이메일:', email);
-    console.log('입력된 비밀번호 길이:', password.length);
-    
-    // 입력 확인
-    if(!email || !password) {
-        showAlert('이메일과 비밀번호를 모두 입력해주세요.', 'error');
-        return;
-    }
-    
-    console.log('로그인 시도:', email);
-    
-    try {
-        // 테스트 계정 확인
-        if(email === 'jaesu@kakao.com' && password === '1234') {
-            console.log('테스트 계정 로그인 성공');
-            
-            // 로그인 성공 - 테스트 계정
-            currentUser = {
-                email: 'jaesu@kakao.com',
-                name: '김재수'
-            };
-            
-            // 세션/로컬 스토리지에 사용자 정보 저장
-            try {
-                sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-                localStorage.setItem('isLoggedIn', 'true');
-                console.log('사용자 정보 저장 완료:', {
-                    currentUser: currentUser,
-                    sessionStorage: sessionStorage.getItem('currentUser'),
-                    localStorage: localStorage.getItem('isLoggedIn')
-                });
-            } catch (storageError) {
-                console.warn('스토리지 저장 실패:', storageError);
-                // 스토리지 에러가 있어도 로그인은 계속 진행
-            }
-            
-            // 성공 메시지
-            showAlert('로그인 성공!', 'success');
-            
-            // 약간의 지연 후 메인 섹션 표시 (알림이 표시될 시간을 확보)
-            console.log('메인 섹션 표시 준비 중...');
-            setTimeout(() => {
-                console.log('메인 섹션 표시 시작...');
-                showMainSection(email);
-                console.log('메인 섹션 표시 완료');
-            }, 500);
-            return;
-        }
-        
-        // 백업 계정 - 로그인 편의성을 위해 모든 이메일 형식 허용
-        if (email.includes('@') && password.length > 0) {
-            console.log('백업 계정 로그인 성공');
-            
-            // 로그인 성공 - 이메일에서 이름 추출
-            const name = email.split('@')[0];
-            currentUser = {
-                email: email,
-                name: name.charAt(0).toUpperCase() + name.slice(1)
-            };
-            
-            // 세션에 사용자 정보 저장
-            try {
-                sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-                localStorage.setItem('isLoggedIn', 'true');
-                console.log('사용자 정보 저장 완료:', {
-                    currentUser: currentUser,
-                    sessionStorage: sessionStorage.getItem('currentUser'),
-                    localStorage: localStorage.getItem('isLoggedIn')
-                });
-            } catch (storageError) {
-                console.warn('스토리지 저장 실패:', storageError);
-                // 스토리지 에러가 있어도 로그인은 계속 진행
-            }
-            
-            // 성공 메시지
-            showAlert('로그인 성공!', 'success');
-            
-            // 약간의 지연 후 메인 섹션 표시
-            console.log('메인 섹션 표시 준비 중...');
-            setTimeout(() => {
-                console.log('메인 섹션 표시 시작...');
-                showMainSection(email);
-                console.log('메인 섹션 표시 완료');
-            }, 500);
-            return;
-        }
-        
-        // 로그인 실패
-        console.log('로그인 실패: 이메일 또는 비밀번호가 맞지 않음');
-        showAlert('이메일 또는 비밀번호가 올바르지 않습니다.', 'error');
-        passwordInput.value = '';
-    } catch (error) {
-        console.error('로그인 처리 중 오류 발생:', error);
-        showAlert('로그인 처리 중 오류가 발생했습니다. 나중에 다시 시도해주세요.', 'error');
-    }
-}
-
-/**
  * 로그아웃 처리
  */
 function handleLogout() {
@@ -1849,84 +1732,83 @@ function showAlert(message, type = 'info', options = {}) {
 async function searchSanctionData(params) {
     console.log('API 호출 파라미터:', params);
     
-    return new Promise((resolve) => {
-        // 서버 응답 시뮬레이션 (1초 딜레이)
-        setTimeout(() => {
-            // 데이터 가져오기
-            const sanctions = getSampleSanctionsData();
-            let results = [...sanctions];
+    try {
+        // 실제 데이터를 api.js의 fetchSanctionsData 함수로 가져옴
+        const sanctions = await fetchSanctionsData();
+        let results = [...sanctions];
+        
+        // 필터링 로직
+        // 텍스트 검색
+        if(params.query && params.type === 'text') {
+            const query = params.query.toLowerCase();
+            results = results.filter(item => 
+                (item.name && item.name.toLowerCase().includes(query)) || 
+                (item.details && item.details.aliases && 
+                 item.details.aliases.some(alias => alias.toLowerCase().includes(query)))
+            );
+        }
+        
+        // 번호 검색
+        if(params.query && params.type === 'number') {
+            const query = params.query;
             
-            // 필터링 로직
-            // 텍스트 검색
-            if(params.query && params.type === 'text') {
-                const query = params.query.toLowerCase();
-                results = results.filter(item => 
-                    item.name.toLowerCase().includes(query) || 
-                    (item.alias && item.alias.toLowerCase().includes(query))
-                );
-            }
-            
-            // 번호 검색
-            if(params.query && params.type === 'number') {
-                const query = params.query;
-                results = results.filter(item => {
-                    // 개인인 경우 여권번호나 신분증번호 확인
-                    if(item.type === '개인') {
-                        const passportMatch = item.details.passportNumbers && 
-                            item.details.passportNumbers.some(num => num.includes(query));
-                        const idMatch = item.details.idNumbers && 
-                            item.details.idNumbers.some(num => num.includes(query));
-                        
-                        if(params.numberType === 'passport') {
-                            return passportMatch;
-                        } else if(params.numberType === 'id') {
-                            return idMatch;
-                        } else {
-                            return passportMatch || idMatch;
-                        }
+            results = results.filter(item => {
+                if(!item.details || !item.details.identifications) return false;
+                
+                return item.details.identifications.some(id => {
+                    // 특정 번호 유형 필터링
+                    if(params.numberType && params.numberType !== 'all') {
+                        return id.type.toLowerCase().includes(params.numberType.toLowerCase()) && 
+                               id.number.includes(query);
                     }
-                    return false;
+                    return id.number.includes(query);
                 });
-            }
-            
-            // 국가 필터
-            if(params.country) {
-                results = results.filter(item => item.country === params.country);
-            }
-            
-            // 프로그램 필터
-            if(params.program) {
-                results = results.filter(item => item.program === params.program);
-            }
-            
-            // 날짜 범위 필터
-            if(params.startDate) {
-                results = results.filter(item => new Date(item.listDate) >= new Date(params.startDate));
-            }
-            
-            if(params.endDate) {
-                results = results.filter(item => new Date(item.listDate) <= new Date(params.endDate));
-            }
-            
-            resolve(results);
-        }, 1000);
-    });
+            });
+        }
+        
+        // 국가 필터
+        if(params.country) {
+            results = results.filter(item => item.country === params.country);
+        }
+        
+        // 프로그램 필터
+        if(params.program) {
+            results = results.filter(item => {
+                if(Array.isArray(item.programs)) {
+                    return item.programs.includes(params.program);
+                }
+                return item.program === params.program;
+            });
+        }
+        
+        // 유형 필터
+        if(params.entityType) {
+            results = results.filter(item => item.type.toLowerCase() === params.entityType.toLowerCase());
+        }
+        
+        return results;
+    } catch (error) {
+        console.error('검색 오류:', error);
+        showAlert('검색 중 오류가 발생했습니다.', 'error');
+        return [];
+    }
 }
 
 /**
- * 제재 대상 상세 정보 조회 시뮬레이션
+ * 제재 대상 상세 정보 조회
  * @param {string} id 제재 대상 ID
  * @returns {Promise<Object>} 제재 대상 상세 정보
  */
 async function getSanctionDetail(id) {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            // 샘플 데이터에서 ID로 검색
-            const sanctions = getSampleSanctionsData();
-            const foundItem = sanctions.find(item => item.id === id);
-            resolve(foundItem || null);
-        }, 500);
-    });
+    try {
+        // 실제 데이터에서 ID로 검색
+        const sanctions = await fetchSanctionsData();
+        return sanctions.find(item => item.id === id) || null;
+    } catch (error) {
+        console.error('상세 정보 조회 오류:', error);
+        showAlert('상세 정보를 불러오는 중 오류가 발생했습니다.', 'error');
+        return null;
+    }
 }
 
 // 전역 함수 노출
@@ -1938,7 +1820,6 @@ export {
     showDetail,
     performSearch,
     showAlert,
-    handleLogin,
     handleLogout,
     checkSession,
     searchSanctionData,

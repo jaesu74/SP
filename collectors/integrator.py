@@ -7,6 +7,7 @@
 import os
 import json
 import logging
+import shutil
 from typing import Dict, List
 from datetime import datetime
 
@@ -74,18 +75,27 @@ class SanctionsIntegrator:
         integrated_sanctions = list(unique_sanctions.values())
         
         # 통합된 데이터 저장
-        output_file = os.path.join(OUTPUT_DIR, "sanctions.json")
+        data = {
+            "meta": {
+                "lastUpdated": datetime.now().isoformat(),
+                "sources": self.sources,
+                "totalEntries": len(integrated_sanctions)
+            },
+            "data": integrated_sanctions
+        }
+        
         try:
-            data = {
-                "meta": {
-                    "lastUpdated": datetime.now().isoformat(),
-                    "sources": self.sources,
-                    "totalEntries": len(integrated_sanctions)
-                },
-                "data": integrated_sanctions
-            }
+            # docs/data 디렉토리 확인 및 생성
+            os.makedirs(OUTPUT_DIR, exist_ok=True)
             
+            # sanctions.json 파일로 저장
+            output_file = os.path.join(OUTPUT_DIR, "sanctions.json")
             with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            
+            # integrated_sanctions.json 파일로도 저장
+            integrated_file = os.path.join(OUTPUT_DIR, "integrated_sanctions.json")
+            with open(integrated_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             
             self.logger.info(f"통합 제재 데이터 저장 완료: {len(integrated_sanctions)}개 항목")
@@ -116,10 +126,15 @@ class SanctionsIntegrator:
     
     def clean_temp_files(self, temp_dir):
         """임시 파일을 정리합니다."""
-        for filename in os.listdir(temp_dir):
-            try:
-                os.remove(os.path.join(temp_dir, filename))
-            except Exception as e:
-                self.logger.warning(f"임시 파일 삭제 실패: {filename}, 오류: {str(e)}")
-        
-        self.logger.info("임시 파일 정리 완료") 
+        try:
+            for filename in os.listdir(temp_dir):
+                file_path = os.path.join(temp_dir, filename)
+                try:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                except Exception as e:
+                    self.logger.warning(f"임시 파일 삭제 실패: {filename}, 오류: {str(e)}")
+            
+            self.logger.info("임시 파일 정리 완료")
+        except Exception as e:
+            self.logger.warning(f"임시 파일 정리 중 오류 발생: {str(e)}") 

@@ -747,37 +747,38 @@ function setupInfoLinks() {
 
 // 검색 수행 함수
 function performSearch() {
+    // 검색 파라미터 수집
     const searchInput = document.getElementById('search-input');
-    if(!searchInput || !searchInput.value.trim()) {
+    if (!searchInput) return;
+    
+    const query = searchInput.value.trim();
+    if (!query) {
+        showAlert('검색어를 입력해주세요.', 'warning');
         return;
     }
     
-    const query = searchInput.value.trim();
-    
-    // 선택된 검색 타입 가져오기
+    // 검색 유형 확인
     const searchType = document.querySelector('input[name="search-type"]:checked').value;
     
-    // 번호 검색 타입인 경우 번호 타입도 가져오기
-    let numberType = '';
-    if(searchType === 'number') {
-        const numberTypeRadio = document.querySelector('input[name="number-type"]:checked');
-        if(numberTypeRadio) {
-            numberType = numberTypeRadio.value;
-        }
+    // 번호 유형 (번호 검색인 경우)
+    let numberType = null;
+    if (searchType === 'number') {
+        numberType = document.querySelector('input[name="number-type"]:checked').value;
     }
     
-    // 선택된 필터 값 가져오기
+    // 국가 필터
     const countryFilter = document.querySelector('.country-filter .filter-option.selected');
-    const programFilter = document.querySelector('.program-filter .filter-option.selected');
-    
     const country = countryFilter ? countryFilter.getAttribute('data-value') : '';
+    
+    // 프로그램 필터
+    const programFilter = document.querySelector('.program-filter .filter-option.selected');
     const program = programFilter ? programFilter.getAttribute('data-value') : '';
     
-    // 날짜 범위 가져오기
+    // 날짜 범위 필터
     const startDate = document.getElementById('start-date').value;
     const endDate = document.getElementById('end-date').value;
     
-    // 검색 파라미터 객체 생성
+    // 검색 파라미터 객체
     const searchParams = {
         query: query,
         type: searchType,
@@ -788,79 +789,75 @@ function performSearch() {
         endDate: endDate
     };
     
+    // 로딩 표시
+    toggleLoading(true);
+    
     // 실제 검색 구현은 app.js에서 구현
     console.log('검색 파라미터:', searchParams);
     
-    // 샘플 결과 표시 - 실제로는 app.js의 검색 함수를 호출해야 함
-    displaySampleResults();
+    // app.js의 searchSanctionData 호출
+    searchSanctionData(searchParams)
+        .then(results => {
+            // 검색 결과 표시
+            displaySearchResults(results);
+            toggleLoading(false);
+            
+            // 결과 수 업데이트
+            updateResultsCount(results.length);
+        })
+        .catch(error => {
+            console.error('검색 오류:', error);
+            showAlert('검색 중 오류가 발생했습니다.', 'error');
+            toggleLoading(false);
+        });
 }
 
-// 샘플 결과 표시 함수 (테스트용)
-function displaySampleResults() {
+// 검색 결과 표시 함수
+function displaySearchResults(results) {
     const resultsContainer = document.getElementById('results-container');
-    if(!resultsContainer) return;
+    if (!resultsContainer) return;
     
-    // 샘플 결과 데이터
-    const sampleResults = [
-        {
-            id: 'NK001',
-            name: '김정은',
-            alias: 'Kim Jong Un',
-            country: 'NK',
-            type: '개인',
-            program: 'UN_SANCTIONS',
-            listDate: '2016-03-02',
-            details: {
-                birthDate: '1984-01-08',
-                nationality: '북한',
-                passportNumbers: ['123456789', '987654321'],
-                idNumbers: ['ID12345'],
-                position: '국무위원장',
-                reason: 'UN 결의안 1718, 2270호 위반',
-                address: '평양시 중구'
-            }
-        },
-        {
-            id: 'RU002',
-            name: '블라디미르 푸틴',
-            alias: 'Vladimir Putin',
-            country: 'RU',
-            type: '개인',
-            program: 'US_SANCTIONS',
-            listDate: '2022-02-25',
-            details: {
-                birthDate: '1952-10-07',
-                nationality: '러시아',
-                passportNumbers: ['654321'],
-                position: '대통령',
-                reason: '우크라이나 침공',
-                address: '모스크바'
-            }
-        },
-        {
-            id: 'IR003',
-            name: '이란 혁명수비대',
-            alias: 'IRGC',
-            country: 'IR',
-            type: '단체',
-            program: 'EU_SANCTIONS',
-            listDate: '2023-01-15',
-            details: {
-                establishDate: '1979-05-05',
-                sector: '군사',
-                reason: '테러 지원 및 인권 침해',
-                address: '테헤란'
-            }
-        }
-    ];
+    // 결과가 없는 경우
+    if (!results || results.length === 0) {
+        resultsContainer.innerHTML = `
+            <div class="no-results">
+                <p>검색 결과가 없습니다.</p>
+                <p>다른 검색어나 필터를 사용해보세요.</p>
+            </div>
+        `;
+        return;
+    }
     
     // 결과 컨테이너 비우기
     resultsContainer.innerHTML = '';
     
     // 결과 카드 생성
-    sampleResults.forEach(result => {
+    results.forEach(result => {
         const card = document.createElement('div');
         card.className = 'result-card maximalist';
+        
+        // 별칭 정보 추출
+        let alias = '없음';
+        if (result.details && result.details.aliases && result.details.aliases.length > 0) {
+            alias = result.details.aliases[0];
+        }
+        
+        // 프로그램 정보 추출
+        let programName = '-';
+        if (Array.isArray(result.programs) && result.programs.length > 0) {
+            programName = getProgramName(result.programs[0]);
+        } else if (result.program) {
+            programName = getProgramName(result.program);
+        }
+        
+        // 등재일 정보 추출
+        let listDate = '-';
+        if (result.details && result.details.sanctions && result.details.sanctions.length > 0) {
+            const firstSanction = result.details.sanctions[0];
+            if (firstSanction.startDate) {
+                listDate = formatDate(firstSanction.startDate);
+            }
+        }
         
         const cardContent = `
             <div class="result-header">
@@ -868,11 +865,11 @@ function displaySampleResults() {
                 <span class="result-id">${result.id}</span>
             </div>
             <div class="result-body">
-                <p><strong>별칭:</strong> ${result.alias || '없음'}</p>
+                <p><strong>별칭:</strong> ${alias}</p>
                 <p><strong>국가:</strong> ${getCountryName(result.country)}</p>
                 <p><strong>유형:</strong> ${result.type}</p>
-                <p><strong>프로그램:</strong> ${getProgramName(result.program)}</p>
-                <p><strong>등재일:</strong> ${formatDate(result.listDate)}</p>
+                <p><strong>프로그램:</strong> ${programName}</p>
+                <p><strong>등재일:</strong> ${listDate}</p>
             </div>
             <div class="result-footer">
                 <button class="btn-secondary detail-btn" data-id="${result.id}">
@@ -886,12 +883,32 @@ function displaySampleResults() {
         
         // 상세 정보 버튼에 이벤트 리스너 추가
         const detailBtn = card.querySelector('.detail-btn');
-        if(detailBtn) {
+        if (detailBtn) {
             detailBtn.addEventListener('click', function() {
-                showDetailModal(result);
+                // app.js의 getSanctionDetail 호출
+                getSanctionDetail(result.id)
+                    .then(detailData => {
+                        if (detailData) {
+                            showDetailModal(detailData);
+                        } else {
+                            showAlert('상세 정보를 찾을 수 없습니다.', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('상세 정보 조회 오류:', error);
+                        showAlert('상세 정보를 불러오는 중 오류가 발생했습니다.', 'error');
+                    });
             });
         }
     });
+}
+
+// 결과 수 업데이트 함수
+function updateResultsCount(count) {
+    const countElement = document.querySelector('.results-count');
+    if (countElement) {
+        countElement.textContent = `${count}개의 결과`;
+    }
 }
 
 // 상세 정보 모달 표시 함수
@@ -899,76 +916,195 @@ function showDetailModal(resultData) {
     const detailModal = document.getElementById('detail-modal');
     const detailContent = document.getElementById('detail-content');
     
-    if(!detailModal || !detailContent || !resultData) return;
+    if(!detailModal || !detailContent || !resultData) {
+        console.error('모달 요소 또는 데이터가 없습니다.');
+        return;
+    }
+    
+    console.log('상세 정보 표시:', resultData);
     
     // 상세 정보 HTML 생성
-    let detailHTML = '';
-    
-    if(resultData.type === '개인') {
-        detailHTML = `
-            <div class="detail-section">
-                <h3>${resultData.name} (${resultData.alias || '별칭 없음'})</h3>
-                <div class="detail-info">
-                    <p><strong>고유 ID:</strong> ${resultData.id}</p>
-                    <p><strong>국적:</strong> ${resultData.details.nationality || getCountryName(resultData.country)}</p>
-                    <p><strong>생년월일:</strong> ${formatDate(resultData.details.birthDate) || '정보 없음'}</p>
-                    <p><strong>직위:</strong> ${resultData.details.position || '정보 없음'}</p>
-                    <p><strong>거주지:</strong> ${resultData.details.address || '정보 없음'}</p>
-                </div>
+    let detailHTML = `
+        <div class="detail-container">
+            <div class="detail-header">
+                <h3>${resultData.name || '이름 없음'}</h3>
+                <span class="detail-type ${(resultData.type && resultData.type.toLowerCase().includes('individual')) ? 'individual' : 'entity'}">
+                    ${resultData.type || '유형 정보 없음'}
+                </span>
             </div>
             
             <div class="detail-section">
-                <h3>식별 정보</h3>
-                <div class="detail-info">
-                    <p><strong>여권번호:</strong> ${resultData.details.passportNumbers ? resultData.details.passportNumbers.join(', ') : '정보 없음'}</p>
-                    <p><strong>신분증번호:</strong> ${resultData.details.idNumbers ? resultData.details.idNumbers.join(', ') : '정보 없음'}</p>
+                <h3 class="section-title">기본 정보</h3>
+                <div class="detail-data">
+                    <div class="data-item">
+                        <span class="data-label">ID:</span>
+                        <span class="data-value">${resultData.id || '-'}</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">국가:</span>
+                        <span class="data-value">${resultData.country || '-'}</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">제재 프로그램:</span>
+                        <span class="data-value">${Array.isArray(resultData.programs) ? resultData.programs.join(', ') : (resultData.program || '-')}</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">출처:</span>
+                        <span class="data-value">${resultData.source || '-'}</span>
+                    </div>
+    `;
+    
+    // 제재 이유 정보
+    if (resultData.details && resultData.details.sanctions && resultData.details.sanctions.length > 0) {
+        detailHTML += `
+            <div class="data-item">
+                <span class="data-label">제재 내역:</span>
+                <div class="data-value sanctions-list">
+                    <ul>
+        `;
+        
+        resultData.details.sanctions.forEach(sanction => {
+            detailHTML += `
+                <li>
+                    <strong>프로그램:</strong> ${sanction.program || '-'}<br>
+                    <strong>시작일:</strong> ${sanction.startDate || '-'}<br>
+                    ${sanction.reason ? `<strong>이유:</strong> ${sanction.reason}` : ''}
+                </li>
+            `;
+        });
+        
+        detailHTML += `
+                    </ul>
                 </div>
             </div>
         `;
-    } else {
-        detailHTML = `
-            <div class="detail-section">
-                <h3>${resultData.name} (${resultData.alias || '별칭 없음'})</h3>
-                <div class="detail-info">
-                    <p><strong>고유 ID:</strong> ${resultData.id}</p>
-                    <p><strong>국가:</strong> ${getCountryName(resultData.country)}</p>
-                    <p><strong>설립일:</strong> ${formatDate(resultData.details.establishDate) || '정보 없음'}</p>
-                    <p><strong>분야:</strong> ${resultData.details.sector || '정보 없음'}</p>
-                    <p><strong>주소:</strong> ${resultData.details.address || '정보 없음'}</p>
-                </div>
+    } else if (resultData.reason) {
+        // 이전 형식의 제재 이유
+        detailHTML += `
+            <div class="data-item">
+                <span class="data-label">제재 이유:</span>
+                <span class="data-value">${resultData.reason}</span>
             </div>
         `;
     }
     
     detailHTML += `
-        <div class="detail-section">
-            <h3>제재 정보</h3>
-            <div class="detail-info">
-                <p><strong>제재 프로그램:</strong> ${getProgramName(resultData.program)}</p>
-                <p><strong>등재일:</strong> ${formatDate(resultData.listDate)}</p>
-                <p><strong>제재 사유:</strong> ${resultData.details.reason || '정보 없음'}</p>
             </div>
         </div>
     `;
     
-    // 콘텐츠 설정 및 모달 표시
+    // 상세 정보 추가 (제재 대상 유형에 따라 다른 정보 표시)
+    if (resultData.details) {
+        // 별칭 정보
+        if (resultData.details.aliases && resultData.details.aliases.length) {
+            detailHTML += `
+                <div class="detail-section">
+                    <h3 class="section-title">별칭</h3>
+                    <div class="detail-data">
+                        <div class="data-item">
+                            <ul class="aliases-list">
+                                ${resultData.details.aliases.map(alias => `<li>${alias}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 주소 정보
+        if (resultData.details.addresses && resultData.details.addresses.length) {
+            detailHTML += `
+                <div class="detail-section">
+                    <h3 class="section-title">주소</h3>
+                    <div class="detail-data">
+                        <div class="data-item">
+                            <ul class="addresses-list">
+                                ${resultData.details.addresses.map(address => `<li>${address}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 국적 정보
+        if (resultData.details.nationalities && resultData.details.nationalities.length) {
+            detailHTML += `
+                <div class="detail-section">
+                    <h3 class="section-title">국적</h3>
+                    <div class="detail-data">
+                        <div class="data-item">
+                            <ul class="nationalities-list">
+                                ${resultData.details.nationalities.map(nationality => `<li>${nationality}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 신분증 정보
+        if (resultData.details.identifications && resultData.details.identifications.length) {
+            detailHTML += `
+                <div class="detail-section">
+                    <h3 class="section-title">신분증 정보</h3>
+                    <div class="detail-data">
+                        <div class="data-item">
+                            <ul class="id-list">
+                                ${resultData.details.identifications.map(id => 
+                                    `<li><strong>${id.type || '기타'}:</strong> ${id.number}${id.country ? ` (${id.country})` : ''}</li>`
+                                ).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 생년월일
+        if (resultData.details.birthDate) {
+            detailHTML += `
+                <div class="detail-section">
+                    <h3 class="section-title">개인 정보</h3>
+                    <div class="detail-data">
+                        <div class="data-item">
+                            <span class="data-label">생년월일:</span>
+                            <span class="data-value">${resultData.details.birthDate}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    detailHTML += '</div>';
+    
+    // 컨텐츠 설정 및 모달 표시
     detailContent.innerHTML = detailHTML;
     detailModal.style.display = 'block';
     
+    // 닫기 버튼 이벤트
+    const closeBtn = document.getElementById('detail-close');
+    if (closeBtn) {
+        closeBtn.onclick = function() {
+            detailModal.style.display = 'none';
+        };
+    }
+    
     // 인쇄 버튼 이벤트
     const printBtn = document.getElementById('detail-print');
-    if(printBtn) {
-        printBtn.addEventListener('click', function() {
-            printDetail(detailContent.innerHTML, resultData.name);
-        });
+    if (printBtn) {
+        printBtn.onclick = function() {
+            window.print();
+        };
     }
     
     // PDF 다운로드 버튼 이벤트
     const downloadBtn = document.getElementById('detail-download');
-    if(downloadBtn) {
-        downloadBtn.addEventListener('click', function() {
+    if (downloadBtn) {
+        downloadBtn.onclick = function() {
             alert('PDF 다운로드 기능은 현재 개발 중입니다.');
-        });
+        };
     }
 }
 

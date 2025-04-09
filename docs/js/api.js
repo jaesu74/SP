@@ -12,86 +12,7 @@ const apiState = {
     error: null
 };
 
-// 모의 데이터
-const mockData = [
-    {
-        id: '1',
-        name: '김정은',
-        type: '개인',
-        country: 'NK',
-        programs: ['UN_SANCTIONS', 'US_SANCTIONS', 'EU_SANCTIONS'],
-        details: {
-            aliases: ['KIM, Jong Un', 'KIM, Jong-un', '김정은'],
-            addresses: ['평양, 북한'],
-            identifications: [
-                { type: '여권', number: 'NK123456' }
-            ],
-            relatedSanctions: [
-                { name: '조선노동당', type: '단체' }
-            ]
-        }
-    },
-    {
-        id: '2',
-        name: '조선노동당',
-        type: '단체',
-        country: 'NK',
-        programs: ['UN_SANCTIONS', 'US_SANCTIONS'],
-        details: {
-            aliases: ['Workers Party of Korea', 'KWP'],
-            addresses: ['평양, 북한'],
-            identifications: [],
-            relatedSanctions: [
-                { name: '김정은', type: '개인' }
-            ]
-        }
-    },
-    {
-        id: '3',
-        name: '블라디미르 푸틴',
-        type: '개인',
-        country: 'RU',
-        programs: ['US_SANCTIONS', 'EU_SANCTIONS'],
-        details: {
-            aliases: ['Vladimir Putin', 'Putin, Vladimir'],
-            addresses: ['모스크바, 러시아'],
-            identifications: [
-                { type: '여권', number: 'RU789012' }
-            ],
-            relatedSanctions: [
-                { name: '러시아 국방부', type: '단체' }
-            ]
-        }
-    },
-    {
-        id: '4',
-        name: '이란 혁명수비대',
-        type: '단체',
-        country: 'IR',
-        programs: ['US_SANCTIONS'],
-        details: {
-            aliases: ['IRGC', 'Islamic Revolutionary Guard Corps'],
-            addresses: ['테헤란, 이란'],
-            identifications: [],
-            relatedSanctions: []
-        }
-    },
-    {
-        id: '5',
-        name: '바샤르 알 아사드',
-        type: '개인',
-        country: 'SY',
-        programs: ['EU_SANCTIONS', 'US_SANCTIONS'],
-        details: {
-            aliases: ['Bashar al-Assad', 'Assad, Bashar'],
-            addresses: ['다마스쿠스, 시리아'],
-            identifications: [
-                { type: '여권', number: 'SY456789' }
-            ],
-            relatedSanctions: []
-        }
-    }
-];
+// 모의 데이터 제거
 
 /**
  * 제재 데이터를 가져옵니다.
@@ -101,7 +22,7 @@ const mockData = [
 async function fetchSanctionsData(forceRefresh = false) {
     // 이미 로딩 중이면 기존 데이터 반환
     if (apiState.isLoading) {
-        return apiState.sanctions || mockData;
+        return apiState.sanctions || [];
     }
     
     // 캐시된 데이터가 있고 30분 이내라면 캐시 사용
@@ -150,10 +71,11 @@ async function fetchSanctionsData(forceRefresh = false) {
             }
         }
         
-        // 제재 데이터가 없으면 모의 데이터 사용
+        // 제재 데이터가 없으면 빈 배열 반환
         if (sanctionsData.length === 0) {
-            console.warn('실제 제재 데이터를 로드할 수 없어 모의 데이터를 사용합니다.');
-            sanctionsData = mockData;
+            console.warn('제재 데이터를 로드할 수 없습니다.');
+            showAlert('제재 데이터를 불러올 수 없습니다. 관리자에게 문의하세요.', 'error');
+            return [];
         }
         
         apiState.sanctions = sanctionsData;
@@ -167,7 +89,8 @@ async function fetchSanctionsData(forceRefresh = false) {
     } catch (error) {
         console.error('제재 데이터 로드 오류:', error);
         apiState.error = error.message;
-        return mockData;
+        showAlert('제재 데이터를 불러오는 도중 오류가 발생했습니다.', 'error');
+        return [];
     } finally {
         apiState.isLoading = false;
     }
