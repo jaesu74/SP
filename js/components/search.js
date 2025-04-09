@@ -259,9 +259,13 @@ function displaySearchResults(searchResult) {
     resultCount.textContent = `총 ${results.length}개의 결과`;
     resultsContainer.appendChild(resultCount);
     
-    // 결과 그리드
+    // 결과 그리드 생성 - 확실하게 그리드 레이아웃 적용
     const resultGrid = document.createElement('div');
     resultGrid.className = 'result-grid';
+    resultGrid.style.display = 'grid';
+    resultGrid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+    resultGrid.style.gap = '20px';
+    resultGrid.style.width = '100%';
     
     // 결과 항목 생성
     results.forEach(item => {
