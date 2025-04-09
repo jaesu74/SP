@@ -22,12 +22,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip list
 
       - name: Update sanctions data
         run: |
           mkdir -p docs/data
+          ls -la
+          echo "Running sanctions collector..."
           python sanctions_collector.py
-          cp -f docs/data/*.json docs/data/ || true
+          echo "Collector execution completed"
+          ls -la docs/data
           
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
