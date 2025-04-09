@@ -1456,57 +1456,14 @@ function setupAutocomplete() {
  * 고급 검색 관련 이벤트 핸들러와 기능을 설정합니다.
  */
 function setupAdvancedSearch() {
-    console.log('고급 검색 설정...');
+    const advancedSearchBtn = document.getElementById('advanced-search-btn');
+    const advancedSearchPanel = document.getElementById('advanced-search-panel');
     
-    // 고급 검색 토글 버튼
-    const advancedButton = document.getElementById('advanced-search-button');
-    const advancedOptions = document.getElementById('advanced-search-options');
-    
-    if (advancedButton && advancedOptions) {
-        advancedButton.addEventListener('click', function() {
-            advancedOptions.classList.toggle('show');
-            
-            // 화살표 아이콘 방향 변경
-            const icon = this.querySelector('i');
-            if (icon) {
-                if (advancedOptions.classList.contains('show')) {
-                    icon.classList.remove('fa-chevron-down');
-                    icon.classList.add('fa-chevron-up');
-                } else {
-                    icon.classList.remove('fa-chevron-up');
-                    icon.classList.add('fa-chevron-down');
-                }
-            }
+    if (advancedSearchBtn && advancedSearchPanel) {
+        advancedSearchBtn.addEventListener('click', () => {
+            advancedSearchPanel.classList.toggle('show');
         });
     }
-    
-    // 필터 옵션 이벤트 리스너
-    document.querySelectorAll('.filter-option').forEach(option => {
-        option.addEventListener('click', function() {
-            this.classList.toggle('selected');
-            updateFilterDisplay();
-        });
-    });
-    
-    // 날짜 필터 설정
-    const startDateInput = document.getElementById('start-date');
-    const endDateInput = document.getElementById('end-date');
-    
-    if (startDateInput && endDateInput) {
-        // 오늘 날짜를 기본 종료일로 설정
-        const today = new Date();
-        const lastYear = new Date();
-        lastYear.setFullYear(today.getFullYear() - 1);
-        
-        startDateInput.valueAsDate = lastYear;
-        endDateInput.valueAsDate = today;
-        
-        // 날짜 변경 이벤트
-        startDateInput.addEventListener('change', updateFilterDisplay);
-        endDateInput.addEventListener('change', updateFilterDisplay);
-    }
-    
-    console.log('고급 검색 설정 완료');
 }
 
 /**

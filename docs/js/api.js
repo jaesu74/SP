@@ -365,7 +365,7 @@ function getSuggestedSearchTerms(query) {
 }
 
 // API 함수 내보내기
-export {
+window.SanctionsAPI = {
     fetchSanctionsData,
     searchSanctions,
     getSanctionDetails,
