@@ -136,7 +136,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: url('images/texture.jpg');
+    background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.1"/></svg>');
     background-size: cover;
     opacity: 0.1;
     z-index: -1;
@@ -287,9 +287,10 @@
     width: 100%;
     height: 100%;
     pointer-events: none;
-    background-image: url('../img/textures/paper-texture.png');
-    opacity: 0.15;
+    background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><filter id="paper"><feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="5" /><feDisplacementMap in="SourceGraphic" scale="5" /></filter><rect width="100%" height="100%" filter="url(%23paper)" fill="white" opacity="0.1"/></svg>');
+    opacity: 0.1;
     z-index: -1;
+    mix-blend-mode: multiply;
 }
 
 /* 맥시멀리즘 컨테이너 스타일 */
@@ -308,9 +309,9 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: url('../img/textures/subtle-pattern.png');
-    background-size: 200px;
-    opacity: 0.1;
+    background-image: url('data:image/svg+xml;utf8,<svg width="60" height="60" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="60" fill="none"/><path d="M0 0 L10 10 M20 20 L30 30 M40 40 L50 50" stroke="black" stroke-width="0.5" opacity="0.05"/></svg>');
+    background-size: 60px 60px;
+    opacity: 0.05;
     z-index: 0;
     pointer-events: none;
 }
@@ -1015,4 +1016,43 @@
     background-size: 10px 10px;
     opacity: 0.3;
     z-index: 0;
+}
+
+/* 종이 텍스처 */
+.paper-texture {
+    position: relative;
+    overflow: hidden;
+}
+
+.paper-texture::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><filter id="paper"><feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="5" /><feDisplacementMap in="SourceGraphic" scale="5" /></filter><rect width="100%" height="100%" filter="url(%23paper)" fill="white" opacity="0.1"/></svg>');
+    background-size: 200px 200px;
+    opacity: 0.1;
+    z-index: -1;
+    mix-blend-mode: multiply;
+}
+
+/* 미묘한 패턴 배경 */
+.subtle-pattern {
+    position: relative;
+    overflow: hidden;
+}
+
+.subtle-pattern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('data:image/svg+xml;utf8,<svg width="60" height="60" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="60" fill="none"/><path d="M0 0 L10 10 M20 20 L30 30 M40 40 L50 50" stroke="black" stroke-width="0.5" opacity="0.05"/></svg>');
+    background-size: 60px 60px;
+    opacity: 0.05;
+    z-index: -1;
 } 

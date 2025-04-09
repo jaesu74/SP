@@ -120,7 +120,7 @@ export async function showDetail(id) {
         }
         
         // 상세 정보 표시
-        renderDetailContent(item);
+        renderDetailContent(modalBody, item);
         
     } catch (error) {
         console.error('상세 정보 로드 오류:', error);
@@ -139,260 +139,314 @@ export async function showDetail(id) {
 export function hideDetail() {
     if (modalOverlay) modalOverlay.style.display = 'none';
     if (detailModal) detailModal.style.display = 'none';
+    
+    // 기존 detail-modal 클래스의 요소 모두 제거
+    const existingModals = document.querySelectorAll('.detail-modal');
+    existingModals.forEach(modal => {
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    });
 }
 
 /**
  * 상세 정보 내용 렌더링
+ * @param {HTMLElement} container 내용을 표시할 컨테이너
  * @param {Object} item 제재 대상 정보
  */
-function renderDetailContent(item) {
-    // Format the listing date if available
-    let formattedDate = 'Unknown';
+function renderDetailContent(container, item) {
+    // 등재일 형식화
+    let formattedDate = '알 수 없음';
     if (item.date_listed) {
         const date = new Date(item.date_listed);
-        formattedDate = date.toLocaleDateString('ko-KR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
+        if (!isNaN(date.getTime())) {
+            formattedDate = date.toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        } else {
+            formattedDate = item.date_listed;
+        }
     }
 
-    // Set the appropriate type class
+    // 타입별 클래스 설정
     let typeClass = 'unknown';
-    let typeText = 'Unknown';
+    let typeText = '알 수 없음';
     
     if (item.type) {
         const type = item.type.toLowerCase();
-        if (type === 'individual') {
+        if (type === 'individual' || type === '개인') {
             typeClass = 'individual';
-            typeText = 'Individual';
-        } else if (type === 'entity') {
+            typeText = '개인';
+        } else if (type === 'entity' || type === '단체') {
             typeClass = 'entity';
-            typeText = 'Entity';
-        } else if (type === 'vessel') {
+            typeText = '단체';
+        } else if (type === 'vessel' || type === '선박') {
             typeClass = 'vessel';
-            typeText = 'Vessel';
-        } else if (type === 'aircraft') {
+            typeText = '선박';
+        } else if (type === 'aircraft' || type === '항공기') {
             typeClass = 'aircraft';
-            typeText = 'Aircraft';
+            typeText = '항공기';
+        } else {
+            typeText = item.type;
         }
     }
 
-    // Create detail HTML content
-    let detailHTML = `
-        <div class="detail-modal">
-            <div class="detail-close"></div>
-            <div class="detail-container">
-                <div class="detail-header">
-                    <div class="detail-name-container">
-                        <h2>${item.name || 'Unknown Name'}</h2>
-                        <span class="detail-type ${typeClass}">${typeText}</span>
-                    </div>
-                    <div class="detail-meta">
-                        <p><strong>Country:</strong> ${item.country || 'Unknown'}</p>
-                        <p><strong>Listed Date:</strong> ${formattedDate}</p>
-                        <p><strong>Source:</strong> ${item.source || 'Unknown'}</p>
-                        <p><strong>Program:</strong> ${item.program || 'N/A'}</p>
-                    </div>
-                </div>
-                <div class="detail-content">
-                    ${item.reason ? `
-                    <div class="detail-section">
-                        <h3>Reason for Listing</h3>
-                        <p>${item.reason}</p>
-                    </div>
-                    ` : ''}
-                    
-                    ${item.aliases && item.aliases.length > 0 ? `
-                    <div class="detail-section">
-                        <h3>Also Known As</h3>
-                        <ul class="detail-list">
-                            ${item.aliases.map(alias => `<li>${alias}</li>`).join('')}
-                        </ul>
-                    </div>
-                    ` : ''}
-                    
-                    ${item.nationalities && item.nationalities.length > 0 ? `
-                    <div class="detail-section">
-                        <h3>Nationalities</h3>
-                        <ul class="detail-list">
-                            ${item.nationalities.map(nationality => `<li>${nationality}</li>`).join('')}
-                        </ul>
-                    </div>
-                    ` : ''}
-                    
-                    ${item.addresses && item.addresses.length > 0 ? `
-                    <div class="detail-section">
-                        <h3>Addresses</h3>
-                        <ul class="detail-list">
-                            ${item.addresses.map(address => `<li>${address}</li>`).join('')}
-                        </ul>
-                    </div>
-                    ` : ''}
-                    
-                    ${item.identifications && item.identifications.length > 0 ? `
-                    <div class="detail-section">
-                        <h3>Identification</h3>
-                        <table class="detail-table">
-                            <thead>
-                                <tr>
-                                    <th>Type</th>
-                                    <th>Number</th>
-                                    <th>Country</th>
-                                    <th>Additional Info</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${item.identifications.map(id => `
-                                <tr>
-                                    <td>${id.type || 'N/A'}</td>
-                                    <td>${id.number || 'N/A'}</td>
-                                    <td>${id.country || 'N/A'}</td>
-                                    <td>${id.additional_info || 'N/A'}</td>
-                                </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                    ` : ''}
-                </div>
-                <div class="detail-actions">
-                    <button class="btn btn-secondary detail-close-btn">Close</button>
-                    <button class="btn btn-primary detail-pdf-btn">Download PDF</button>
-                </div>
+    // HTML 내용 생성
+    const detailContent = `
+        <div class="detail-header">
+            <div class="detail-name-container">
+                <h2>${item.name || '이름 없음'}</h2>
+                <span class="detail-type ${typeClass}">${typeText}</span>
+            </div>
+            <div class="detail-meta">
+                <p><strong>국가:</strong> ${item.country || '알 수 없음'}</p>
+                <p><strong>등재일:</strong> ${formattedDate}</p>
+                <p><strong>출처:</strong> ${item.source || '알 수 없음'}</p>
+                ${item.program ? `<p><strong>프로그램:</strong> ${item.program}</p>` : ''}
             </div>
         </div>
+        <div class="detail-content">
+            ${item.reason ? `
+            <div class="detail-section">
+                <h3>제재 사유</h3>
+                <p>${item.reason}</p>
+            </div>
+            ` : ''}
+            
+            ${item.aliases && item.aliases.length > 0 ? `
+            <div class="detail-section">
+                <h3>별칭</h3>
+                <ul class="detail-list">
+                    ${item.aliases.map(alias => `<li>${alias}</li>`).join('')}
+                </ul>
+            </div>
+            ` : ''}
+            
+            ${item.nationalities && item.nationalities.length > 0 ? `
+            <div class="detail-section">
+                <h3>국적</h3>
+                <ul class="detail-list">
+                    ${item.nationalities.map(nationality => `<li>${nationality}</li>`).join('')}
+                </ul>
+            </div>
+            ` : ''}
+            
+            ${item.addresses && item.addresses.length > 0 ? `
+            <div class="detail-section">
+                <h3>주소</h3>
+                <ul class="detail-list">
+                    ${item.addresses.map(address => `<li>${address}</li>`).join('')}
+                </ul>
+            </div>
+            ` : ''}
+            
+            ${item.identifications && item.identifications.length > 0 ? `
+            <div class="detail-section">
+                <h3>신원 정보</h3>
+                <table class="detail-table">
+                    <thead>
+                        <tr>
+                            <th>유형</th>
+                            <th>번호</th>
+                            <th>발급국</th>
+                            <th>추가 정보</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${item.identifications.map(id => `
+                        <tr>
+                            <td>${id.type || '알 수 없음'}</td>
+                            <td>${id.number || '알 수 없음'}</td>
+                            <td>${id.country || '알 수 없음'}</td>
+                            <td>${id.additional_info || '-'}</td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            ` : ''}
+        </div>
+        <div class="detail-actions">
+            <button id="download-pdf-btn" class="btn btn-primary">PDF 다운로드</button>
+            <button id="close-detail-btn" class="btn btn-secondary">닫기</button>
+        </div>
     `;
-
-    // Add to document and set up event listeners
-    document.body.insertAdjacentHTML('beforeend', detailHTML);
     
-    // Set up event listeners for close button and background click
-    const modal = document.querySelector('.detail-modal');
-    const closeBtn = document.querySelector('.detail-close');
-    const closeBtnAction = document.querySelector('.detail-close-btn');
-    const pdfBtn = document.querySelector('.detail-pdf-btn');
+    // 내용 설정
+    container.innerHTML = detailContent;
     
-    // Show modal with animation
-    setTimeout(() => {
-        modal.classList.add('active');
-    }, 10);
-    
-    // Close modal function
-    const closeModal = () => {
-        modal.classList.remove('active');
-        setTimeout(() => {
-            modal.remove();
-        }, 300);
-    };
-    
-    closeBtn.addEventListener('click', closeModal);
-    closeBtnAction.addEventListener('click', closeModal);
-    
-    // Close when clicking outside the container
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            closeModal();
-        }
-    });
-    
-    // PDF generation and download
-    pdfBtn.addEventListener('click', () => {
+    // 버튼 이벤트 리스너 추가
+    container.querySelector('#close-detail-btn').addEventListener('click', hideDetail);
+    container.querySelector('#download-pdf-btn').addEventListener('click', () => {
         generatePDF(item);
     });
 }
 
+/**
+ * PDF 생성 및 다운로드
+ * @param {Object} item 제재 대상 정보
+ */
 function generatePDF(item) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    // Set font
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.setTextColor(69, 39, 160); // Purple color
-    
-    // Title
-    doc.text('Sanctions Data', 105, 15, { align: 'center' });
-    
-    // Entity/Individual Info
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(0, 0, 0);
-    doc.text(item.name || 'Unknown Name', 105, 30, { align: 'center' });
-    
-    // Add type badge
-    doc.setFillColor(92, 107, 192); // Blue color for visual distinction
-    doc.roundedRect(85, 35, 40, 8, 2, 2, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(255, 255, 255);
-    doc.text(item.type || 'Unknown Type', 105, 40, { align: 'center' });
-    
-    // Basic information
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
-    
-    let yPos = 55;
-    
-    // Format date
-    let formattedDate = 'Unknown';
-    if (item.date_listed) {
-        const date = new Date(item.date_listed);
-        formattedDate = date.toLocaleDateString('ko-KR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    }
-    
-    // Add metadata
-    doc.setFont('helvetica', 'bold');
-    doc.text('Basic Information', 20, yPos);
-    yPos += 10;
-    
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Country: ${item.country || 'Unknown'}`, 25, yPos);
-    yPos += 8;
-    doc.text(`Listed Date: ${formattedDate}`, 25, yPos);
-    yPos += 8;
-    doc.text(`Source: ${item.source || 'Unknown'}`, 25, yPos);
-    yPos += 8;
-    doc.text(`Program: ${item.program || 'N/A'}`, 25, yPos);
-    yPos += 15;
-    
-    // Add reason if available
-    if (item.reason) {
-        doc.setFont('helvetica', 'bold');
-        doc.text('Reason for Listing', 20, yPos);
-        yPos += 10;
+    try {
+        // PDF 생성 알림
+        showAlert('PDF를 생성하는 중입니다...', 'info');
         
-        doc.setFont('helvetica', 'normal');
-        const reasonLines = doc.splitTextToSize(item.reason, 170);
-        doc.text(reasonLines, 25, yPos);
-        yPos += reasonLines.length * 7 + 10;
-    }
-    
-    // Add aliases if available
-    if (item.aliases && item.aliases.length > 0) {
-        doc.setFont('helvetica', 'bold');
-        doc.text('Also Known As', 20, yPos);
-        yPos += 10;
+        // 등재일 형식화
+        let formattedDate = '알 수 없음';
+        if (item.date_listed) {
+            const date = new Date(item.date_listed);
+            if (!isNaN(date.getTime())) {
+                formattedDate = date.toLocaleDateString('ko-KR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            } else {
+                formattedDate = item.date_listed;
+            }
+        }
         
-        doc.setFont('helvetica', 'normal');
-        item.aliases.forEach(alias => {
-            doc.text(`• ${alias}`, 25, yPos);
-            yPos += 7;
-        });
-        yPos += 5;
+        // 타입별 클래스 설정
+        let typeText = '알 수 없음';
+        if (item.type) {
+            const type = item.type.toLowerCase();
+            if (type === 'individual' || type === '개인') {
+                typeText = '개인';
+            } else if (type === 'entity' || type === '단체') {
+                typeText = '단체';
+            } else if (type === 'vessel' || type === '선박') {
+                typeText = '선박';
+            } else if (type === 'aircraft' || type === '항공기') {
+                typeText = '항공기';
+            } else {
+                typeText = item.type;
+            }
+        }
+        
+        // PDF HTML 내용 생성
+        const pdfContent = `
+            <!DOCTYPE html>
+            <html lang="ko">
+            <head>
+                <meta charset="UTF-8">
+                <title>제재 정보: ${item.name}</title>
+                <style>
+                    body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; margin: 30px; }
+                    h1 { color: #333; border-bottom: 2px solid #7e57c2; padding-bottom: 10px; margin-bottom: 20px; }
+                    .type-badge { display: inline-block; background-color: #5c6bc0; color: white; padding: 5px 10px; border-radius: 4px; margin-bottom: 20px; }
+                    .info-section { margin-bottom: 30px; }
+                    .info-section h2 { color: #5e35b1; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 15px; }
+                    .info-item { margin-bottom: 10px; }
+                    .info-item strong { color: #333; font-weight: bold; display: inline-block; width: 100px; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    th { background-color: #f5f5f5; }
+                    ul { padding-left: 20px; }
+                    li { margin-bottom: 5px; }
+                    .footer { margin-top: 50px; font-size: 12px; color: #777; text-align: center; border-top: 1px solid #eee; padding-top: 20px; }
+                </style>
+            </head>
+            <body>
+                <h1>${item.name || '이름 없음'}</h1>
+                <div class="type-badge">${typeText}</div>
+                
+                <div class="info-section">
+                    <h2>기본 정보</h2>
+                    <div class="info-item"><strong>국가:</strong> ${item.country || '알 수 없음'}</div>
+                    <div class="info-item"><strong>등재일:</strong> ${formattedDate}</div>
+                    <div class="info-item"><strong>출처:</strong> ${item.source || '알 수 없음'}</div>
+                    ${item.program ? `<div class="info-item"><strong>프로그램:</strong> ${item.program}</div>` : ''}
+                </div>
+                
+                ${item.reason ? `
+                <div class="info-section">
+                    <h2>제재 사유</h2>
+                    <p>${item.reason}</p>
+                </div>
+                ` : ''}
+                
+                ${item.aliases && item.aliases.length > 0 ? `
+                <div class="info-section">
+                    <h2>별칭</h2>
+                    <ul>
+                        ${item.aliases.map(alias => `<li>${alias}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+                
+                ${item.nationalities && item.nationalities.length > 0 ? `
+                <div class="info-section">
+                    <h2>국적</h2>
+                    <ul>
+                        ${item.nationalities.map(nationality => `<li>${nationality}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+                
+                ${item.addresses && item.addresses.length > 0 ? `
+                <div class="info-section">
+                    <h2>주소</h2>
+                    <ul>
+                        ${item.addresses.map(address => `<li>${address}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+                
+                ${item.identifications && item.identifications.length > 0 ? `
+                <div class="info-section">
+                    <h2>신원 정보</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>유형</th>
+                                <th>번호</th>
+                                <th>발급국</th>
+                                <th>추가 정보</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${item.identifications.map(id => `
+                            <tr>
+                                <td>${id.type || '알 수 없음'}</td>
+                                <td>${id.number || '알 수 없음'}</td>
+                                <td>${id.country || '알 수 없음'}</td>
+                                <td>${id.additional_info || '-'}</td>
+                            </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                ` : ''}
+                
+                <div class="footer">
+                    <p>이 문서는 ${new Date().toLocaleString('ko-KR')}에 생성되었습니다.</p>
+                    <p>WVL 제재 조회 시스템에서 제공하는 정보입니다.</p>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        // HTML Blob 생성
+        const blob = new Blob([pdfContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        
+        // 다운로드 링크 생성
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `제재정보_${item.name || 'unknown'}.html`;
+        document.body.appendChild(link);
+        link.click();
+        
+        // 리소스 정리
+        setTimeout(() => {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showAlert('PDF 형식으로 다운로드되었습니다. (HTML 형식으로 저장 후 인쇄하면 PDF로 변환됩니다)', 'success');
+        }, 100);
+    } catch (error) {
+        console.error('PDF 생성 오류:', error);
+        showAlert('PDF 생성 중 오류가 발생했습니다', 'error');
     }
-    
-    // Check if we need a new page
-    if (yPos > 270) {
-        doc.addPage();
-        yPos = 20;
-    }
-    
-    // Save the PDF
-    doc.save(`sanctions-data-${item.name.replace(/\s+/g, '-').toLowerCase()}.pdf`);
 }
