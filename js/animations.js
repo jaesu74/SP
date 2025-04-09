@@ -752,16 +752,8 @@ function pageTransition(fromElement, toElement, direction = 'right') {
 // 페이지 언로드 시 이벤트 리스너 정리
 window.addEventListener('beforeunload', cleanupEventListeners);
 
-// 모듈 내보내기
-export {
-    initializeAnimations,
-    initScrollAnimations,
-    initTiltEffects,
-    initScrollTriggers,
-    initResultsAnimations,
-    setupModalAnimations,
-    setupEntryAnimations,
-    setupScrollAnimations,
+// 애니메이션 함수 내보내기
+window.Animations = {
     setupParallaxEffect,
     setupFloatingElements,
     showLoadingIndicator,
@@ -769,6 +761,5 @@ export {
     addHoverEffect,
     removeHoverEffect,
     pageTransition,
-    setupHoverEffects,
-    PERFORMANCE_CONFIG
+    setupHoverEffects
 }; 
