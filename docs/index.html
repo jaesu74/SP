@@ -86,7 +86,7 @@
                     <h2>제재 정보 검색</h2>
                     <div class="search-bar">
                         <input type="text" id="search-input" placeholder="이름, 별칭, 국가 또는 유형으로 검색...">
-                        <button id="search-button">검색</button>
+                        <button id="search-button" onclick="window.app.performSearch()">검색</button>
                     </div>
 
                     <!-- 검색 유형 선택 -->
@@ -191,28 +191,7 @@
         </div>
     </section>
 
-    <!-- 상세 정보 모달 -->
-    <!-- 
-    <div id="detail-modal" class="modal">
-        <div class="modal-content maximalist">
-            <div class="modal-header">
-                <h2>제재 대상 상세 정보</h2>
-                <button id="detail-close" class="close-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="detail-content"></div>
-            </div>
-            <div class="modal-footer">
-                <button id="detail-print" class="btn-secondary">
-                    <i class="fas fa-print"></i> 인쇄
-                </button>
-                <button id="detail-download" class="btn-secondary">
-                    <i class="fas fa-download"></i> PDF 다운로드
-                </button>
-            </div>
-        </div>
-    </div> 
-    -->
+    <!-- 상세 정보 모달은 JavaScript에서 동적으로 생성됩니다 -->
     
     <!-- 정보 모달 -->
     <div id="info-modal" class="modal">

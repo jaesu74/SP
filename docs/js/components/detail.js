@@ -13,6 +13,9 @@ let modalOverlay = null;
  * 상세 정보 컴포넌트 초기화
  */
 export function initDetailComponent() {
+    // 기존 모달 제거 (중복 방지)
+    removeExistingModals();
+    
     // 모달 요소 생성
     createModalElements();
     
@@ -21,40 +24,52 @@ export function initDetailComponent() {
 }
 
 /**
+ * 기존 모달 제거
+ */
+function removeExistingModals() {
+    // id로 찾기
+    const existingModal = document.getElementById('detail-modal');
+    if (existingModal) {
+        existingModal.parentNode.removeChild(existingModal);
+    }
+    
+    // 클래스로 찾기
+    const existingModals = document.querySelectorAll('.detail-modal');
+    existingModals.forEach(modal => {
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    });
+}
+
+/**
  * 모달 요소 생성
  */
 function createModalElements() {
-    // 이미 존재하는 모달을 찾기
-    detailModal = document.getElementById('detail-modal');
-    
-    // 모달이 없으면 생성
-    if (!detailModal) {
-        detailModal = document.createElement('div');
-        detailModal.id = 'detail-modal';
-        detailModal.className = 'modal';
-        detailModal.innerHTML = `
-            <div class="modal-content maximalist">
-                <div class="modal-header">
-                    <h2>제재 대상 상세 정보</h2>
-                    <button class="modal-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="detail-loading">
-                        <div class="spinner"></div>
-                        <p>정보를 불러오는 중...</p>
-                    </div>
+    // 모달 생성
+    detailModal = document.createElement('div');
+    detailModal.id = 'detail-modal';
+    detailModal.className = 'modal';
+    detailModal.innerHTML = `
+        <div class="modal-content maximalist">
+            <div class="modal-header">
+                <h2>제재 대상 상세 정보</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-loading">
+                    <div class="spinner"></div>
+                    <p>정보를 불러오는 중...</p>
                 </div>
             </div>
-        `;
-        document.body.appendChild(detailModal);
-    }
+        </div>
+    `;
+    document.body.appendChild(detailModal);
     
     // 모달 오버레이 생성
-    if (!modalOverlay) {
-        modalOverlay = document.createElement('div');
-        modalOverlay.className = 'modal-overlay';
-        document.body.appendChild(modalOverlay);
-    }
+    modalOverlay = document.createElement('div');
+    modalOverlay.className = 'modal-overlay';
+    document.body.appendChild(modalOverlay);
 }
 
 /**
@@ -68,7 +83,9 @@ function setupCloseEvents() {
     }
     
     // 오버레이 클릭 시 모달 닫기
-    modalOverlay.addEventListener('click', hideDetail);
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', hideDetail);
+    }
     
     // ESC 키 누르면 모달 닫기
     document.addEventListener('keydown', (e) => {
@@ -83,16 +100,24 @@ function setupCloseEvents() {
  * @param {string} id 제재 대상 ID
  */
 export async function showDetail(id) {
-    if (!detailModal) {
+    console.log('상세 정보 표시 요청:', id);
+    
+    // 초기화되지 않았으면 초기화
+    if (!detailModal || !modalOverlay) {
         initDetailComponent();
     }
     
-    // 모달 표시
-    modalOverlay.style.display = 'block';
-    detailModal.style.display = 'block';
+    // 모달 및 오버레이 표시
+    if (modalOverlay) modalOverlay.style.display = 'block';
+    if (detailModal) detailModal.style.display = 'block';
     
     // 내용 초기화
     const modalBody = detailModal.querySelector('.modal-body');
+    if (!modalBody) {
+        console.error('모달 본문을 찾을 수 없습니다.');
+        return;
+    }
+    
     modalBody.innerHTML = `
         <div class="detail-loading">
             <div class="spinner"></div>
@@ -119,6 +144,8 @@ export async function showDetail(id) {
             throw new Error('상세 정보를 찾을 수 없습니다.');
         }
         
+        console.log('상세 정보 로드 완료:', item);
+        
         // 상세 정보 표시
         renderDetailContent(modalBody, item);
         
@@ -139,14 +166,6 @@ export async function showDetail(id) {
 export function hideDetail() {
     if (modalOverlay) modalOverlay.style.display = 'none';
     if (detailModal) detailModal.style.display = 'none';
-    
-    // 기존 detail-modal 클래스의 요소 모두 제거
-    const existingModals = document.querySelectorAll('.detail-modal');
-    existingModals.forEach(modal => {
-        if (modal.parentNode) {
-            modal.parentNode.removeChild(modal);
-        }
-    });
 }
 
 /**
@@ -155,6 +174,8 @@ export function hideDetail() {
  * @param {Object} item 제재 대상 정보
  */
 function renderDetailContent(container, item) {
+    console.log('상세 정보 렌더링:', item);
+    
     // 데이터 구조 분석 및 깊은 추출
     const details = item.details || {};
     const birthDate = details.birthDate || item.birthDate || '';
