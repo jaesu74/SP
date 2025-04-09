@@ -9,9 +9,13 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          persist-credentials: false
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -70,6 +74,8 @@ jobs:
         with:
           folder: docs
           branch: gh-pages
+          token: ${{ secrets.GITHUB_TOKEN }}
+          clean: true
           
       - name: Send notification on failure
         if: failure()
