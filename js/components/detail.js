@@ -13,6 +13,9 @@ let modalOverlay = null;
  * 상세 정보 컴포넌트 초기화
  */
 export function initDetailComponent() {
+    // 기존 모달 제거 (중복 방지)
+    removeExistingModals();
+    
     // 모달 요소 생성
     createModalElements();
     
@@ -21,40 +24,52 @@ export function initDetailComponent() {
 }
 
 /**
+ * 기존 모달 제거
+ */
+function removeExistingModals() {
+    // id로 찾기
+    const existingModal = document.getElementById('detail-modal');
+    if (existingModal) {
+        existingModal.parentNode.removeChild(existingModal);
+    }
+    
+    // 클래스로 찾기
+    const existingModals = document.querySelectorAll('.detail-modal');
+    existingModals.forEach(modal => {
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    });
+}
+
+/**
  * 모달 요소 생성
  */
 function createModalElements() {
-    // 이미 존재하는 모달을 찾기
-    detailModal = document.getElementById('detail-modal');
-    
-    // 모달이 없으면 생성
-    if (!detailModal) {
-        detailModal = document.createElement('div');
-        detailModal.id = 'detail-modal';
-        detailModal.className = 'modal';
-        detailModal.innerHTML = `
-            <div class="modal-content maximalist">
-                <div class="modal-header">
-                    <h2>제재 대상 상세 정보</h2>
-                    <button class="modal-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="detail-loading">
-                        <div class="spinner"></div>
-                        <p>정보를 불러오는 중...</p>
-                    </div>
+    // 모달 생성
+    detailModal = document.createElement('div');
+    detailModal.id = 'detail-modal';
+    detailModal.className = 'modal';
+    detailModal.innerHTML = `
+        <div class="modal-content maximalist">
+            <div class="modal-header">
+                <h2>제재 대상 상세 정보</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-loading">
+                    <div class="spinner"></div>
+                    <p>정보를 불러오는 중...</p>
                 </div>
             </div>
-        `;
-        document.body.appendChild(detailModal);
-    }
+        </div>
+    `;
+    document.body.appendChild(detailModal);
     
     // 모달 오버레이 생성
-    if (!modalOverlay) {
-        modalOverlay = document.createElement('div');
-        modalOverlay.className = 'modal-overlay';
-        document.body.appendChild(modalOverlay);
-    }
+    modalOverlay = document.createElement('div');
+    modalOverlay.className = 'modal-overlay';
+    document.body.appendChild(modalOverlay);
 }
 
 /**
@@ -68,7 +83,9 @@ function setupCloseEvents() {
     }
     
     // 오버레이 클릭 시 모달 닫기
-    modalOverlay.addEventListener('click', hideDetail);
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', hideDetail);
+    }
     
     // ESC 키 누르면 모달 닫기
     document.addEventListener('keydown', (e) => {
@@ -83,16 +100,24 @@ function setupCloseEvents() {
  * @param {string} id 제재 대상 ID
  */
 export async function showDetail(id) {
-    if (!detailModal) {
+    console.log('상세 정보 표시 요청:', id);
+    
+    // 초기화되지 않았으면 초기화
+    if (!detailModal || !modalOverlay) {
         initDetailComponent();
     }
     
-    // 모달 표시
-    modalOverlay.style.display = 'block';
-    detailModal.style.display = 'block';
+    // 모달 및 오버레이 표시
+    if (modalOverlay) modalOverlay.style.display = 'block';
+    if (detailModal) detailModal.style.display = 'block';
     
     // 내용 초기화
     const modalBody = detailModal.querySelector('.modal-body');
+    if (!modalBody) {
+        console.error('모달 본문을 찾을 수 없습니다.');
+        return;
+    }
+    
     modalBody.innerHTML = `
         <div class="detail-loading">
             <div class="spinner"></div>
@@ -118,6 +143,8 @@ export async function showDetail(id) {
         if (!item) {
             throw new Error('상세 정보를 찾을 수 없습니다.');
         }
+        
+        console.log('상세 정보 로드 완료:', item);
         
         // 상세 정보 표시
         renderDetailContent(modalBody, item);
@@ -147,172 +174,216 @@ export function hideDetail() {
  * @param {Object} item 제재 대상 정보
  */
 function renderDetailContent(container, item) {
-    // 기본 정보
-    const mainInfo = `
+    console.log('상세 정보 렌더링:', item);
+    
+    // 데이터 구조 분석 및 깊은 추출
+    const details = item.details || {};
+    const birthDate = details.birthDate || item.birthDate || '';
+    const aliases = details.aliases || item.aliases || [];
+    const addresses = details.addresses || item.addresses || [];
+    const nationalities = details.nationalities || item.nationalities || [];
+    const identifications = details.identifications || item.identifications || [];
+    const sanctions = details.sanctions || [];
+    const reason = sanctions.length > 0 ? (sanctions[0].reason || '') : (item.reason || '');
+    
+    // 프로그램 정보 추출
+    const programs = Array.isArray(item.programs) ? item.programs : 
+                     (item.program ? [item.program] : []);
+    
+    // 등재일 형식화
+    let formattedDate = '알 수 없음';
+    if (item.date_listed) {
+        const date = new Date(item.date_listed);
+        if (!isNaN(date.getTime())) {
+            formattedDate = date.toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        } else {
+            formattedDate = item.date_listed;
+        }
+    } else if (sanctions.length > 0 && sanctions[0].startDate) {
+        const date = new Date(sanctions[0].startDate);
+        if (!isNaN(date.getTime())) {
+            formattedDate = date.toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        } else {
+            formattedDate = sanctions[0].startDate;
+        }
+    }
+
+    // 타입별 클래스 설정
+    let typeClass = 'unknown';
+    let typeText = '알 수 없음';
+    
+    if (item.type) {
+        const type = item.type.toLowerCase();
+        if (type === 'individual' || type === '개인') {
+            typeClass = 'individual';
+            typeText = '개인';
+        } else if (type === 'entity' || type === '단체') {
+            typeClass = 'entity';
+            typeText = '단체';
+        } else if (type === 'vessel' || type === '선박') {
+            typeClass = 'vessel';
+            typeText = '선박';
+        } else if (type === 'aircraft' || type === '항공기') {
+            typeClass = 'aircraft';
+            typeText = '항공기';
+        } else {
+            typeText = item.type;
+        }
+    }
+
+    // 출처 정보 처리
+    let sourceInfo = item.source || '알 수 없음';
+    if (sourceInfo === 'UN') sourceInfo = '유엔(UN)';
+    else if (sourceInfo === 'EU') sourceInfo = '유럽연합(EU)';
+    else if (sourceInfo === 'US') sourceInfo = '미국(US/OFAC)';
+
+    // 프로그램 정보 처리
+    const programInfo = programs.map(p => {
+        if (p === 'DPRK') return '북한 제재';
+        if (p === 'RUSSIA') return '러시아 제재';
+        if (p === 'IRAN') return '이란 제재';
+        if (p === 'SYRIA') return '시리아 제재';
+        return p;
+    }).join(', ');
+
+    // HTML 내용 생성
+    const detailContent = `
         <div class="detail-header">
             <div class="detail-name-container">
                 <h2>${item.name || '이름 없음'}</h2>
-                <span class="detail-type ${item.type.toLowerCase()}">${item.type}</span>
+                <span class="detail-type ${typeClass}">${typeText}</span>
             </div>
             <div class="detail-meta">
-                <p><strong>국가:</strong> ${item.country || '국가 미상'}</p>
-                <p><strong>등재일:</strong> ${formatDetailDate(item.date_listed)}</p>
-                <p><strong>출처:</strong> ${item.source || '출처 미상'}</p>
-                ${item.programs && item.programs.length > 0 ? 
-                    `<p><strong>제재 프로그램:</strong> ${item.programs.join(', ')}</p>` : 
-                    ''}
+                <p><strong>국가:</strong> ${item.country || '알 수 없음'}</p>
+                <p><strong>등재일:</strong> ${formattedDate}</p>
+                <p><strong>출처:</strong> ${sourceInfo}</p>
+                ${programInfo ? `<p><strong>제재 프로그램:</strong> ${programInfo}</p>` : ''}
+                ${item.matchScore ? `<p><strong>일치도:</strong> ${item.matchScore}%</p>` : ''}
             </div>
         </div>
-    `;
-    
-    // 추가 상세 정보
-    let additionalInfo = '';
-    
-    if (item.details) {
-        const details = item.details;
-        
-        // 별칭 정보
-        if (details.aliases && details.aliases.length > 0) {
-            additionalInfo += `
-                <div class="detail-section">
-                    <h3>별칭</h3>
-                    <ul class="detail-list">
-                        ${details.aliases.map(alias => `<li>${alias}</li>`).join('')}
-                    </ul>
-                </div>
-            `;
-        }
-        
-        // 국적 정보
-        if (details.nationalities && details.nationalities.length > 0) {
-            additionalInfo += `
-                <div class="detail-section">
-                    <h3>국적</h3>
-                    <ul class="detail-list">
-                        ${details.nationalities.map(nationality => `<li>${nationality}</li>`).join('')}
-                    </ul>
-                </div>
-            `;
-        }
-        
-        // 주소 정보
-        if (details.addresses && details.addresses.length > 0) {
-            additionalInfo += `
-                <div class="detail-section">
-                    <h3>주소</h3>
-                    <ul class="detail-list">
-                        ${details.addresses.map(address => `<li>${address}</li>`).join('')}
-                    </ul>
-                </div>
-            `;
-        }
-        
-        // 식별 정보
-        if (details.identifications && details.identifications.length > 0) {
-            additionalInfo += `
-                <div class="detail-section">
-                    <h3>식별 정보</h3>
-                    <table class="detail-table">
-                        <thead>
-                            <tr>
-                                <th>유형</th>
-                                <th>번호</th>
-                                <th>비고</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${details.identifications.map(id => `
-                                <tr>
-                                    <td>${id.type || '유형 미상'}</td>
-                                    <td>${id.number || '번호 미상'}</td>
-                                    <td>${id.note || ''}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        }
-    }
-    
-    // 내용 설정
-    container.innerHTML = `
-        ${mainInfo}
         <div class="detail-content">
-            ${additionalInfo || '<p>추가 정보가 없습니다.</p>'}
+            ${birthDate ? `
+            <div class="detail-section">
+                <h3>생년월일</h3>
+                <p>${birthDate}</p>
+            </div>
+            ` : ''}
+
+            ${reason ? `
+            <div class="detail-section">
+                <h3>제재 사유</h3>
+                <p>${reason}</p>
+            </div>
+            ` : ''}
+            
+            ${sanctions.length > 0 ? `
+            <div class="detail-section">
+                <h3>제재 정보</h3>
+                <table class="detail-table">
+                    <thead>
+                        <tr>
+                            <th>프로그램</th>
+                            <th>시작일</th>
+                            <th>종료일</th>
+                            <th>사유</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sanctions.map(sanction => `
+                        <tr>
+                            <td>${sanction.program || '-'}</td>
+                            <td>${sanction.startDate ? new Date(sanction.startDate).toLocaleDateString('ko-KR') : '-'}</td>
+                            <td>${sanction.endDate ? new Date(sanction.endDate).toLocaleDateString('ko-KR') : '진행중'}</td>
+                            <td>${sanction.reason || '-'}</td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            ` : ''}
+            
+            ${aliases && aliases.length > 0 ? `
+            <div class="detail-section">
+                <h3>별칭</h3>
+                <ul class="detail-list">
+                    ${aliases.map(alias => `<li>${alias}</li>`).join('')}
+                </ul>
+            </div>
+            ` : ''}
+            
+            ${nationalities && nationalities.length > 0 ? `
+            <div class="detail-section">
+                <h3>국적</h3>
+                <ul class="detail-list">
+                    ${nationalities.map(nationality => `<li>${nationality}</li>`).join('')}
+                </ul>
+            </div>
+            ` : ''}
+            
+            ${addresses && addresses.length > 0 ? `
+            <div class="detail-section">
+                <h3>주소</h3>
+                <ul class="detail-list">
+                    ${addresses.map(address => `<li>${address}</li>`).join('')}
+                </ul>
+            </div>
+            ` : ''}
+            
+            ${identifications && identifications.length > 0 ? `
+            <div class="detail-section">
+                <h3>신원 정보</h3>
+                <table class="detail-table">
+                    <thead>
+                        <tr>
+                            <th>유형</th>
+                            <th>번호</th>
+                            <th>발급국</th>
+                            <th>추가 정보</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${identifications.map(id => `
+                        <tr>
+                            <td>${id.type || '알 수 없음'}</td>
+                            <td>${id.number || '알 수 없음'}</td>
+                            <td>${id.country || '알 수 없음'}</td>
+                            <td>${id.additional_info || '-'}</td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            ` : ''}
+
+            ${item.vessel_info ? `
+            <div class="detail-section">
+                <h3>선박 정보</h3>
+                <table class="detail-table simple">
+                    ${item.vessel_info.imo_number ? `<tr><td>IMO 번호</td><td>${item.vessel_info.imo_number}</td></tr>` : ''}
+                    ${item.vessel_info.call_sign ? `<tr><td>호출 부호</td><td>${item.vessel_info.call_sign}</td></tr>` : ''}
+                    ${item.vessel_info.vessel_type ? `<tr><td>선박 유형</td><td>${item.vessel_info.vessel_type}</td></tr>` : ''}
+                    ${item.vessel_info.flag ? `<tr><td>국적기</td><td>${item.vessel_info.flag}</td></tr>` : ''}
+                    ${item.vessel_info.tonnage ? `<tr><td>톤수</td><td>${item.vessel_info.tonnage}</td></tr>` : ''}
+                </table>
+            </div>
+            ` : ''}
         </div>
         <div class="detail-actions">
-            <button class="btn-primary" id="detail-export">내보내기</button>
-            <button class="btn-secondary" id="detail-report">신고하기</button>
+            <button id="close-detail-btn" class="btn btn-secondary">닫기</button>
         </div>
     `;
     
-    // 내보내기 버튼 이벤트
-    const exportButton = container.querySelector('#detail-export');
-    if (exportButton) {
-        exportButton.addEventListener('click', () => {
-            exportSanctionData(item);
-        });
-    }
+    // 내용 설정
+    container.innerHTML = detailContent;
     
-    // 신고하기 버튼 이벤트
-    const reportButton = container.querySelector('#detail-report');
-    if (reportButton) {
-        reportButton.addEventListener('click', () => {
-            showAlert('신고 기능은 현재 준비 중입니다.', 'info');
-        });
-    }
-}
-
-/**
- * 상세 정보용 날짜 형식 변환
- * @param {string} dateStr ISO 날짜 문자열
- * @returns {string} 형식화된 날짜 문자열
- */
-function formatDetailDate(dateStr) {
-    if (!dateStr) return '날짜 정보 없음';
-    
-    try {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('ko-KR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    } catch (e) {
-        return dateStr;
-    }
-}
-
-/**
- * 제재 데이터 내보내기
- * @param {Object} item 제재 대상 정보
- */
-function exportSanctionData(item) {
-    try {
-        // JSON 형식으로 변환
-        const dataStr = JSON.stringify(item, null, 2);
-        
-        // Blob 생성
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        
-        // 다운로드 링크 생성
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `sanction_${item.id}.json`;
-        
-        // 클릭 이벤트 발생
-        document.body.appendChild(link);
-        link.click();
-        
-        // 정리
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        showAlert('제재 데이터가 성공적으로 내보내졌습니다.', 'success');
-    } catch (error) {
-        console.error('데이터 내보내기 오류:', error);
-        showAlert('데이터 내보내기 중 오류가 발생했습니다.', 'error');
-    }
+    // 버튼 이벤트 리스너 추가
+    container.querySelector('#close-detail-btn').addEventListener('click', hideDetail);
 } 

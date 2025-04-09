@@ -1842,4 +1842,41 @@ body.modal-open {
   color: #333;
   line-height: 1.6;
   font-size: 15px;
+}
+
+/* 검색 결과 그리드 레이아웃 - 강제 적용 */
+#results-container {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 20px !important;
+    margin-top: 20px !important;
+    width: 100% !important;
+}
+
+.result-item {
+    background-color: #fff !important;
+    border-radius: 8px !important;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08) !important;
+    padding: 15px !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.result-item:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* 모바일 대응 - 강제 적용 */
+@media (max-width: 992px) {
+    #results-container {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+@media (max-width: 768px) {
+    #results-container {
+        grid-template-columns: 1fr !important;
+    }
 } 
