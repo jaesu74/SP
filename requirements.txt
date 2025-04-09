@@ -1,4 +1,4 @@
-# 글로벌 의존성
+# Global dependencies
 requests>=2.28.0
 beautifulsoup4>=4.11.1
 flask>=2.3.0
@@ -8,7 +8,7 @@ python-dotenv>=1.0.0
 schedule>=1.1.0
 psutil>=5.9.0
 
-# 백엔드 의존성
+# Backend dependencies
 fastapi>=0.115.0
 uvicorn>=0.34.0
 pymongo>=4.11.0

@@ -21,16 +21,39 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          # 요구사항 파일 확인
+          echo "Content of requirements.txt:"
+          cat requirements.txt
+          # 패키지 설치
           pip install -r requirements.txt
           pip list
-
+          
+      - name: Environment Setup
+        run: |
+          # 필요한 디렉토리 생성
+          mkdir -p docs/data
+          mkdir -p logs
+          # 파일 시스템 확인
+          echo "Project structure:"
+          find . -type f -name "*.py" | sort
+          # Python 버전 확인
+          python --version
+          # 파일 인코딩 확인
+          file sanctions_collector.py
+          # collectors 패키지 확인
+          ls -la collectors/
+          
       - name: Update sanctions data
         run: |
-          mkdir -p docs/data
-          ls -la
+          # 실행 경로 확인
+          pwd
           echo "Running sanctions collector..."
-          python sanctions_collector.py
+          # 현재 디렉토리를 Python 경로에 추가
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          # UN 소스만 사용하여 실행 (더 적은 데이터로 테스트)
+          python -m sanctions_collector --sources UN
           echo "Collector execution completed"
+          # 결과 확인
           ls -la docs/data
           
       - name: Deploy to GitHub Pages
