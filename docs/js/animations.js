@@ -3,13 +3,13 @@
  * MZ 세대 트렌드에 맞춘 인터랙티브 애니메이션
  */
 
-// 성능 설정 (전역 접근 가능하도록 export)
-export const PERFORMANCE_CONFIG = {
-    // 기본값: 중간 수준의 애니메이션
-    enableParallax: false,         // 패럴랙스 효과 (배경 이동)
-    enableHoverEffects: true,      // 호버 효과 (카드, 버튼 등)
-    enableScrollAnimations: true,  // 스크롤 애니메이션 효과
-    enableFloatingElements: false  // 부유 요소 애니메이션
+// 성능 설정
+const PERFORMANCE_CONFIG = {
+    useReducedMotion: false,
+    animationQuality: 'high',
+    enableParallax: true,
+    enableTilt: true,
+    enableFloating: true
 };
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -20,28 +20,25 @@ document.addEventListener('DOMContentLoaded', function() {
     if (performanceMode === 'high') {
         // 고성능 모드 - 애니메이션 최소화
         PERFORMANCE_CONFIG.enableParallax = false;
-        PERFORMANCE_CONFIG.enableHoverEffects = false;
-        PERFORMANCE_CONFIG.enableScrollAnimations = false;
-        PERFORMANCE_CONFIG.enableFloatingElements = false;
+        PERFORMANCE_CONFIG.enableTilt = false;
+        PERFORMANCE_CONFIG.enableFloating = false;
         console.log('고성능 모드가 활성화되었습니다. 애니메이션이 최소화됩니다.');
     } else if (performanceMode === 'medium') {
         // 중간 성능 모드 - 일부 애니메이션만 활성화
         PERFORMANCE_CONFIG.enableParallax = false;
-        PERFORMANCE_CONFIG.enableHoverEffects = true;
-        PERFORMANCE_CONFIG.enableScrollAnimations = true;
-        PERFORMANCE_CONFIG.enableFloatingElements = false;
+        PERFORMANCE_CONFIG.enableTilt = true;
+        PERFORMANCE_CONFIG.enableFloating = false;
         console.log('중간 성능 모드가 활성화되었습니다.');
     } else if (performanceMode === 'low') {
         // 저성능 모드 - 모든 애니메이션 활성화
         PERFORMANCE_CONFIG.enableParallax = true;
-        PERFORMANCE_CONFIG.enableHoverEffects = true;
-        PERFORMANCE_CONFIG.enableScrollAnimations = true;
-        PERFORMANCE_CONFIG.enableFloatingElements = true;
+        PERFORMANCE_CONFIG.enableTilt = true;
+        PERFORMANCE_CONFIG.enableFloating = true;
         console.log('모든 애니메이션이 활성화되었습니다.');
     }
 
     // 성능 설정에 따라 애니메이션 초기화
-    if (PERFORMANCE_CONFIG.enableScrollAnimations) {
+    if (PERFORMANCE_CONFIG.enableParallax) {
         // 스크롤 애니메이션 요소 초기화
         initScrollAnimations();
         
@@ -56,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    if (PERFORMANCE_CONFIG.enableHoverEffects) {
+    if (PERFORMANCE_CONFIG.enableTilt) {
         // 틸트 효과 초기화
         initTiltEffects();
     }
@@ -295,20 +292,16 @@ document.addEventListener('DOMContentLoaded', initializeAnimations);
  */
 function initializeAnimations() {
     // 성능 설정에 따라 기능 선택적 활성화
-    if (PERFORMANCE_CONFIG.enableScrollAnimations) {
+    if (PERFORMANCE_CONFIG.enableParallax) {
         setupEntryAnimations();
         setupScrollAnimations();
     }
     
-    if (PERFORMANCE_CONFIG.enableHoverEffects) {
+    if (PERFORMANCE_CONFIG.enableTilt) {
         setupHoverEffects();
     }
     
-    if (PERFORMANCE_CONFIG.enableParallax) {
-        setupParallaxEffect();
-    }
-    
-    if (PERFORMANCE_CONFIG.enableFloatingElements) {
+    if (PERFORMANCE_CONFIG.enableFloating) {
         setupFloatingElements();
     }
 }
@@ -759,8 +752,18 @@ function pageTransition(fromElement, toElement, direction = 'right') {
 // 페이지 언로드 시 이벤트 리스너 정리
 window.addEventListener('beforeunload', cleanupEventListeners);
 
-// 함수 내보내기
+// 모듈 내보내기
 export {
+    initializeAnimations,
+    initScrollAnimations,
+    initTiltEffects,
+    initScrollTriggers,
+    initResultsAnimations,
+    setupModalAnimations,
+    setupEntryAnimations,
+    setupScrollAnimations,
+    setupParallaxEffect,
+    setupFloatingElements,
     showLoadingIndicator,
     hideLoadingIndicator,
     addHoverEffect,

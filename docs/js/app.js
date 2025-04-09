@@ -1452,27 +1452,67 @@ function setupAutocomplete() {
 }
 
 /**
- * 고급 검색 토글 및 검색 유형 선택 이벤트 핸들러 설정
+ * 고급 검색 설정
+ * 고급 검색 관련 이벤트 핸들러와 기능을 설정합니다.
  */
-function setupSearchOptions() {
-    // 고급 검색 토글
-    const advancedSearchButton = document.getElementById('advanced-search-button');
-    const advancedSearchOptions = document.querySelector('.advanced-search-options');
+function setupAdvancedSearch() {
+    console.log('고급 검색 설정...');
     
-    if (advancedSearchButton && advancedSearchOptions) {
-        advancedSearchButton.addEventListener('click', () => {
-            const isVisible = advancedSearchOptions.style.display !== 'none';
-            advancedSearchOptions.style.display = isVisible ? 'none' : 'block';
+    // 고급 검색 토글 버튼
+    const advancedButton = document.getElementById('advanced-search-button');
+    const advancedOptions = document.getElementById('advanced-search-options');
+    
+    if (advancedButton && advancedOptions) {
+        advancedButton.addEventListener('click', function() {
+            advancedOptions.classList.toggle('show');
             
-            // 아이콘 회전
-            const icon = advancedSearchButton.querySelector('i');
+            // 화살표 아이콘 방향 변경
+            const icon = this.querySelector('i');
             if (icon) {
-                icon.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
-                icon.style.transition = 'transform 0.3s';
+                if (advancedOptions.classList.contains('show')) {
+                    icon.classList.remove('fa-chevron-down');
+                    icon.classList.add('fa-chevron-up');
+                } else {
+                    icon.classList.remove('fa-chevron-up');
+                    icon.classList.add('fa-chevron-down');
+                }
             }
         });
     }
     
+    // 필터 옵션 이벤트 리스너
+    document.querySelectorAll('.filter-option').forEach(option => {
+        option.addEventListener('click', function() {
+            this.classList.toggle('selected');
+            updateFilterDisplay();
+        });
+    });
+    
+    // 날짜 필터 설정
+    const startDateInput = document.getElementById('start-date');
+    const endDateInput = document.getElementById('end-date');
+    
+    if (startDateInput && endDateInput) {
+        // 오늘 날짜를 기본 종료일로 설정
+        const today = new Date();
+        const lastYear = new Date();
+        lastYear.setFullYear(today.getFullYear() - 1);
+        
+        startDateInput.valueAsDate = lastYear;
+        endDateInput.valueAsDate = today;
+        
+        // 날짜 변경 이벤트
+        startDateInput.addEventListener('change', updateFilterDisplay);
+        endDateInput.addEventListener('change', updateFilterDisplay);
+    }
+    
+    console.log('고급 검색 설정 완료');
+}
+
+/**
+ * 검색 옵션 설정
+ */
+function setupSearchOptions() {
     // 검색 유형 라디오 버튼 이벤트 리스너
     const searchTypeInputs = document.querySelectorAll('input[name="search-type"]');
     const numberTypeOptions = document.querySelector('.number-type-options');
