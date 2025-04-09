@@ -40,8 +40,14 @@ jobs:
           python --version
           # 파일 인코딩 확인
           file sanctions_collector.py
-          # collectors 패키지 확인
-          ls -la collectors/
+          file collectors/*.py
+          # UTF-8 인코딩 확인 및 설정
+          export PYTHONIOENCODING=utf-8
+          export LANG=en_US.UTF-8
+          locale
+          # 실행 권한 설정
+          chmod +x sanctions_collector.py
+          chmod +x collectors/*.py
           
       - name: Update sanctions data
         run: |
@@ -50,6 +56,8 @@ jobs:
           echo "Running sanctions collector..."
           # 현재 디렉토리를 Python 경로에 추가
           export PYTHONPATH=$PYTHONPATH:$(pwd)
+          export PYTHONIOENCODING=utf-8
+          export LANG=en_US.UTF-8
           # 모든 제재 데이터 수집 (UN, EU, US)
           python -m sanctions_collector
           echo "Collector execution completed"
@@ -57,7 +65,14 @@ jobs:
           ls -la docs/data
           
       - name: Deploy to GitHub Pages
+        if: success()
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: docs
-          branch: gh-pages 
+          branch: gh-pages
+          
+      - name: Send notification on failure
+        if: failure()
+        run: |
+          echo "Workflow failed at $(date)"
+          echo "Please check the logs for more information." 
