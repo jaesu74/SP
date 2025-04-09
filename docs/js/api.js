@@ -20,12 +20,10 @@ const apiState = {
  * @returns {Promise<Array>} 제재 데이터 배열
  */
 async function fetchSanctionsData(forceRefresh = false) {
-    // 이미 로딩 중이면 기존 데이터 반환
     if (apiState.isLoading) {
         return apiState.sanctions || [];
     }
     
-    // 캐시된 데이터가 있고 30분 이내라면 캐시 사용
     const now = new Date();
     if (!forceRefresh && 
         apiState.sanctions && 
@@ -36,56 +34,60 @@ async function fetchSanctionsData(forceRefresh = false) {
     
     try {
         apiState.isLoading = true;
+        showLoadingIndicator('results-container', '제재 데이터를 불러오는 중...');
         
-        // 통합된 제재 데이터 파일 불러오기
-        const integrated_file = 'data/integrated_sanctions.json';
+        // 실제 데이터 소스에서 데이터 가져오기
+        const sources = [
+            { name: 'un', url: 'data/un_sanctions.json' },
+            { name: 'eu', url: 'data/eu_sanctions.json' },
+            { name: 'us', url: 'data/us_sanctions.json' }
+        ];
+        
         let sanctionsData = [];
         
-        try {
-            const response = await fetch(integrated_file);
-            if (response.ok) {
-                const data = await response.json();
-                sanctionsData = data.data || [];
-                console.log(`통합 제재 데이터 로드 완료: ${sanctionsData.length}개 항목`);
-            } else {
-                console.warn('통합 제재 데이터 파일을 찾을 수 없습니다. 개별 소스 파일 시도...');
-                throw new Error('통합 데이터 없음');
-            }
-        } catch (e) {
-            // 개별 소스 파일 시도
-            const sources = ['un', 'eu', 'us'];
-            for (const source of sources) {
-                try {
-                    const sourceFile = `data/${source.toLowerCase()}_sanctions.json`;
-                    const response = await fetch(sourceFile);
-                    if (response.ok) {
-                        const sourceData = await response.json();
-                        if (sourceData.data && Array.isArray(sourceData.data)) {
-                            sanctionsData = [...sanctionsData, ...sourceData.data];
-                            console.log(`${source} 제재 데이터 로드 완료: ${sourceData.data.length}개 항목`);
-                        }
+        for (const source of sources) {
+            try {
+                const response = await fetch(source.url);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && Array.isArray(data.data)) {
+                        sanctionsData = [...sanctionsData, ...data.data];
+                        console.log(`${source.name.toUpperCase()} 제재 데이터 로드 완료: ${data.data.length}개 항목`);
                     }
-                } catch (sourceError) {
-                    console.warn(`${source} 제재 데이터 로드 실패:`, sourceError);
                 }
+            } catch (error) {
+                console.warn(`${source.name.toUpperCase()} 제재 데이터 로드 실패:`, error);
             }
         }
         
-        // 제재 데이터가 없으면 빈 배열 반환
         if (sanctionsData.length === 0) {
-            console.warn('제재 데이터를 로드할 수 없습니다.');
-            showAlert('제재 데이터를 불러올 수 없습니다. 관리자에게 문의하세요.', 'error');
-            return [];
+            throw new Error('제재 데이터를 로드할 수 없습니다.');
         }
+        
+        // 데이터 정규화 및 중복 제거
+        sanctionsData = sanctionsData.map(item => ({
+            id: item.id || generateId(),
+            name: item.name,
+            type: item.type || 'UNKNOWN',
+            country: item.country,
+            programs: Array.isArray(item.programs) ? item.programs : [item.program],
+            source: item.source,
+            date_listed: item.date_listed || item.listDate,
+            details: {
+                aliases: item.aliases || [],
+                addresses: item.addresses || [],
+                nationalities: item.nationalities || [],
+                identifications: item.identifications || []
+            }
+        }));
         
         apiState.sanctions = sanctionsData;
         apiState.lastFetched = now;
         apiState.error = null;
         
-        // 최신 업데이트 시간 표시
         updateLastUpdateTime(now.toISOString());
-        
         return apiState.sanctions;
+        
     } catch (error) {
         console.error('제재 데이터 로드 오류:', error);
         apiState.error = error.message;
@@ -93,7 +95,13 @@ async function fetchSanctionsData(forceRefresh = false) {
         return [];
     } finally {
         apiState.isLoading = false;
+        hideLoadingIndicator(document.querySelector('.loading-indicator'));
     }
+}
+
+// 고유 ID 생성 함수
+function generateId() {
+    return 'sanction_' + Math.random().toString(36).substr(2, 9);
 }
 
 /**
