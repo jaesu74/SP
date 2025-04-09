@@ -775,126 +775,61 @@ function handleLogout() {
 async function performSearch(e) {
     if (e) e.preventDefault();
     
-    const query = document.getElementById('search-input').value.trim();
-    const searchType = document.querySelector('input[name="search-type"]:checked')?.value || 
-                       document.getElementById('search-type')?.value || 'text';
+    const searchInput = document.getElementById('search-input');
+    const query = searchInput.value.trim();
     
+    // 검색 유형 확인
+    const searchType = document.querySelector('input[name="search-type"]:checked').value;
     const numberType = searchType === 'number' ? 
-                      (document.querySelector('input[name="number-type"]:checked')?.value || 
-                       document.getElementById('number-type')?.value || '') : '';
+        document.querySelector('input[name="number-type"]:checked').value : '';
     
-    // 검색 중 UI 표시
-    const resultsContainer = document.getElementById('results-container') || document.getElementById('results-list');
-    if (resultsContainer) {
-        resultsContainer.innerHTML = '<div class="loading-spinner"></div>';
-    }
+    // 필터 값 가져오기
+    const selectedCountries = Array.from(document.querySelectorAll('.country-filter .filter-option.selected'))
+        .map(el => el.dataset.value)
+        .filter(Boolean);
     
-    // 페이징 초기화
-    window.resultPaging = {
-        currentPage: 1,
-        itemsPerPage: 10,
-        totalPages: 1
-    };
+    const selectedPrograms = Array.from(document.querySelectorAll('.program-filter .filter-option.selected'))
+        .map(el => el.dataset.value)
+        .filter(Boolean);
+    
+    const startDate = document.getElementById('start-date').value;
+    const endDate = document.getElementById('end-date').value;
     
     try {
-        // 국가 필터 적용
-        let country = '';
-        if (activeFilters.countries.size > 0) {
-            const countryArray = Array.from(activeFilters.countries);
-            if (countryArray.length === 1) {
-                country = countryArray[0];
-            }
-            // 다중 국가 선택은 searchSanctions 함수에서 후처리
-        }
+        const loadingIndicator = showLoadingIndicator('results-container', '검색 중...');
         
-        // 프로그램 필터 적용
-        let program = '';
-        if (activeFilters.programs.size > 0) {
-            const programArray = Array.from(activeFilters.programs);
-            if (programArray.length === 1) {
-                program = programArray[0];
-            }
-            // 다중 프로그램 선택은 searchSanctions 함수에서 후처리
-        }
+        // API 호출
+        const results = await window.SanctionsAPI.searchSanctions(
+            query,
+            selectedCountries.join(','),
+            selectedPrograms.join(','),
+            searchType,
+            numberType
+        );
         
-        // 날짜 필터 적용
-        const startDate = document.getElementById('start-date')?.value || '';
-        const endDate = document.getElementById('end-date')?.value || '';
-        
-        // 검색 실행
-        const searchResult = await searchSanctions(query, country, program, searchType, numberType);
-        
-        // 날짜 필터링 (searchSanctions 함수에 날짜 필터 기능이 없어서 여기서 처리)
+        // 날짜 필터링
+        let filteredResults = results.results;
         if (startDate || endDate) {
-            const startTimestamp = startDate ? new Date(startDate).getTime() : 0;
-            const endTimestamp = endDate ? new Date(endDate).getTime() : Number.MAX_SAFE_INTEGER;
-            
-            searchResult.results = searchResult.results.filter(item => {
-                // 날짜 필드가 있는지 확인 (date_listed, startDate 등)
-                const itemDate = item.date_listed || 
-                                (item.details && item.details.sanctions && 
-                                 item.details.sanctions[0] && 
-                                 item.details.sanctions[0].startDate);
-                
-                if (!itemDate) return true; // 날짜 없으면 포함
-                
-                const itemTimestamp = new Date(itemDate).getTime();
-                return itemTimestamp >= startTimestamp && itemTimestamp <= endTimestamp;
+            filteredResults = filteredResults.filter(item => {
+                const itemDate = new Date(item.date_listed);
+                if (startDate && new Date(startDate) > itemDate) return false;
+                if (endDate && new Date(endDate) < itemDate) return false;
+                return true;
             });
         }
         
-        // 다중 국가 필터링
-        if (activeFilters.countries.size > 1) {
-            const countries = Array.from(activeFilters.countries);
-            searchResult.results = searchResult.results.filter(item => 
-                countries.includes(item.country)
-            );
+        // 결과 표시
+        displayResults(filteredResults);
+        updateResultsCount(filteredResults.length);
+        
+        // 검색 제안어 표시
+        if (results.suggestions && results.suggestions.length > 0) {
+            displaySearchSuggestions(results.suggestions);
         }
         
-        // 다중 프로그램 필터링
-        if (activeFilters.programs.size > 1) {
-            const programs = Array.from(activeFilters.programs);
-            searchResult.results = searchResult.results.filter(item => 
-                item.programs && item.programs.some(prog => programs.includes(prog))
-            );
-        }
-        
-        // 검색 결과가 없는 경우
-        if (searchResult.results.length === 0) {
-            if (resultsContainer) {
-                resultsContainer.innerHTML = `
-                    <div class="no-results">
-                        <h3>검색 결과가 없습니다</h3>
-                        <p>다른 검색어를 시도하거나 필터를 조정해보세요.</p>
-                    </div>
-                `;
-            }
-            
-            // 추천 검색어가 있는 경우
-            if (searchResult.suggestions && searchResult.suggestions.length > 0) {
-                displaySearchSuggestions(searchResult.suggestions);
-            }
-            return;
-        }
-        
-        // 검색 결과 표시
-        displayResults(searchResult.results);
-        
-        // 유사 검색어로 찾은 결과가 있는 경우 알림
-        if (searchResult.hasSimilarMatches && !searchResult.hasExactMatches) {
-            showAlert('정확한 일치 결과는 없지만 유사한 검색어로 결과를 찾았습니다.', 'info');
-        }
-        
+        hideLoadingIndicator(loadingIndicator);
     } catch (error) {
-        console.error('검색 오류:', error);
-        if (resultsContainer) {
-            resultsContainer.innerHTML = `
-                <div class="error-message">
-                    <h3>검색 중 오류가 발생했습니다</h3>
-                    <p>나중에 다시 시도해주세요.</p>
-                </div>
-            `;
-        }
+        console.error('검색 중 오류:', error);
         showAlert('검색 중 오류가 발생했습니다.', 'error');
     }
 }
@@ -1077,272 +1012,168 @@ function displayResults(results) {
  * 상세 정보 표시
  * @param {string} id 제재 대상 ID
  */
-function showDetail(id) {
-    console.log('상세 정보 표시:', id);
-    
-    // 모달 및 컨텐츠 요소
-    const modal = document.getElementById('detail-modal');
-    const detailContent = document.getElementById('detail-content');
-    
-    if (!modal || !detailContent) {
-        console.error('모달 요소를 찾을 수 없습니다.');
-        return;
-    }
-    
-    // 상세 정보 로딩 표시
-    detailContent.innerHTML = '<div class="loading-spinner">로딩 중...</div>';
-    
-    // 모달 표시
-    modal.style.display = 'block';
-    document.body.classList.add('modal-open');
-    
-    // 닫기 버튼 이벤트 리스너
-    const closeBtn = modal.querySelector('#detail-close');
-    if (closeBtn) {
-        closeBtn.onclick = function() {
-            modal.style.display = 'none';
-            document.body.classList.remove('modal-open');
-        };
-    }
-    
-    // 인쇄 버튼 이벤트 리스너
-    const printBtn = modal.querySelector('#detail-print');
-    if (printBtn) {
-        printBtn.onclick = function() {
-            window.print();
-        };
-    }
-    
-    // 결과에서 해당 항목 찾기
-    const item = currentResults.find(result => result.id === id);
-    
-    if (item) {
-        // 로컬 데이터로 상세 정보 표시
-        displayDetailContent(item);
-    } else {
-        // API에서 상세 정보 가져오기
-        getSanctionDetails(id)
-            .then(data => {
-                displayDetailContent(data);
-            })
-            .catch(error => {
-                console.error('상세 정보 가져오기 오류:', error);
-                detailContent.innerHTML = `
-                    <div class="error-message">
-                        <h3>데이터 로딩 오류</h3>
-                        <p>상세 정보를 불러오는 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.</p>
-                    </div>
-                `;
-            });
-    }
-}
-
-/**
- * 상세 정보 내용 표시
- * @param {Object} data 상세 정보 데이터
- */
-function displayDetailContent(data) {
-    const detailContent = document.getElementById('detail-content');
-    
-    if (!detailContent || !data) return;
-    
-    // 유형에 따른 아이콘과 클래스
-    let typeIcon, typeClass;
-    switch ((data.type || '').toLowerCase()) {
-        case 'individual':
-        case '개인':
-            typeIcon = 'user';
-            typeClass = 'individual';
-            break;
-        case 'entity':
-        case '단체':
-            typeIcon = 'building';
-            typeClass = 'entity';
-            break;
-        case 'vessel':
-        case '선박':
-            typeIcon = 'ship';
-            typeClass = 'vessel';
-            break;
-        case 'aircraft':
-        case '항공기':
-            typeIcon = 'plane';
-            typeClass = 'aircraft';
-            break;
-        default:
-            typeIcon = 'flag';
-            typeClass = 'other';
-    }
-    
-    // 날짜 형식화
-    const formattedDate = data.listDate 
-        ? new Date(data.listDate).toLocaleDateString('ko-KR') 
-        : '정보 없음';
-    
-    // HTML 생성
-    let html = `
-        <div class="detail-header">
-            <h3>${data.name || '이름 없음'}</h3>
-            <span class="detail-type ${typeClass}">
-                <i class="fas fa-${typeIcon}"></i> ${data.type || '미분류'}
-            </span>
-        </div>
-    `;
-    
-    // 기본 정보 섹션
-    html += `
-        <div class="detail-section">
-            <h4 class="section-title">기본 정보</h4>
-            <div class="detail-data">
-                <div class="data-item">
-                    <div class="data-label">국가</div>
-                    <div class="data-value">${data.country || '정보 없음'}</div>
-                </div>
-                <div class="data-item">
-                    <div class="data-label">등재일</div>
-                    <div class="data-value">${formattedDate}</div>
-                </div>
-                <div class="data-item">
-                    <div class="data-label">제재 프로그램</div>
-                    <div class="data-value">${data.program || '정보 없음'}</div>
-                </div>
+async function showDetail(id) {
+    try {
+        const loadingIndicator = showLoadingIndicator('detail-content', '상세 정보를 불러오는 중...');
+        
+        // API를 통해 상세 정보 가져오기
+        const data = await window.SanctionsAPI.getSanctionDetails(id);
+        
+        if (!data) {
+            throw new Error('상세 정보를 찾을 수 없습니다.');
+        }
+        
+        // 모달 요소 가져오기
+        const modal = document.getElementById('detail-modal');
+        const detailContent = document.getElementById('detail-content');
+        
+        if (!modal || !detailContent) {
+            throw new Error('모달 요소를 찾을 수 없습니다.');
+        }
+        
+        // 날짜 형식화
+        const date = new Date(data.date_listed);
+        const formattedDate = date.toLocaleDateString('ko-KR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        
+        // 상세 정보 HTML 생성
+        let html = `
+            <div class="detail-header">
+                <h3>${data.name}</h3>
+                <span class="detail-type ${data.type.toLowerCase()}">
+                    <i class="fas fa-${data.type === 'INDIVIDUAL' ? 'user' : 'building'}"></i>
+                    ${data.type === 'INDIVIDUAL' ? '개인' : '단체'}
+                </span>
             </div>
-        </div>
-    `;
-    
-    // 상세 정보 섹션 (설명, 이유 등)
-    if (data.description || data.reason) {
-        html += `
+            
             <div class="detail-section">
-                <h4 class="section-title">상세 설명</h4>
+                <h4>기본 정보</h4>
                 <div class="detail-data">
+                    <div class="data-item">
+                        <div class="data-label">국가</div>
+                        <div class="data-value">${data.country || '정보 없음'}</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">등재일</div>
+                        <div class="data-value">${formattedDate}</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">제재 출처</div>
+                        <div class="data-value">${data.source}</div>
+                    </div>
+                </div>
+            </div>
         `;
         
-        if (data.description) {
+        // 프로그램 정보
+        if (data.programs && data.programs.length > 0) {
             html += `
-                <div class="data-item">
-                    <div class="data-label">설명</div>
-                    <div class="data-value">${data.description}</div>
+                <div class="detail-section">
+                    <h4>제재 프로그램</h4>
+                    <div class="detail-data">
+                        <div class="data-item">
+                            <ul class="program-list">
+                                ${data.programs.map(program => `<li>${program}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             `;
         }
         
-        if (data.reason) {
+        // 별칭 정보
+        if (data.details.aliases && data.details.aliases.length > 0) {
             html += `
-                <div class="data-item">
-                    <div class="data-label">제재 이유</div>
-                    <div class="data-value">${data.reason}</div>
+                <div class="detail-section">
+                    <h4>별칭</h4>
+                    <div class="detail-data">
+                        <div class="data-item">
+                            <ul class="alias-list">
+                                ${data.details.aliases.map(alias => `<li>${alias}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             `;
         }
         
-        html += `
-                </div>
-            </div>
-        `;
-    }
-    
-    // 별칭 정보 섹션
-    if (data.aliases && data.aliases.length > 0) {
-        html += `
-            <div class="detail-section">
-                <h4 class="section-title">다른 이름 / 별칭</h4>
-                <ul class="aliases-list">
-        `;
-        
-        data.aliases.forEach(alias => {
-            html += `<li>${alias}</li>`;
-        });
-        
-        html += `
-                </ul>
-            </div>
-        `;
-    }
-    
-    // 식별 번호 섹션
-    if (data.identifiers && data.identifiers.length > 0) {
-        html += `
-            <div class="detail-section">
-                <h4 class="section-title">식별 번호</h4>
-                <ul class="id-list">
-        `;
-        
-        data.identifiers.forEach(id => {
+        // 주소 정보
+        if (data.details.addresses && data.details.addresses.length > 0) {
             html += `
-                <li>
-                    <strong>${id.type || '번호'}:</strong> ${id.value || '정보 없음'}
-                    ${id.country ? `(${id.country})` : ''}
-                </li>
+                <div class="detail-section">
+                    <h4>주소</h4>
+                    <div class="detail-data">
+                        <div class="data-item">
+                            <ul class="address-list">
+                                ${data.details.addresses.map(address => `<li>${address}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             `;
-        });
+        }
         
-        html += `
-                </ul>
-            </div>
-        `;
-    }
-    
-    // 주소 정보 섹션
-    if (data.addresses && data.addresses.length > 0) {
-        html += `
-            <div class="detail-section">
-                <h4 class="section-title">주소 정보</h4>
-                <ul class="addresses-list">
-        `;
-        
-        data.addresses.forEach(address => {
-            html += `<li>${address}</li>`;
-        });
-        
-        html += `
-                </ul>
-            </div>
-        `;
-    }
-    
-    // 관련 단체/개인 섹션
-    if (data.related && data.related.length > 0) {
-        html += `
-            <div class="detail-section">
-                <h4 class="section-title">관련 단체/개인</h4>
-                <ul class="related-list">
-        `;
-        
-        data.related.forEach(relation => {
+        // 신분증 정보
+        if (data.details.identifications && data.details.identifications.length > 0) {
             html += `
-                <li>
-                    <strong>${relation.name || '이름 없음'}</strong>
-                    ${relation.relationship ? ` - ${relation.relationship}` : ''}
-                </li>
+                <div class="detail-section">
+                    <h4>신분증 정보</h4>
+                    <div class="detail-data">
+                        <div class="data-item">
+                            <ul class="id-list">
+                                ${data.details.identifications.map(id => `
+                                    <li>
+                                        <strong>${id.type}:</strong> ${id.number}
+                                        ${id.country ? `(${id.country})` : ''}
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             `;
-        });
+        }
         
-        html += `
-                </ul>
-            </div>
-        `;
+        // 내용 설정 및 모달 표시
+        detailContent.innerHTML = html;
+        modal.style.display = 'block';
+        document.body.classList.add('modal-open');
+        
+        // 닫기 버튼 이벤트
+        const closeBtn = document.getElementById('detail-close');
+        if (closeBtn) {
+            closeBtn.onclick = () => {
+                modal.style.display = 'none';
+                document.body.classList.remove('modal-open');
+            };
+        }
+        
+        // ESC 키로 닫기
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                modal.style.display = 'none';
+                document.body.classList.remove('modal-open');
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+        
+        // 모달 외부 클릭 시 닫기
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+                document.body.classList.remove('modal-open');
+            }
+        };
+        
+        hideLoadingIndicator(loadingIndicator);
+    } catch (error) {
+        console.error('상세 정보 로드 중 오류:', error);
+        showAlert('상세 정보를 불러오는데 실패했습니다.', 'error');
     }
-    
-    // 출처 및 정보 제공자 섹션
-    html += `
-        <div class="detail-section">
-            <h4 class="section-title">정보 출처</h4>
-            <div class="detail-data">
-                <div class="data-item">
-                    <div class="data-label">제재 주체</div>
-                    <div class="data-value">${data.authority || data.program || '정보 없음'}</div>
-                </div>
-                <div class="data-item">
-                    <div class="data-label">최종 업데이트</div>
-                    <div class="data-value">${new Date().toLocaleDateString('ko-KR')}</div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // 최종 HTML 삽입
-    detailContent.innerHTML = html;
 }
 
 /**
@@ -1350,12 +1181,23 @@ function displayDetailContent(data) {
  */
 async function loadInitialData() {
     try {
-        // 초기 데이터 로드 - 빈 검색으로 모든 결과 가져오기
-        await performSearch();
-        console.log('초기 데이터 로드 완료');
+        const loadingIndicator = showLoadingIndicator('results-container', '데이터를 불러오는 중...');
+        
+        // API를 통해 제재 데이터 로드
+        const data = await window.SanctionsAPI.fetchSanctionsData(true);
+        
+        if (data && data.length > 0) {
+            // 최근 제재 데이터 표시
+            const recentSanctions = await window.SanctionsAPI.getRecentSanctions(10);
+            displayResults(recentSanctions);
+        } else {
+            showAlert('데이터를 불러오는데 실패했습니다.', 'error');
+        }
+        
+        hideLoadingIndicator(loadingIndicator);
     } catch (error) {
-        console.error('초기 데이터 로드 오류:', error);
-        showAlert('데이터 로드 중 오류가 발생했습니다.', 'error');
+        console.error('초기 데이터 로드 중 오류:', error);
+        showAlert('데이터를 불러오는데 실패했습니다.', 'error');
     }
 }
 
@@ -1456,12 +1298,35 @@ function setupAutocomplete() {
  * 고급 검색 관련 이벤트 핸들러와 기능을 설정합니다.
  */
 function setupAdvancedSearch() {
-    const advancedSearchBtn = document.getElementById('advanced-search-btn');
-    const advancedSearchPanel = document.getElementById('advanced-search-panel');
+    const advancedButton = document.getElementById('advanced-search-button');
+    const advancedOptions = document.getElementById('advanced-search-options');
     
-    if (advancedSearchBtn && advancedSearchPanel) {
-        advancedSearchBtn.addEventListener('click', () => {
-            advancedSearchPanel.classList.toggle('show');
+    if (advancedButton && advancedOptions) {
+        // 고급 검색 토글
+        advancedButton.addEventListener('click', () => {
+            advancedOptions.classList.toggle('show');
+            const icon = advancedButton.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('fa-chevron-down');
+                icon.classList.toggle('fa-chevron-up');
+            }
+        });
+        
+        // 필터 옵션 설정
+        setupFilterOptions();
+        
+        // 검색 유형 변경 이벤트
+        const searchTypeInputs = document.querySelectorAll('input[name="search-type"]');
+        const numberTypeOptions = document.querySelector('.number-type-options');
+        
+        searchTypeInputs.forEach(input => {
+            input.addEventListener('change', (e) => {
+                if (e.target.value === 'number') {
+                    numberTypeOptions.style.display = 'block';
+                } else {
+                    numberTypeOptions.style.display = 'none';
+                }
+            });
         });
     }
 }
