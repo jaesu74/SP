@@ -265,47 +265,101 @@ function displaySearchResults(searchResult) {
     
     // 결과 항목 생성
     results.forEach(item => {
+        // 유형에 따른 클래스 설정
+        let typeClass = '';
+        switch((item.type || '').toLowerCase()) {
+            case 'individual':
+                typeClass = 'individual';
+                break;
+            case 'entity':
+                typeClass = 'entity';
+                break;
+            case 'vessel':
+                typeClass = 'vessel';
+                break;
+            case 'aircraft':
+                typeClass = 'aircraft';
+                break;
+            default:
+                typeClass = 'unknown';
+        }
+        
+        // 날짜 형식화
+        let formattedDate = '날짜 미상';
+        if (item.date_listed) {
+            try {
+                const date = new Date(item.date_listed);
+                if (!isNaN(date.getTime())) {
+                    formattedDate = date.toLocaleDateString('ko-KR', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    });
+                } else {
+                    formattedDate = item.date_listed;
+                }
+            } catch (e) {
+                formattedDate = item.date_listed;
+            }
+        }
+        
+        // 프로그램 텍스트 (최대 2개까지만 표시)
+        const programs = Array.isArray(item.programs) ? item.programs : [];
+        let programText = programs.length > 0 
+            ? (programs.length > 2 
+                ? `${programs[0]} 외 ${programs.length - 1}개` 
+                : programs.join(', '))
+            : '';
+        
+        // 별칭 (최대 2개까지만 표시)
+        const aliases = item.details && Array.isArray(item.details.aliases) 
+            ? item.details.aliases 
+            : [];
+        let aliasText = aliases.length > 0 
+            ? (aliases.length > 2 
+                ? `${aliases[0]} 외 ${aliases.length - 1}개` 
+                : aliases.join(', '))
+            : '';
+        
         const resultItem = document.createElement('div');
         resultItem.className = 'result-item';
         resultItem.dataset.id = item.id;
+        resultItem.dataset.type = item.type;
         
         // 항목 컨텐츠
         resultItem.innerHTML = `
             <div class="result-header">
                 <h3>${item.name || '이름 없음'}</h3>
-                <span class="result-type ${item.type.toLowerCase()}">${item.type}</span>
+                <span class="result-type ${typeClass}">${item.type || 'UNKNOWN'}</span>
             </div>
             <div class="result-body">
                 <p class="result-country"><i class="fas fa-globe"></i> ${item.country || '국가 미상'}</p>
-                <p class="result-date"><i class="far fa-calendar"></i> ${formatDate(item.date_listed)}</p>
-                <p class="result-source">${item.source || 'Unknown Source'}</p>
+                <p class="result-date"><i class="far fa-calendar"></i> ${formattedDate}</p>
+                <p class="result-source"><i class="fas fa-database"></i> ${item.source || ''}</p>
+                ${programText ? `<p class="result-program"><i class="fas fa-tag"></i> ${programText}</p>` : ''}
+                ${aliasText ? `<p class="result-alias"><i class="fas fa-user-tag"></i> ${aliasText}</p>` : ''}
             </div>
-            <button class="btn-details" onclick="showDetail('${item.id}')">상세정보</button>
+            <div class="result-footer">
+                <button class="btn-details" onclick="window.showDetail('${item.id}')">상세정보</button>
+            </div>
         `;
         
         resultGrid.appendChild(resultItem);
     });
     
     resultsContainer.appendChild(resultGrid);
-}
-
-/**
- * 날짜 형식 변환
- * @param {string} dateStr ISO 날짜 문자열
- * @returns {string} 형식화된 날짜 문자열
- */
-function formatDate(dateStr) {
-    if (!dateStr) return '날짜 미상';
     
-    try {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('ko-KR', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        });
-    } catch (e) {
-        return dateStr;
+    // 상세 정보 표시 함수를 전역에 등록
+    if (typeof window.showDetail !== 'function') {
+        window.showDetail = (id) => {
+            // js/components/detail.js에서 가져온 showDetail 함수 사용
+            import('./detail.js').then(module => {
+                module.showDetail(id);
+            }).catch(error => {
+                console.error('상세 정보 모듈 로드 실패:', error);
+                showAlert('상세 정보를 표시할 수 없습니다.', 'error');
+            });
+        };
     }
 }
 

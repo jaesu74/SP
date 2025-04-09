@@ -12,13 +12,18 @@
     <meta http-equiv="Expires" content="0">
     <!-- 성능 관련 메타 태그 -->
     <meta name="performance-mode" content="medium">
-    <meta name="application-version" content="1.1.0">
+    <meta name="application-version" content="1.2.0">
     
     <title>세계 경제 제재 검색 서비스</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/textures.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- PDF 생성 라이브러리 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- 앱 코어 스크립트 -->
     <script type="module" src="js/core/app.js"></script>
 </head>
 <body class="textured-layer">
@@ -136,7 +141,7 @@
 
             <!-- 최신 업데이트 정보 -->
             <div class="update-info animated delay-400">
-                <p>마지막 업데이트: <span id="last-update">2025-03-26 12:00 LT</span></p>
+                <p>마지막 업데이트: <span id="last-update">로딩 중...</span></p>
             </div>
         </div>
     </section>
@@ -197,7 +202,7 @@
     <!-- 푸터 -->
     <footer class="site-footer">
         <div class="container">
-            <p>&copy; 2025 WVL 제재 조회 시스템. All rights reserved.</p>
+            <p>&copy; 2023-2025 WVL 제재 조회 시스템. All rights reserved.</p>
         </div>
     </footer>
 

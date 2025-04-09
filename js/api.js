@@ -21,6 +21,7 @@ const apiState = {
  */
 async function fetchSanctionsData(forceRefresh = false) {
     if (apiState.isLoading) {
+        console.log('이미 데이터를 로드하는 중입니다.');
         return apiState.sanctions || [];
     }
     
@@ -29,6 +30,7 @@ async function fetchSanctionsData(forceRefresh = false) {
         apiState.sanctions && 
         apiState.lastFetched && 
         (now - apiState.lastFetched) < 30 * 60 * 1000) {
+        console.log('캐시된 데이터를 사용합니다.');
         return apiState.sanctions;
     }
     
@@ -37,47 +39,124 @@ async function fetchSanctionsData(forceRefresh = false) {
         showLoadingIndicator('results-container', '제재 데이터를 불러오는 중...');
         
         // 실제 데이터 소스에서 데이터 가져오기
+        // GitHub Pages와 커스텀 도메인 모두 호환되도록 경로 수정
+        const baseUrl = window.location.hostname.includes('github.io') ? '/SP/' : '/';
+        
         const sources = [
-            { name: 'un', url: 'data/un_sanctions.json' },
-            { name: 'eu', url: 'data/eu_sanctions.json' },
-            { name: 'us', url: 'data/us_sanctions.json' }
+            { name: 'un', url: `${baseUrl}data/un_sanctions.json` },
+            { name: 'eu', url: `${baseUrl}data/eu_sanctions.json` },
+            { name: 'us', url: `${baseUrl}data/us_sanctions.json` }
         ];
         
+        console.log('데이터 로드 시도: 경로 설정', sources);
+        
         let sanctionsData = [];
+        let loadedSources = [];
+        let failedSources = [];
         
         for (const source of sources) {
             try {
-                const response = await fetch(source.url);
+                console.log(`${source.name} 데이터 로드 시도:`, source.url);
+                
+                // 타임아웃 설정 및 요청 제어를 위한 컨트롤러 생성
+                const controller = new AbortController();
+                const signal = controller.signal;
+                const timeoutId = setTimeout(() => controller.abort(), 20000); // 20초 타임아웃
+                
+                const response = await fetch(source.url, { 
+                    method: 'GET',
+                    signal,
+                    headers: { 'Cache-Control': 'no-cache' }
+                });
+                
+                clearTimeout(timeoutId);
+                
                 if (response.ok) {
                     const data = await response.json();
                     if (data && Array.isArray(data.data)) {
-                        sanctionsData = [...sanctionsData, ...data.data];
                         console.log(`${source.name.toUpperCase()} 제재 데이터 로드 완료: ${data.data.length}개 항목`);
+                        sanctionsData = [...sanctionsData, ...data.data];
+                        loadedSources.push(source.name);
+                    } else {
+                        console.warn(`${source.name.toUpperCase()} 데이터 형식 오류:`, data);
+                        failedSources.push(source.name);
                     }
+                } else {
+                    console.warn(`${source.name.toUpperCase()} 응답 오류:`, response.status, response.statusText);
+                    failedSources.push(source.name);
                 }
             } catch (error) {
                 console.warn(`${source.name.toUpperCase()} 제재 데이터 로드 실패:`, error);
+                failedSources.push(source.name);
             }
         }
         
         if (sanctionsData.length === 0) {
-            throw new Error('제재 데이터를 로드할 수 없습니다.');
+            if (failedSources.length === sources.length) {
+                throw new Error('모든 데이터 소스에서 데이터를 로드할 수 없습니다.');
+            }
+            
+            // 대체 데이터로 시도
+            try {
+                console.log('통합 데이터 파일 시도...');
+                const integratedResponse = await fetch(`${baseUrl}data/integrated_sanctions.json`);
+                if (integratedResponse.ok) {
+                    const data = await integratedResponse.json();
+                    if (data && Array.isArray(data.data)) {
+                        console.log(`통합 데이터 로드 완료: ${data.data.length}개 항목`);
+                        sanctionsData = data.data;
+                    }
+                }
+            } catch (error) {
+                console.warn('통합 데이터 로드 실패:', error);
+            }
+            
+            // 여전히 데이터가 없으면 로컬 스토리지 확인
+            if (sanctionsData.length === 0) {
+                const cachedData = getCachedSanctionsData();
+                if (cachedData && cachedData.length > 0) {
+                    console.log('캐시된 데이터 사용:', cachedData.length);
+                    sanctionsData = cachedData;
+                } else {
+                    console.log('대체 더미 데이터 생성');
+                    // 대체 데이터 생성 - 서비스 중단 방지
+                    sanctionsData = generateDummySanctions(50);
+                }
+            }
+        } else {
+            // 데이터 캐싱
+            cacheSanctionsData(sanctionsData);
+        }
+        
+        // 사용자에게 데이터 로드 상태 알림
+        if (failedSources.length > 0) {
+            const failedSourcesStr = failedSources.join(', ').toUpperCase();
+            showAlert(`일부 데이터(${failedSourcesStr})를 로드하지 못했습니다. 제한된 결과만 표시됩니다.`, 'warning', { duration: 5000 });
         }
         
         // 데이터 정규화 및 중복 제거
         sanctionsData = sanctionsData.map(item => ({
             id: item.id || generateId(),
-            name: item.name,
+            name: item.name || '이름 없음',
             type: item.type || 'UNKNOWN',
-            country: item.country,
-            programs: Array.isArray(item.programs) ? item.programs : [item.program],
-            source: item.source,
-            date_listed: item.date_listed || item.listDate,
+            country: item.country || '미상',
+            programs: Array.isArray(item.programs) ? item.programs : (item.program ? [item.program] : []),
+            source: item.source || 'UNKNOWN',
+            date_listed: item.date_listed || item.listDate || '',
+            reason: item.reason || (item.details && item.details.sanctions && item.details.sanctions[0] ? item.details.sanctions[0].reason : ''),
             details: {
-                aliases: item.aliases || [],
-                addresses: item.addresses || [],
-                nationalities: item.nationalities || [],
-                identifications: item.identifications || []
+                aliases: Array.isArray(item.aliases) ? item.aliases : 
+                         (item.details && Array.isArray(item.details.aliases) ? item.details.aliases : []),
+                addresses: Array.isArray(item.addresses) ? item.addresses : 
+                           (item.details && Array.isArray(item.details.addresses) ? item.details.addresses : []),
+                nationalities: Array.isArray(item.nationalities) ? item.nationalities : 
+                               (item.details && Array.isArray(item.details.nationalities) ? item.details.nationalities : []),
+                identifications: Array.isArray(item.identifications) ? item.identifications : 
+                                 (item.details && Array.isArray(item.details.identifications) ? item.details.identifications : []),
+                sanctions: Array.isArray(item.sanctions) ? item.sanctions : 
+                           (item.details && Array.isArray(item.details.sanctions) ? item.details.sanctions : []),
+                birthDate: item.birthDate || (item.details ? item.details.birthDate : ''),
+                birthPlace: item.birthPlace || (item.details ? item.details.birthPlace : '')
             }
         }));
         
@@ -86,17 +165,124 @@ async function fetchSanctionsData(forceRefresh = false) {
         apiState.error = null;
         
         updateLastUpdateTime(now.toISOString());
+        console.log('데이터 로드 완료:', sanctionsData.length);
         return apiState.sanctions;
         
     } catch (error) {
         console.error('제재 데이터 로드 오류:', error);
         apiState.error = error.message;
-        showAlert('제재 데이터를 불러오는 도중 오류가 발생했습니다.', 'error');
-        return [];
+        showAlert('제재 데이터를 불러오는 도중 오류가 발생했습니다. 제한된 기능으로 운영됩니다.', 'error', { duration: 7000 });
+        
+        // 캐시된 데이터 또는 더미 데이터 반환
+        const cachedData = getCachedSanctionsData();
+        if (cachedData && cachedData.length > 0) {
+            apiState.sanctions = cachedData;
+            return cachedData;
+        }
+        
+        // 더미 데이터 생성 - 서비스 중단 방지
+        const dummyData = generateDummySanctions(50);
+        apiState.sanctions = dummyData;
+        return dummyData;
     } finally {
         apiState.isLoading = false;
         hideLoadingIndicator(document.querySelector('.loading-indicator'));
     }
+}
+
+/**
+ * 제재 데이터를 로컬 스토리지에 캐싱
+ */
+function cacheSanctionsData(data) {
+    try {
+        // 데이터 크기 문제를 해결하기 위해 전체 데이터 대신 중요 필드만 캐싱
+        const simplifiedData = data.map(item => ({
+            id: item.id,
+            name: item.name,
+            type: item.type,
+            country: item.country,
+            programs: item.programs,
+            source: item.source,
+            date_listed: item.date_listed
+        }));
+        
+        localStorage.setItem('cachedSanctionsData', JSON.stringify(simplifiedData));
+        localStorage.setItem('sanctionsDataCachedAt', new Date().toISOString());
+        console.log('제재 데이터 캐싱 완료');
+    } catch (error) {
+        console.warn('제재 데이터 캐싱 실패:', error);
+        // 스토리지 용량 초과 시 캐시 정리
+        try {
+            localStorage.removeItem('cachedSanctionsData');
+            localStorage.removeItem('sanctionsDataCachedAt');
+        } catch (e) {
+            console.error('캐시 정리 실패:', e);
+        }
+    }
+}
+
+/**
+ * 캐시된 제재 데이터 가져오기
+ */
+function getCachedSanctionsData() {
+    try {
+        const cachedData = localStorage.getItem('cachedSanctionsData');
+        const cachedAt = localStorage.getItem('sanctionsDataCachedAt');
+        
+        if (!cachedData || !cachedAt) return null;
+        
+        // 캐시 유효성 검사 - 24시간 이내 캐시만 사용
+        const cachedDate = new Date(cachedAt);
+        const now = new Date();
+        const cacheDuration = now - cachedDate;
+        
+        if (cacheDuration > 24 * 60 * 60 * 1000) {
+            console.log('캐시 만료됨');
+            return null;
+        }
+        
+        return JSON.parse(cachedData);
+    } catch (error) {
+        console.warn('캐시된 데이터 로드 실패:', error);
+        return null;
+    }
+}
+
+/**
+ * 더미 제재 데이터 생성
+ */
+function generateDummySanctions(count = 50) {
+    const sources = ['UN', 'EU', 'US'];
+    const types = ['INDIVIDUAL', 'ENTITY', 'VESSEL', 'AIRCRAFT'];
+    const countries = ['North Korea', 'Russia', 'Iran', 'Syria', 'Belarus', 'Venezuela'];
+    const programs = ['Nuclear', 'Terrorism', 'Human Rights', 'Narcotics', 'Cyber'];
+    
+    const dummyData = [];
+    
+    for (let i = 0; i < count; i++) {
+        const source = sources[Math.floor(Math.random() * sources.length)];
+        const type = types[Math.floor(Math.random() * types.length)];
+        const country = countries[Math.floor(Math.random() * countries.length)];
+        const program = programs[Math.floor(Math.random() * programs.length)];
+        
+        dummyData.push({
+            id: `SAMPLE_${source}_${i}`,
+            name: `Sample ${type} ${i} (For Testing)`,
+            type: type,
+            country: country,
+            programs: [`${source}-${program}`],
+            source: source,
+            date_listed: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            details: {
+                aliases: [`별명 1 (${i})`, `별명 2 (${i})`],
+                addresses: [`${country} 주소 ${i}`],
+                nationalities: [country],
+                identifications: []
+            }
+        });
+    }
+    
+    return dummyData;
 }
 
 // 고유 ID 생성 함수
@@ -198,121 +384,114 @@ async function searchSanctions(query, country = '', program = '', searchType = '
     // 검색 유형에 따른 검색
     switch (searchType) {
         case 'number':
-            // 번호 검색은 기존 방식 유지하되 결과 형식 통일
-            const numberResults = searchByNumber(data, query, numberType);
-            searchResults = {
-                results: numberResults,
-                hasExactMatches: numberResults.length > 0,
-                hasSimilarMatches: false,
-                suggestions: null
-            };
+            searchResults = searchByNumber(data, query, numberType);
             break;
-        case 'image':
-            // 이미지 검색은 추후 구현
-            console.log('이미지 검색은 추후 구현 예정입니다.');
-            searchResults = {
-                results: [],
-                hasExactMatches: false,
-                hasSimilarMatches: false,
-                suggestions: null
-            };
-            break;
+        case 'text':
         default:
-            // 텍스트 검색 (유사어 검색 지원)
             searchResults = searchByText(data, query);
+            break;
     }
     
-    // 국가 필터링
-    if (country) {
-        searchResults.results = searchResults.results.filter(item => item.country === country);
-    }
+    // 필터링
+    searchResults = filterResults(searchResults, country, program);
     
-    // 프로그램 필터링
-    if (program) {
-        searchResults.results = searchResults.results.filter(item => item.programs.includes(program));
-    }
-    
-    return searchResults;
-}
-
-/**
- * 텍스트 기반 검색을 수행합니다. (유사어 검색 지원)
- * @param {Array} data 검색할 데이터 배열
- * @param {string} query 검색어
- * @returns {Object} 검색 결과와 관련 정보를 포함한 객체
- */
-function searchByText(data, query) {
-    const lowerQuery = query.toLowerCase();
-    const exactMatches = [];
-    const similarMatches = [];
+    // 검색 결과 없을 때 제안어 찾기
     let suggestions = null;
-    
-    // 유사어 확장을 위한 검색어 집합
-    const searchTerms = new Set([lowerQuery]);
-    
-    // 검색어의 유사어 추가
-    Object.keys(similarTerms).forEach(term => {
-        if (term.toLowerCase().includes(lowerQuery) || 
-            similarTerms[term].some(similar => similar.toLowerCase().includes(lowerQuery))) {
-            // 주요 용어나 유사어가 검색어를 포함하면 모든 유사어 추가
-            searchTerms.add(term.toLowerCase());
-            similarTerms[term].forEach(similar => searchTerms.add(similar.toLowerCase()));
-        }
-    });
-    
-    // 검색 실행
-    data.forEach(item => {
-        // 정확한 일치 확인
-        if (item.name.toLowerCase().includes(lowerQuery) || 
-            item.details.aliases.some(alias => alias.toLowerCase().includes(lowerQuery))) {
-            exactMatches.push(item);
-            return;
-        }
-        
-        // 유사어 일치 확인
-        const hasMatch = Array.from(searchTerms).some(term => {
-            return (
-                item.name.toLowerCase().includes(term) ||
-                item.details.aliases.some(alias => alias.toLowerCase().includes(term)) ||
-                item.details.addresses.some(address => address.toLowerCase().includes(term))
-            );
-        });
-        
-        if (hasMatch) {
-            similarMatches.push(item);
-        }
-    });
-    
-    // 검색 결과가 없으면 추천 검색어 제안
-    if (exactMatches.length === 0 && similarMatches.length === 0) {
-        const possibleSuggestions = Object.keys(suggestedTerms)
-            .filter(term => term.includes(lowerQuery) || lowerQuery.includes(term))
-            .map(term => suggestedTerms[term]);
-        
-        if (possibleSuggestions.length > 0) {
-            suggestions = [...new Set(possibleSuggestions)];
-        }
+    if (searchResults.length === 0 && searchType === 'text') {
+        suggestions = suggestedTerms[query.toLowerCase()] || null;
     }
     
     return {
-        results: [...exactMatches, ...similarMatches],
-        hasExactMatches: exactMatches.length > 0,
-        hasSimilarMatches: similarMatches.length > 0,
+        results: searchResults,
+        hasExactMatches: searchResults.length > 0,
+        hasSimilarMatches: false,
         suggestions
     };
 }
 
 /**
- * 번호 기반 검색을 수행합니다.
- * @param {Array} data 검색할 데이터 배열
+ * 결과 필터링
+ * @param {Array} results 검색 결과
+ * @param {string} country 국가 필터
+ * @param {string} program 프로그램 필터
+ * @returns {Array} 필터링된 결과
+ */
+function filterResults(results, country, program) {
+    let filteredResults = [...results];
+    
+    // 국가 필터링
+    if (country) {
+        filteredResults = filteredResults.filter(item => 
+            item.country.toLowerCase() === country.toLowerCase());
+    }
+    
+    // 프로그램 필터링
+    if (program) {
+        filteredResults = filteredResults.filter(item => 
+            item.programs.some(p => p.toLowerCase() === program.toLowerCase()));
+    }
+    
+    return filteredResults;
+}
+
+/**
+ * 텍스트 검색 수행
+ * @param {Array} data 검색 대상 데이터
+ * @param {string} query 검색어
+ * @returns {Array} 검색 결과
+ */
+function searchByText(data, query) {
+    const lowercaseQuery = query.toLowerCase();
+    
+    // 유사어 검색 준비
+    let expandedTerms = [lowercaseQuery];
+    
+    // 유사어 사전에서 검색어 확장
+    for (const [term, similarWords] of Object.entries(similarTerms)) {
+        if (term.toLowerCase() === lowercaseQuery || similarWords.some(word => word.toLowerCase() === lowercaseQuery)) {
+            // 원래 단어와 모든 유사어 추가
+            expandedTerms = [...expandedTerms, term.toLowerCase(), ...similarWords.map(w => w.toLowerCase())];
+            break;
+        }
+    }
+    
+    // 중복 제거
+    expandedTerms = [...new Set(expandedTerms)];
+    
+    return data.filter(item => {
+        // 이름 검색
+        if (item.name && expandedTerms.some(term => item.name.toLowerCase().includes(term))) {
+            return true;
+        }
+        
+        // 별칭 검색
+        const aliases = item.details && item.details.aliases ? item.details.aliases : [];
+        if (aliases.some(alias => expandedTerms.some(term => alias.toLowerCase().includes(term)))) {
+            return true;
+        }
+        
+        // 국가명 검색
+        if (item.country && expandedTerms.some(term => item.country.toLowerCase().includes(term))) {
+            return true;
+        }
+        
+        return false;
+    });
+}
+
+/**
+ * 번호 검색 수행
+ * @param {Array} data 검색 대상 데이터
  * @param {string} query 검색어
  * @param {string} numberType 번호 유형
- * @returns {Array} 검색 결과 배열
+ * @returns {Array} 검색 결과
  */
 function searchByNumber(data, query, numberType) {
     const normalizedQuery = query.replace(/[^0-9]/g, '');
     
     return data.filter(item => {
+        if (!item.details || !item.details.identifications) return false;
+        
         return item.details.identifications.some(id => {
             if (!numberType || numberType === 'all') {
                 return id.number.replace(/[^0-9]/g, '').includes(normalizedQuery);

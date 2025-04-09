@@ -176,15 +176,26 @@ export function hideDetail() {
 function renderDetailContent(container, item) {
     console.log('상세 정보 렌더링:', item);
     
+    // 필수 필드 확인 및 기본값 설정
+    const name = item.name || '이름 없음';
+    const type = item.type || 'UNKNOWN';
+    const country = item.country || '미상';
+    const source = item.source || '';
+    
     // 데이터 구조 분석 및 깊은 추출
     const details = item.details || {};
     const birthDate = details.birthDate || item.birthDate || '';
+    const birthPlace = details.birthPlace || item.birthPlace || '';
     const aliases = details.aliases || item.aliases || [];
     const addresses = details.addresses || item.addresses || [];
     const nationalities = details.nationalities || item.nationalities || [];
     const identifications = details.identifications || item.identifications || [];
+    
+    // 제재 정보 추출
     const sanctions = details.sanctions || [];
-    const reason = sanctions.length > 0 ? (sanctions[0].reason || '') : (item.reason || '');
+    const reason = item.reason || 
+                  (sanctions.length > 0 ? (sanctions[0].reason || '') : '') || 
+                  '제재 사유 미상';
     
     // 프로그램 정보 추출
     const programs = Array.isArray(item.programs) ? item.programs : 
@@ -203,211 +214,199 @@ function renderDetailContent(container, item) {
         } else {
             formattedDate = item.date_listed;
         }
-    } else if (sanctions.length > 0 && sanctions[0].startDate) {
-        const date = new Date(sanctions[0].startDate);
-        if (!isNaN(date.getTime())) {
-            formattedDate = date.toLocaleDateString('ko-KR', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        } else {
-            formattedDate = sanctions[0].startDate;
-        }
     }
-
-    // 타입별 클래스 설정
-    let typeClass = 'unknown';
-    let typeText = '알 수 없음';
     
-    if (item.type) {
-        const type = item.type.toLowerCase();
-        if (type === 'individual' || type === '개인') {
+    // 유형에 따른 클래스 설정
+    let typeClass = '';
+    switch(type.toLowerCase()) {
+        case 'individual':
             typeClass = 'individual';
-            typeText = '개인';
-        } else if (type === 'entity' || type === '단체') {
+            break;
+        case 'entity':
             typeClass = 'entity';
-            typeText = '단체';
-        } else if (type === 'vessel' || type === '선박') {
+            break;
+        case 'vessel':
             typeClass = 'vessel';
-            typeText = '선박';
-        } else if (type === 'aircraft' || type === '항공기') {
+            break;
+        case 'aircraft':
             typeClass = 'aircraft';
-            typeText = '항공기';
-        } else {
-            typeText = item.type;
-        }
+            break;
+        default:
+            typeClass = 'unknown';
     }
-
-    // 출처 정보 처리
-    let sourceInfo = item.source || '알 수 없음';
-    if (sourceInfo === 'UN') sourceInfo = '유엔(UN)';
-    else if (sourceInfo === 'EU') sourceInfo = '유럽연합(EU)';
-    else if (sourceInfo === 'US') sourceInfo = '미국(US/OFAC)';
-
-    // 프로그램 정보 처리
-    const programInfo = programs.map(p => {
-        if (p === 'DPRK') return '북한 제재';
-        if (p === 'RUSSIA') return '러시아 제재';
-        if (p === 'IRAN') return '이란 제재';
-        if (p === 'SYRIA') return '시리아 제재';
-        return p;
-    }).join(', ');
-
-    // HTML 내용 생성
-    const detailContent = `
-        <div class="detail-header">
-            <div class="detail-name-container">
-                <h2>${item.name || '이름 없음'}</h2>
-                <span class="detail-type ${typeClass}">${typeText}</span>
+    
+    // 컨테이너에 HTML 생성
+    container.innerHTML = `
+        <div class="detail-container">
+            <div class="detail-header">
+                <div class="detail-title">
+                    <h3>${name}</h3>
+                    <span class="detail-type ${typeClass}">${type}</span>
+                </div>
+                <div class="detail-actions">
+                    <button class="btn-pdf" onclick="window.generatePDF()">PDF 다운로드</button>
+                </div>
             </div>
-            <div class="detail-meta">
-                <p><strong>국가:</strong> ${item.country || '알 수 없음'}</p>
-                <p><strong>등재일:</strong> ${formattedDate}</p>
-                <p><strong>출처:</strong> ${sourceInfo}</p>
-                ${programInfo ? `<p><strong>제재 프로그램:</strong> ${programInfo}</p>` : ''}
-                ${item.matchScore ? `<p><strong>일치도:</strong> ${item.matchScore}%</p>` : ''}
-            </div>
-        </div>
-        <div class="detail-content">
-            ${birthDate ? `
+            
             <div class="detail-section">
-                <h3>생년월일</h3>
-                <p>${birthDate}</p>
+                <h4 class="section-title">기본 정보</h4>
+                <div class="detail-data">
+                    <div class="data-item">
+                        <span class="data-label">국가:</span>
+                        <span class="data-value">${country}</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">등재일:</span>
+                        <span class="data-value">${formattedDate}</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">출처:</span>
+                        <span class="data-value">${source}</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">제재 프로그램:</span>
+                        <span class="data-value">${programs.join(', ') || '정보 없음'}</span>
+                    </div>
+                    ${type.toLowerCase() === 'individual' ? `
+                    <div class="data-item">
+                        <span class="data-label">생년월일:</span>
+                        <span class="data-value">${birthDate || '정보 없음'}</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">출생지:</span>
+                        <span class="data-value">${birthPlace || '정보 없음'}</span>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h4 class="section-title">제재 사유</h4>
+                <div class="detail-data">
+                    <div class="data-item reason">
+                        <div class="data-value">${reason || '제재 사유 정보 없음'}</div>
+                    </div>
+                </div>
+            </div>
+            
+            ${aliases.length > 0 ? `
+            <div class="detail-section">
+                <h4 class="section-title">별칭</h4>
+                <div class="detail-data">
+                    <ul class="aliases-list">
+                        ${aliases.map(alias => `<li>${alias}</li>`).join('')}
+                    </ul>
+                </div>
             </div>
             ` : ''}
-
-            ${reason ? `
+            
+            ${nationalities.length > 0 ? `
             <div class="detail-section">
-                <h3>제재 사유</h3>
-                <p>${reason}</p>
+                <h4 class="section-title">국적</h4>
+                <div class="detail-data">
+                    <ul class="aliases-list">
+                        ${nationalities.map(nationality => `<li>${nationality}</li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+            ` : ''}
+            
+            ${addresses.length > 0 ? `
+            <div class="detail-section">
+                <h4 class="section-title">주소</h4>
+                <div class="detail-data">
+                    <ul class="addresses-list">
+                        ${addresses.map(address => `<li>${address}</li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+            ` : ''}
+            
+            ${identifications.length > 0 ? `
+            <div class="detail-section">
+                <h4 class="section-title">식별 정보</h4>
+                <div class="detail-data">
+                    <ul class="id-list">
+                        ${identifications.map(id => `
+                            <li>
+                                <strong>${id.type || '기타'}</strong>: ${id.number || '번호 없음'}
+                                ${id.country ? ` (${id.country})` : ''}
+                                ${id.issueDate ? ` 발급일: ${id.issueDate}` : ''}
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
             </div>
             ` : ''}
             
             ${sanctions.length > 0 ? `
             <div class="detail-section">
-                <h3>제재 정보</h3>
-                <table class="detail-table">
-                    <thead>
-                        <tr>
-                            <th>프로그램</th>
-                            <th>시작일</th>
-                            <th>종료일</th>
-                            <th>사유</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <h4 class="section-title">제재 내역</h4>
+                <div class="detail-data">
+                    <ul class="sanctions-list">
                         ${sanctions.map(sanction => `
-                        <tr>
-                            <td>${sanction.program || '-'}</td>
-                            <td>${sanction.startDate ? new Date(sanction.startDate).toLocaleDateString('ko-KR') : '-'}</td>
-                            <td>${sanction.endDate ? new Date(sanction.endDate).toLocaleDateString('ko-KR') : '진행중'}</td>
-                            <td>${sanction.reason || '-'}</td>
-                        </tr>
+                            <li>
+                                <strong>${sanction.program || '제재 프로그램 미상'}</strong>
+                                ${sanction.startDate ? ` - 시작일: ${sanction.startDate}` : ''}
+                                ${sanction.endDate ? ` - 종료일: ${sanction.endDate}` : ''}
+                            </li>
                         `).join('')}
-                    </tbody>
-                </table>
+                    </ul>
+                </div>
             </div>
             ` : ''}
-            
-            ${aliases && aliases.length > 0 ? `
-            <div class="detail-section">
-                <h3>별칭</h3>
-                <ul class="detail-list">
-                    ${aliases.map(alias => `<li>${alias}</li>`).join('')}
-                </ul>
-            </div>
-            ` : ''}
-            
-            ${nationalities && nationalities.length > 0 ? `
-            <div class="detail-section">
-                <h3>국적</h3>
-                <ul class="detail-list">
-                    ${nationalities.map(nationality => `<li>${nationality}</li>`).join('')}
-                </ul>
-            </div>
-            ` : ''}
-            
-            ${addresses && addresses.length > 0 ? `
-            <div class="detail-section">
-                <h3>주소</h3>
-                <ul class="detail-list">
-                    ${addresses.map(address => `<li>${address}</li>`).join('')}
-                </ul>
-            </div>
-            ` : ''}
-            
-            ${identifications && identifications.length > 0 ? `
-            <div class="detail-section">
-                <h3>신원 정보</h3>
-                <table class="detail-table">
-                    <thead>
-                        <tr>
-                            <th>유형</th>
-                            <th>번호</th>
-                            <th>발급국</th>
-                            <th>추가 정보</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${identifications.map(id => `
-                        <tr>
-                            <td>${id.type || '알 수 없음'}</td>
-                            <td>${id.number || '알 수 없음'}</td>
-                            <td>${id.country || '알 수 없음'}</td>
-                            <td>${id.additional_info || '-'}</td>
-                        </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-            ` : ''}
-
-            ${item.vessel_info ? `
-            <div class="detail-section">
-                <h3>선박 정보</h3>
-                <table class="detail-table simple">
-                    ${item.vessel_info.imo_number ? `<tr><td>IMO 번호</td><td>${item.vessel_info.imo_number}</td></tr>` : ''}
-                    ${item.vessel_info.call_sign ? `<tr><td>호출 부호</td><td>${item.vessel_info.call_sign}</td></tr>` : ''}
-                    ${item.vessel_info.vessel_type ? `<tr><td>선박 유형</td><td>${item.vessel_info.vessel_type}</td></tr>` : ''}
-                    ${item.vessel_info.flag ? `<tr><td>국적기</td><td>${item.vessel_info.flag}</td></tr>` : ''}
-                    ${item.vessel_info.tonnage ? `<tr><td>톤수</td><td>${item.vessel_info.tonnage}</td></tr>` : ''}
-                </table>
-            </div>
-            ` : ''}
-        </div>
-        <div class="detail-actions">
-            <button id="download-pdf-btn" class="btn btn-primary">PDF 다운로드</button>
-            <button id="close-detail-btn" class="btn btn-secondary">닫기</button>
         </div>
     `;
     
-    // 내용 설정
-    container.innerHTML = detailContent;
-    
-    // 버튼 이벤트 리스너 추가
-    container.querySelector('#close-detail-btn').addEventListener('click', hideDetail);
-    container.querySelector('#download-pdf-btn').addEventListener('click', () => {
-        generatePDF(item);
-    });
+    // PDF 생성 함수를 전역 객체에 등록
+    window.generatePDF = () => generatePDF(item);
 }
 
 /**
- * PDF 생성 및 다운로드
+ * PDF 파일 생성
  * @param {Object} item 제재 대상 정보
  */
 function generatePDF(item) {
     try {
-        // PDF 생성 알림
-        showAlert('PDF를 생성하는 중입니다...', 'info');
+        // jsPDF 라이브러리가 로드되었는지 확인
+        if (typeof jsPDF === 'undefined') {
+            // 라이브러리 로드
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+            document.head.appendChild(script);
+            
+            script.onload = () => {
+                // 스크립트 로드 완료 후 PDF 생성 시도
+                setTimeout(() => generatePDF(item), 100);
+            };
+            
+            return showAlert('PDF 생성을 위한 라이브러리를 로드 중입니다. 잠시 후 다시 시도하세요.', 'info');
+        }
+        
+        // 필수 필드 확인 및 기본값 설정
+        const name = item.name || '이름 없음';
+        const type = item.type || 'UNKNOWN';
+        const country = item.country || '미상';
+        const source = item.source || '';
         
         // 데이터 구조 분석 및 깊은 추출
         const details = item.details || {};
         const birthDate = details.birthDate || item.birthDate || '';
+        const birthPlace = details.birthPlace || item.birthPlace || '';
         const aliases = details.aliases || item.aliases || [];
         const addresses = details.addresses || item.addresses || [];
         const nationalities = details.nationalities || item.nationalities || [];
         const identifications = details.identifications || item.identifications || [];
+        
+        // 제재 정보 추출
+        const sanctions = details.sanctions || [];
+        const reason = item.reason || 
+                      (sanctions.length > 0 ? (sanctions[0].reason || '') : '') || 
+                      '제재 사유 미상';
+        
+        // 프로그램 정보 추출
+        const programs = Array.isArray(item.programs) ? item.programs : 
+                         (item.program ? [item.program] : []);
         
         // 등재일 형식화
         let formattedDate = '알 수 없음';
@@ -424,184 +423,211 @@ function generatePDF(item) {
             }
         }
         
-        // 타입별 텍스트 설정
-        let typeText = '알 수 없음';
-        if (item.type) {
-            const type = item.type.toLowerCase();
-            if (type === 'individual' || type === '개인') {
-                typeText = '개인';
-            } else if (type === 'entity' || type === '단체') {
-                typeText = '단체';
-            } else if (type === 'vessel' || type === '선박') {
-                typeText = '선박';
-            } else if (type === 'aircraft' || type === '항공기') {
-                typeText = '항공기';
-            } else {
-                typeText = item.type;
-            }
+        // PDF 생성
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // 페이지 상단 제목
+        doc.setFontSize(18);
+        doc.setTextColor(40, 40, 40);
+        doc.text('제재 대상 상세 정보', 105, 15, { align: 'center' });
+        
+        // 이름과 유형
+        doc.setFontSize(16);
+        doc.setTextColor(60, 60, 60);
+        doc.text(name, 15, 25);
+        
+        doc.setFontSize(12);
+        doc.setTextColor(80, 80, 80);
+        doc.text(`유형: ${type}`, 15, 35);
+        
+        // 기본 정보
+        doc.setFontSize(14);
+        doc.setTextColor(40, 40, 40);
+        doc.text('1. 기본 정보', 15, 45);
+        
+        doc.setFontSize(12);
+        doc.setTextColor(80, 80, 80);
+        doc.text(`국가: ${country}`, 20, 55);
+        doc.text(`등재일: ${formattedDate}`, 20, 62);
+        doc.text(`출처: ${source}`, 20, 69);
+        doc.text(`제재 프로그램: ${programs.join(', ') || '정보 없음'}`, 20, 76);
+        
+        if (type.toLowerCase() === 'individual') {
+            doc.text(`생년월일: ${birthDate || '정보 없음'}`, 20, 83);
+            doc.text(`출생지: ${birthPlace || '정보 없음'}`, 20, 90);
         }
         
-        // 출처 정보 처리
-        let sourceInfo = item.source || '알 수 없음';
-        if (sourceInfo === 'UN') sourceInfo = '유엔(UN)';
-        else if (sourceInfo === 'EU') sourceInfo = '유럽연합(EU)';
-        else if (sourceInfo === 'US') sourceInfo = '미국(US/OFAC)';
+        // 제재 사유
+        let yPos = type.toLowerCase() === 'individual' ? 100 : 83;
         
-        // 프로그램 정보 처리
-        const programs = Array.isArray(item.programs) ? item.programs : 
-                        (item.program ? [item.program] : []);
-        const programInfo = programs.map(p => {
-            if (p === 'DPRK') return '북한 제재';
-            if (p === 'RUSSIA') return '러시아 제재';
-            if (p === 'IRAN') return '이란 제재';
-            if (p === 'SYRIA') return '시리아 제재';
-            return p;
-        }).join(', ');
+        doc.setFontSize(14);
+        doc.setTextColor(40, 40, 40);
+        doc.text('2. 제재 사유', 15, yPos);
         
-        // PDF HTML 내용 생성
-        const pdfContent = `
-            <!DOCTYPE html>
-            <html lang="ko">
-            <head>
-                <meta charset="UTF-8">
-                <title>제재 정보: ${item.name}</title>
-                <style>
-                    body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; margin: 30px; color: #333; }
-                    h1 { color: #333; border-bottom: 2px solid #7e57c2; padding-bottom: 10px; margin-bottom: 20px; }
-                    .type-badge { display: inline-block; background-color: #5c6bc0; color: white; padding: 5px 10px; border-radius: 4px; margin-bottom: 20px; }
-                    .info-section { margin-bottom: 30px; }
-                    .info-section h2 { color: #5e35b1; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 15px; }
-                    .info-item { margin-bottom: 10px; }
-                    .info-item strong { color: #333; font-weight: bold; display: inline-block; width: 150px; }
-                    table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }
-                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                    th { background-color: #f5f5f5; }
-                    ul { padding-left: 20px; }
-                    li { margin-bottom: 5px; }
-                    .footer { margin-top: 50px; font-size: 12px; color: #777; text-align: center; border-top: 1px solid #eee; padding-top: 20px; }
-                </style>
-            </head>
-            <body>
-                <h1>${item.name || '이름 없음'}</h1>
-                <div class="type-badge">${typeText}</div>
-                
-                <div class="info-section">
-                    <h2>기본 정보</h2>
-                    <div class="info-item"><strong>국가:</strong> ${item.country || '알 수 없음'}</div>
-                    <div class="info-item"><strong>등재일:</strong> ${formattedDate}</div>
-                    <div class="info-item"><strong>출처:</strong> ${sourceInfo}</div>
-                    ${programInfo ? `<div class="info-item"><strong>제재 프로그램:</strong> ${programInfo}</div>` : ''}
-                </div>
-                
-                ${birthDate ? `
-                <div class="info-section">
-                    <h2>생년월일</h2>
-                    <p>${birthDate}</p>
-                </div>
-                ` : ''}
-                
-                ${item.reason ? `
-                <div class="info-section">
-                    <h2>제재 사유</h2>
-                    <p>${item.reason}</p>
-                </div>
-                ` : ''}
-                
-                ${aliases && aliases.length > 0 ? `
-                <div class="info-section">
-                    <h2>별칭</h2>
-                    <ul>
-                        ${aliases.map(alias => `<li>${alias}</li>`).join('')}
-                    </ul>
-                </div>
-                ` : ''}
-                
-                ${nationalities && nationalities.length > 0 ? `
-                <div class="info-section">
-                    <h2>국적</h2>
-                    <ul>
-                        ${nationalities.map(nationality => `<li>${nationality}</li>`).join('')}
-                    </ul>
-                </div>
-                ` : ''}
-                
-                ${addresses && addresses.length > 0 ? `
-                <div class="info-section">
-                    <h2>주소</h2>
-                    <ul>
-                        ${addresses.map(address => `<li>${address}</li>`).join('')}
-                    </ul>
-                </div>
-                ` : ''}
-                
-                ${identifications && identifications.length > 0 ? `
-                <div class="info-section">
-                    <h2>신원 정보</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>유형</th>
-                                <th>번호</th>
-                                <th>발급국</th>
-                                <th>추가 정보</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${identifications.map(id => `
-                            <tr>
-                                <td>${id.type || '알 수 없음'}</td>
-                                <td>${id.number || '알 수 없음'}</td>
-                                <td>${id.country || '알 수 없음'}</td>
-                                <td>${id.additional_info || '-'}</td>
-                            </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-                ` : ''}
-                
-                ${item.vessel_info ? `
-                <div class="info-section">
-                    <h2>선박 정보</h2>
-                    <table>
-                        <tbody>
-                            ${item.vessel_info.imo_number ? `<tr><td>IMO 번호</td><td>${item.vessel_info.imo_number}</td></tr>` : ''}
-                            ${item.vessel_info.call_sign ? `<tr><td>호출 부호</td><td>${item.vessel_info.call_sign}</td></tr>` : ''}
-                            ${item.vessel_info.vessel_type ? `<tr><td>선박 유형</td><td>${item.vessel_info.vessel_type}</td></tr>` : ''}
-                            ${item.vessel_info.flag ? `<tr><td>국적기</td><td>${item.vessel_info.flag}</td></tr>` : ''}
-                            ${item.vessel_info.tonnage ? `<tr><td>톤수</td><td>${item.vessel_info.tonnage}</td></tr>` : ''}
-                        </tbody>
-                    </table>
-                </div>
-                ` : ''}
-                
-                <div class="footer">
-                    <p>이 문서는 ${new Date().toLocaleString('ko-KR')}에 생성되었습니다.</p>
-                    <p>WVL 제재 조회 시스템에서 제공하는 정보입니다.</p>
-                </div>
-            </body>
-            </html>
-        `;
+        doc.setFontSize(12);
+        doc.setTextColor(80, 80, 80);
         
-        // HTML Blob 생성
-        const blob = new Blob([pdfContent], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
+        // 긴 텍스트 래핑 처리
+        const reasonLines = doc.splitTextToSize(reason || '제재 사유 정보 없음', 170);
+        doc.text(reasonLines, 20, yPos + 10);
         
-        // 다운로드 링크 생성
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `제재정보_${item.name || 'unknown'}.html`;
-        document.body.appendChild(link);
-        link.click();
+        yPos += 10 + (reasonLines.length * 7);
         
-        // 리소스 정리
-        setTimeout(() => {
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            showAlert('PDF 형식으로 다운로드되었습니다. (HTML 형식으로 저장 후 인쇄하면 PDF로 변환됩니다)', 'success');
-        }, 100);
+        // 별칭
+        if (aliases && aliases.length > 0) {
+            doc.setFontSize(14);
+            doc.setTextColor(40, 40, 40);
+            doc.text('3. 별칭', 15, yPos);
+            
+            doc.setFontSize(12);
+            doc.setTextColor(80, 80, 80);
+            
+            aliases.forEach((alias, index) => {
+                doc.text(`- ${alias}`, 20, yPos + 10 + (index * 7));
+            });
+            
+            yPos += 10 + (aliases.length * 7);
+        }
+        
+        // 국적
+        if (nationalities && nationalities.length > 0) {
+            doc.setFontSize(14);
+            doc.setTextColor(40, 40, 40);
+            doc.text('4. 국적', 15, yPos);
+            
+            doc.setFontSize(12);
+            doc.setTextColor(80, 80, 80);
+            
+            nationalities.forEach((nationality, index) => {
+                doc.text(`- ${nationality}`, 20, yPos + 10 + (index * 7));
+            });
+            
+            yPos += 10 + (nationalities.length * 7);
+        }
+        
+        // 페이지 초과 시 새 페이지 추가
+        if (yPos > 250) {
+            doc.addPage();
+            yPos = 20;
+        }
+        
+        // 주소
+        if (addresses && addresses.length > 0) {
+            doc.setFontSize(14);
+            doc.setTextColor(40, 40, 40);
+            doc.text('5. 주소', 15, yPos);
+            
+            doc.setFontSize(12);
+            doc.setTextColor(80, 80, 80);
+            
+            let addressYPos = yPos + 10;
+            addresses.forEach((address) => {
+                const addressLines = doc.splitTextToSize(`- ${address}`, 170);
+                doc.text(addressLines, 20, addressYPos);
+                addressYPos += addressLines.length * 7;
+                
+                // 페이지 초과 시 새 페이지 추가
+                if (addressYPos > 280) {
+                    doc.addPage();
+                    addressYPos = 20;
+                }
+            });
+            
+            yPos = addressYPos + 5;
+        }
+        
+        // 페이지 초과 시 새 페이지 추가
+        if (yPos > 250) {
+            doc.addPage();
+            yPos = 20;
+        }
+        
+        // 식별 정보
+        if (identifications && identifications.length > 0) {
+            doc.setFontSize(14);
+            doc.setTextColor(40, 40, 40);
+            doc.text('6. 식별 정보', 15, yPos);
+            
+            doc.setFontSize(12);
+            doc.setTextColor(80, 80, 80);
+            
+            let idYPos = yPos + 10;
+            identifications.forEach((id) => {
+                let idText = `- ${id.type || '기타'}: ${id.number || '번호 없음'}`;
+                if (id.country) idText += ` (${id.country})`;
+                if (id.issueDate) idText += ` 발급일: ${id.issueDate}`;
+                
+                const idLines = doc.splitTextToSize(idText, 170);
+                doc.text(idLines, 20, idYPos);
+                idYPos += idLines.length * 7;
+                
+                // 페이지 초과 시 새 페이지 추가
+                if (idYPos > 280) {
+                    doc.addPage();
+                    idYPos = 20;
+                }
+            });
+            
+            yPos = idYPos + 5;
+        }
+        
+        // 페이지 초과 시 새 페이지 추가
+        if (yPos > 250) {
+            doc.addPage();
+            yPos = 20;
+        }
+        
+        // 제재 내역
+        if (sanctions && sanctions.length > 0) {
+            doc.setFontSize(14);
+            doc.setTextColor(40, 40, 40);
+            doc.text('7. 제재 내역', 15, yPos);
+            
+            doc.setFontSize(12);
+            doc.setTextColor(80, 80, 80);
+            
+            let sanctionYPos = yPos + 10;
+            sanctions.forEach((sanction) => {
+                let sanctionText = `- ${sanction.program || '제재 프로그램 미상'}`;
+                if (sanction.startDate) sanctionText += ` - 시작일: ${sanction.startDate}`;
+                if (sanction.endDate) sanctionText += ` - 종료일: ${sanction.endDate}`;
+                
+                const sanctionLines = doc.splitTextToSize(sanctionText, 170);
+                doc.text(sanctionLines, 20, sanctionYPos);
+                sanctionYPos += sanctionLines.length * 7;
+                
+                // 페이지 초과 시 새 페이지 추가
+                if (sanctionYPos > 280) {
+                    doc.addPage();
+                    sanctionYPos = 20;
+                }
+            });
+        }
+        
+        // 푸터 - 생성 날짜
+        const today = new Date();
+        const dateStr = today.toLocaleDateString('ko-KR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        
+        const pageCount = doc.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(10);
+            doc.setTextColor(150, 150, 150);
+            doc.text(`생성일: ${dateStr} - 페이지 ${i}/${pageCount}`, 105, 290, { align: 'center' });
+        }
+        
+        // 파일명 설정 및 다운로드
+        const filename = `${name}_${source}_제재정보.pdf`;
+        doc.save(filename);
+        
+        showAlert('PDF 다운로드가 시작되었습니다.', 'success');
     } catch (error) {
         console.error('PDF 생성 오류:', error);
-        showAlert('PDF 생성 중 오류가 발생했습니다', 'error');
+        showAlert('PDF 생성 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
     }
 } 
