@@ -1,0 +1,127 @@
+2025-04-09 14:30:11,869 - sanctions_collector - INFO - 제재 데이터 수집 시작
+2025-04-09 14:30:11,870 - sanctions_collector - INFO - UN 제재 데이터 수집 시작
+2025-04-09 14:30:11,870 - sanctions_collector - INFO - UN 제재 데이터 수집 시작
+2025-04-09 14:30:17,644 - sanctions_collector - INFO - 제재 데이터 XML 파일 저장 완료: un_sanctions.xml (2.1 MB)
+2025-04-09 14:30:17,699 - sanctions_collector - INFO - 네임스페이스 처리 완료
+2025-04-09 14:30:17,748 - sanctions_collector - INFO - un 제재 데이터 저장 완료: 877개 항목
+2025-04-09 14:30:17,751 - sanctions_collector - INFO - UN 제재 데이터 수집 완료
+2025-04-09 14:30:17,756 - sanctions_collector - INFO - EU 제재 데이터 수집 시작
+2025-04-09 14:30:17,757 - sanctions_collector - INFO - EU 제재 데이터 수집 시작
+2025-04-09 14:30:28,052 - sanctions_collector - INFO - 제재 데이터 XML 파일 저장 완료: eu_sanctions.xml (21.0 MB)
+2025-04-09 14:30:28,582 - sanctions_collector - INFO - 네임스페이스 발견: http://eu.europa.ec/fpi/fsd/export
+2025-04-09 14:30:28,589 - sanctions_collector - INFO - 총 5280개의 제재 항목 발견
+2025-04-09 14:30:28,855 - sanctions_collector - INFO - eu 제재 데이터 저장 완료: 5280개 항목
+2025-04-09 14:30:28,883 - sanctions_collector - INFO - EU 제재 데이터 수집 완료
+2025-04-09 14:30:28,884 - sanctions_collector - INFO - US 제재 데이터 수집 시작
+2025-04-09 14:30:28,884 - sanctions_collector - INFO - US OFAC 제재 데이터 수집 시작
+2025-04-09 14:30:57,453 - sanctions_collector - INFO - 제재 데이터 XML 파일 저장 완료: us_sanctions.xml (25.3 MB)
+2025-04-09 14:30:58,237 - sanctions_collector - INFO - 총 레코드 수: 17748
+2025-04-09 14:31:00,278 - sanctions_collector - INFO - us 제재 데이터 저장 완료: 17748개 항목
+2025-04-09 14:31:00,346 - sanctions_collector - INFO - US 제재 데이터 수집 완료
+2025-04-09 14:31:00,347 - sanctions_collector - INFO - 제재 데이터 통합 시작
+2025-04-09 14:31:00,347 - sanctions_collector - INFO - 제재 데이터 통합 시작
+2025-04-09 14:31:00,367 - sanctions_collector - INFO - UN 제재 데이터 로드 완료: 877개 항목
+2025-04-09 14:31:00,401 - sanctions_collector - INFO - EU 제재 데이터 로드 완료: 5280개 항목
+2025-04-09 14:31:00,521 - sanctions_collector - INFO - US 제재 데이터 로드 완료: 17748개 항목
+2025-04-09 14:31:01,248 - sanctions_collector - INFO - 통합 제재 데이터 저장 완료: 23905개 항목
+2025-04-09 14:31:01,253 - sanctions_collector - INFO - UN 소스 항목 수: 877
+2025-04-09 14:31:01,254 - sanctions_collector - INFO - EU 소스 항목 수: 5280
+2025-04-09 14:31:01,254 - sanctions_collector - INFO - US-OFAC 소스 항목 수: 17748
+2025-04-09 14:31:01,257 - sanctions_collector - INFO - INDIVIDUAL 유형 항목 수: 4765
+2025-04-09 14:31:01,257 - sanctions_collector - INFO - ENTITY 유형 항목 수: 1392
+2025-04-09 14:31:01,257 - sanctions_collector - INFO - Entity 유형 항목 수: 8762
+2025-04-09 14:31:01,257 - sanctions_collector - INFO - Individual 유형 항목 수: 7404
+2025-04-09 14:31:01,258 - sanctions_collector - INFO - Vessel 유형 항목 수: 1208
+2025-04-09 14:31:01,258 - sanctions_collector - INFO - Aircraft 유형 항목 수: 374
+2025-04-09 14:31:01,272 - sanctions_collector - INFO - 제재 데이터 통합 완료
+2025-04-09 14:31:01,279 - sanctions_collector - INFO - 임시 파일 정리 완료
+2025-04-09 14:42:46,030 - sanctions_collector - INFO - 제재 데이터 수집 시작
+2025-04-09 14:42:46,031 - sanctions_collector - INFO - UN 제재 데이터 수집 시작
+2025-04-09 14:42:46,031 - sanctions_collector - INFO - UN 제재 데이터 수집 시작
+2025-04-09 14:42:56,702 - sanctions_collector - INFO - 제재 데이터 XML 파일 저장 완료: un_sanctions.xml (2.1 MB)
+2025-04-09 14:42:56,760 - sanctions_collector - INFO - 네임스페이스 처리 완료
+2025-04-09 14:42:56,807 - sanctions_collector - INFO - un 제재 데이터 저장 완료: 877개 항목
+2025-04-09 14:42:56,811 - sanctions_collector - INFO - UN 제재 데이터 수집 완료
+2025-04-09 14:42:56,811 - sanctions_collector - INFO - EU 제재 데이터 수집 시작
+2025-04-09 14:42:56,811 - sanctions_collector - INFO - EU 제재 데이터 수집 시작
+2025-04-09 14:43:06,605 - sanctions_collector - INFO - 제재 데이터 XML 파일 저장 완료: eu_sanctions.xml (21.0 MB)
+2025-04-09 14:43:07,091 - sanctions_collector - INFO - 네임스페이스 발견: http://eu.europa.ec/fpi/fsd/export
+2025-04-09 14:43:07,097 - sanctions_collector - INFO - 총 5280개의 제재 항목 발견
+2025-04-09 14:43:07,380 - sanctions_collector - INFO - eu 제재 데이터 저장 완료: 5280개 항목
+2025-04-09 14:43:07,408 - sanctions_collector - INFO - EU 제재 데이터 수집 완료
+2025-04-09 14:43:07,409 - sanctions_collector - INFO - US 제재 데이터 수집 시작
+2025-04-09 14:43:07,409 - sanctions_collector - INFO - US OFAC 제재 데이터 수집 시작
+2025-04-09 14:43:36,305 - sanctions_collector - INFO - 제재 데이터 XML 파일 저장 완료: us_sanctions.xml (25.3 MB)
+2025-04-09 14:43:37,121 - sanctions_collector - INFO - 총 레코드 수: 17748
+2025-04-09 14:43:39,129 - sanctions_collector - INFO - us 제재 데이터 저장 완료: 17748개 항목
+2025-04-09 14:43:39,200 - sanctions_collector - INFO - US 제재 데이터 수집 완료
+2025-04-09 14:43:39,201 - sanctions_collector - INFO - 제재 데이터 통합 시작
+2025-04-09 14:43:39,201 - sanctions_collector - INFO - 제재 데이터 통합 시작
+2025-04-09 14:43:39,219 - sanctions_collector - INFO - UN 제재 데이터 로드 완료: 877개 항목
+2025-04-09 14:43:39,252 - sanctions_collector - INFO - EU 제재 데이터 로드 완료: 5280개 항목
+2025-04-09 14:43:39,378 - sanctions_collector - INFO - US 제재 데이터 로드 완료: 17748개 항목
+2025-04-09 14:43:40,830 - sanctions_collector - INFO - 통합 제재 데이터 저장 완료: 23905개 항목
+2025-04-09 14:43:40,838 - sanctions_collector - INFO - UN 소스 항목 수: 877
+2025-04-09 14:43:40,839 - sanctions_collector - INFO - EU 소스 항목 수: 5280
+2025-04-09 14:43:40,839 - sanctions_collector - INFO - US-OFAC 소스 항목 수: 17748
+2025-04-09 14:43:40,842 - sanctions_collector - INFO - INDIVIDUAL 유형 항목 수: 4765
+2025-04-09 14:43:40,842 - sanctions_collector - INFO - ENTITY 유형 항목 수: 1392
+2025-04-09 14:43:40,843 - sanctions_collector - INFO - Entity 유형 항목 수: 8762
+2025-04-09 14:43:40,843 - sanctions_collector - INFO - Individual 유형 항목 수: 7404
+2025-04-09 14:43:40,843 - sanctions_collector - INFO - Vessel 유형 항목 수: 1208
+2025-04-09 14:43:40,843 - sanctions_collector - INFO - Aircraft 유형 항목 수: 374
+2025-04-09 14:43:40,857 - sanctions_collector - INFO - 제재 데이터 통합 완료
+2025-04-09 14:43:40,863 - sanctions_collector - INFO - 임시 파일 정리 완료
+2025-04-09 15:56:56,913 - sanctions_collector - INFO - 제재 데이터 수집 시작
+2025-04-09 15:56:56,913 - sanctions_collector - INFO - UN 제재 데이터 수집 시작
+2025-04-09 15:56:56,913 - sanctions_collector - INFO - UN 제재 데이터 수집 시작
+2025-04-09 15:57:02,814 - sanctions_collector - INFO - 제재 데이터 XML 파일 저장 완료: un_sanctions.xml (2.1 MB)
+2025-04-09 15:57:02,867 - sanctions_collector - INFO - 네임스페이스 처리 완료
+2025-04-09 15:57:02,914 - sanctions_collector - INFO - un 제재 데이터 저장 완료: 877개 항목
+2025-04-09 15:57:02,916 - sanctions_collector - INFO - UN 제재 데이터 수집 완료
+2025-04-09 15:57:02,917 - sanctions_collector - INFO - EU 제재 데이터 수집 시작
+2025-04-09 15:57:02,917 - sanctions_collector - INFO - EU 제재 데이터 수집 시작
+2025-04-09 15:57:13,577 - sanctions_collector - INFO - 제재 데이터 XML 파일 저장 완료: eu_sanctions.xml (21.0 MB)
+2025-04-09 15:57:14,085 - sanctions_collector - INFO - 네임스페이스 발견: http://eu.europa.ec/fpi/fsd/export
+2025-04-09 15:57:14,092 - sanctions_collector - INFO - 총 5280개의 제재 항목 발견
+2025-04-09 15:57:14,356 - sanctions_collector - INFO - eu 제재 데이터 저장 완료: 5280개 항목
+2025-04-09 15:57:14,383 - sanctions_collector - INFO - EU 제재 데이터 수집 완료
+2025-04-09 15:57:14,383 - sanctions_collector - INFO - US 제재 데이터 수집 시작
+2025-04-09 15:57:14,383 - sanctions_collector - INFO - US OFAC 제재 데이터 수집 시작
+2025-04-09 15:57:43,643 - sanctions_collector - INFO - 제재 데이터 XML 파일 저장 완료: us_sanctions.xml (25.3 MB)
+2025-04-09 15:57:44,422 - sanctions_collector - INFO - 총 레코드 수: 17748
+2025-04-09 15:57:46,487 - sanctions_collector - INFO - us 제재 데이터 저장 완료: 17748개 항목
+2025-04-09 15:57:46,562 - sanctions_collector - INFO - US 제재 데이터 수집 완료
+2025-04-09 15:57:46,562 - sanctions_collector - INFO - 제재 데이터 통합 시작
+2025-04-09 15:57:46,562 - sanctions_collector - INFO - 제재 데이터 통합 시작
+2025-04-09 15:57:46,568 - sanctions_collector - INFO - UN 제재 데이터 로드 완료: 877개 항목
+2025-04-09 15:57:46,609 - sanctions_collector - INFO - EU 제재 데이터 로드 완료: 5280개 항목
+2025-04-09 15:57:46,743 - sanctions_collector - INFO - US 제재 데이터 로드 완료: 17748개 항목
+2025-04-09 15:57:48,201 - sanctions_collector - INFO - 통합 제재 데이터 저장 완료: 23905개 항목
+2025-04-09 15:57:48,207 - sanctions_collector - INFO - UN 소스 항목 수: 877
+2025-04-09 15:57:48,207 - sanctions_collector - INFO - EU 소스 항목 수: 5280
+2025-04-09 15:57:48,207 - sanctions_collector - INFO - US-OFAC 소스 항목 수: 17748
+2025-04-09 15:57:48,210 - sanctions_collector - INFO - INDIVIDUAL 유형 항목 수: 4765
+2025-04-09 15:57:48,211 - sanctions_collector - INFO - ENTITY 유형 항목 수: 1392
+2025-04-09 15:57:48,211 - sanctions_collector - INFO - Entity 유형 항목 수: 8762
+2025-04-09 15:57:48,211 - sanctions_collector - INFO - Individual 유형 항목 수: 7404
+2025-04-09 15:57:48,211 - sanctions_collector - INFO - Vessel 유형 항목 수: 1208
+2025-04-09 15:57:48,211 - sanctions_collector - INFO - Aircraft 유형 항목 수: 374
+2025-04-09 15:57:48,225 - sanctions_collector - INFO - 제재 데이터 통합 완료
+2025-04-09 15:57:48,232 - sanctions_collector - INFO - 임시 파일 정리 완료
+2025-04-09 16:24:29,767 - sanctions_collector - INFO - 제재 데이터 수집 시작
+2025-04-09 16:24:29,768 - sanctions_collector - INFO - UN 제재 데이터 수집 시작
+2025-04-09 16:24:29,768 - sanctions_collector - INFO - UN 제재 데이터 수집 시작
+2025-04-09 16:24:35,553 - sanctions_collector - INFO - 제재 데이터 XML 파일 저장 완료: un_sanctions.xml (2.1 MB)
+2025-04-09 16:24:35,608 - sanctions_collector - INFO - 네임스페이스 처리 완료
+2025-04-09 16:24:35,658 - sanctions_collector - INFO - un 제재 데이터 저장 완료: 877개 항목
+2025-04-09 16:24:35,661 - sanctions_collector - INFO - UN 제재 데이터 수집 완료
+2025-04-09 16:24:35,661 - sanctions_collector - INFO - 제재 데이터 통합 시작
+2025-04-09 16:24:35,661 - sanctions_collector - INFO - 제재 데이터 통합 시작
+2025-04-09 16:24:35,674 - sanctions_collector - INFO - UN 제재 데이터 로드 완료: 877개 항목
+2025-04-09 16:24:35,724 - sanctions_collector - INFO - 통합 제재 데이터 저장 완료: 877개 항목
+2025-04-09 16:24:35,724 - sanctions_collector - INFO - UN 소스 항목 수: 877
+2025-04-09 16:24:35,725 - sanctions_collector - INFO - INDIVIDUAL 유형 항목 수: 684
+2025-04-09 16:24:35,725 - sanctions_collector - INFO - ENTITY 유형 항목 수: 193
+2025-04-09 16:24:35,725 - sanctions_collector - INFO - 제재 데이터 통합 완료
+2025-04-09 16:24:35,726 - sanctions_collector - INFO - 임시 파일 정리 완료
