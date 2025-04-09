@@ -1844,7 +1844,7 @@ body.modal-open {
   font-size: 15px;
 }
 
-/* 검색 결과 그리드 레이아웃 - 강제 적용 */
+/* 검색 결과 그리드 레이아웃 - 2023년 4월 업데이트 */
 #results-container {
     display: grid !important;
     grid-template-columns: repeat(3, 1fr) !important;
@@ -1868,7 +1868,7 @@ body.modal-open {
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.12) !important;
 }
 
-/* 모바일 대응 - 강제 적용 */
+/* 모바일 대응 - 업데이트 */
 @media (max-width: 992px) {
     #results-container {
         grid-template-columns: repeat(2, 1fr) !important;
