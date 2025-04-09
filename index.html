@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="세계 경제 제재 검색 서비스 - UN, EU, US 제재 대상 검색">
+    <meta name="keywords" content="경제 제재, 제재 검색, UN 제재, EU 제재, US 제재, 북한 제재, 러시아 제재">
+    <meta name="author" content="WVL">
+    <!-- 캐시 제어 메타 태그 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <!-- 성능 관련 메타 태그 -->
+    <meta name="performance-mode" content="medium">
+    <meta name="application-version" content="1.1.0">
+    
+    <title>세계 경제 제재 검색 서비스</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/textures.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="textured-layer">
+    <!-- 로그인 섹션 -->
+    <section id="login-section" class="textured-layer">
+        <div class="page-title-header animated">
+            <h1>세계 경제 제재 검색 서비스</h1>
+        </div>
+        <div class="login-container maximalist animated delay-100">
+            <div class="login-header">
+                <h2>WVL 제재 조회 시스템</h2>
+                <p>UN, EU, US의 제재 대상을 검색하세요</p>
+            </div>
+            <div class="login-body">
+                <div class="alert-container"></div>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="email">이메일</label>
+                        <input type="email" id="email" placeholder="이메일을 입력하세요" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">비밀번호</label>
+                        <input type="password" id="password" placeholder="비밀번호를 입력하세요" required>
+                        <i class="fas fa-eye toggle-password"></i>
+                    </div>
+                    <button type="submit" class="btn-primary">로그인</button>
+                </form>
+                <div class="login-notice" style="margin-top: 15px; text-align: center;">
+                    <p style="color: #666; font-size: 0.9em;">로그인에 문제가 있나요? 아래 버튼을 클릭해보세요:</p>
+                    <button type="button" class="btn-secondary" style="margin-top: 5px;" onclick="location.href='?autologin=true'">자동 로그인</button>
+                </div>
+                <div class="login-footer">
+                    <p>테스트 계정: jaesu@kakao.com / 1234</p>
+                    <div class="login-links">
+                        <a href="#" id="register-link">회원가입</a>
+                        <a href="#" id="help-link">도움말</a>
+                        <a href="#" id="about-link">회사소개</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 메인 섹션 -->
+    <section id="main-section" class="textured-layer" style="display: none;">
+        <!-- 상단 헤더 -->
+        <header class="main-header maximalist">
+            <div class="container">
+                <div class="header-logo">
+                    <h1>WVL 제재 조회 시스템</h1>
+                </div>
+                <div class="user-info">
+                    <span id="user-name"></span>
+                    <button id="logout-btn" class="btn-text">로그아웃</button>
+                </div>
+            </div>
+        </header>
+        
+        <div class="container">
+            <div class="alert-container"></div>
+            
+            <!-- 검색 섹션 업데이트 -->
+            <div class="search-section maximalist">
+                <div class="container">
+                    <h2>제재 정보 검색</h2>
+                    <div class="search-bar">
+                        <input type="text" id="search-input" placeholder="이름, 별칭, 국가 또는 유형으로 검색...">
+                        <button id="search-button" onclick="performSearch()">검색</button>
+                    </div>
+
+                    <!-- 검색 유형 선택 -->
+                    <div class="search-options">
+                        <div class="search-type-options">
+                            <label class="search-option active">
+                                <input type="radio" name="search-type" value="text" checked>
+                                <span>텍스트 검색</span>
+                            </label>
+                            <label class="search-option">
+                                <input type="radio" name="search-type" value="number">
+                                <span>번호 검색</span>
+                            </label>
+                            <label class="search-option">
+                                <input type="radio" name="search-type" value="image">
+                                <span>이미지 검색</span>
+                            </label>
+                        </div>
+                        
+                        <!-- 번호 유형 옵션 (기본적으로 숨김) -->
+                        <div class="number-type-options" style="display: none;">
+                            <label class="search-option active">
+                                <input type="radio" name="number-type" value="all" checked>
+                                <span>모든 번호</span>
+                            </label>
+                            <label class="search-option">
+                                <input type="radio" name="number-type" value="passport">
+                                <span>여권번호</span>
+                            </label>
+                            <label class="search-option">
+                                <input type="radio" name="number-type" value="id">
+                                <span>신분증번호</span>
+                            </label>
+                            <label class="search-option">
+                                <input type="radio" name="number-type" value="other">
+                                <span>기타 식별번호</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- 고급 검색 섹션 -->
+                    <div class="advanced-search-toggle">
+                        <button id="advanced-search-button">
+                            고급 검색 <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
+                    
+                    <div id="advanced-search-options" class="advanced-search-options">
+                        <div class="search-filters">
+                            <!-- 국가 필터 -->
+                            <div class="filter-group country-filter">
+                                <h3>국가</h3>
+                                <div class="filter-options">
+                                    <div class="filter-option selected" data-value="">모든 국가</div>
+                                    <div class="filter-option" data-value="NK">북한</div>
+                                    <div class="filter-option" data-value="RU">러시아</div>
+                                    <div class="filter-option" data-value="IR">이란</div>
+                                    <div class="filter-option" data-value="SY">시리아</div>
+                                    <div class="filter-option" data-value="CN">중국</div>
+                                </div>
+                            </div>
+
+                            <!-- 프로그램 필터 -->
+                            <div class="filter-group program-filter">
+                                <h3>제재 프로그램</h3>
+                                <div class="filter-options">
+                                    <div class="filter-option selected" data-value="">모든 프로그램</div>
+                                    <div class="filter-option" data-value="UN_SANCTIONS">UN 제재</div>
+                                    <div class="filter-option" data-value="EU_SANCTIONS">EU 제재</div>
+                                    <div class="filter-option" data-value="US_SANCTIONS">US 제재</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 날짜 필터 -->
+                        <div class="date-range-filter">
+                            <h3>등재일 범위</h3>
+                            <div class="date-inputs">
+                                <div class="date-input">
+                                    <label for="start-date">시작일:</label>
+                                    <input type="date" id="start-date">
+                                </div>
+                                <div class="date-input">
+                                    <label for="end-date">종료일:</label>
+                                    <input type="date" id="end-date">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 결과 컨테이너 -->
+            <div class="results-section">
+                <div class="container">
+                    <div id="results-container" class="results-grid animated delay-300">
+                        <!-- 검색 결과가 여기에 표시됩니다 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 최신 업데이트 정보 -->
+            <div class="update-info animated delay-400">
+                <p>마지막 업데이트: <span id="last-update">2025-03-26 12:00 LT</span></p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 상세 정보 모달 -->
+    <div id="detail-modal" class="modal">
+        <div class="modal-content maximalist">
+            <div class="modal-header">
+                <h2>제재 대상 상세 정보</h2>
+                <button id="detail-close" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="detail-content"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="detail-print" class="btn-secondary">
+                    <i class="fas fa-print"></i> 인쇄
+                </button>
+                <button id="detail-download" class="btn-secondary">
+                    <i class="fas fa-download"></i> PDF 다운로드
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 정보 모달 -->
+    <div id="info-modal" class="modal">
+        <div class="modal-content maximalist">
+            <div class="modal-header">
+                <h2 id="info-title">정보</h2>
+                <button id="info-close" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="info-content"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 회원가입 모달 -->
+    <div id="register-modal" class="modal">
+        <div class="modal-content maximalist">
+            <div class="modal-header">
+                <h2>회원가입</h2>
+                <button id="register-close" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert-container"></div>
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="register-name">이름 (실명)</label>
+                        <input type="text" id="register-name" placeholder="이름을 입력하세요" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">이메일</label>
+                        <input type="email" id="register-email" placeholder="이메일을 입력하세요" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">비밀번호</label>
+                        <input type="password" id="register-password" placeholder="비밀번호를 입력하세요" required>
+                        <i class="fas fa-eye toggle-password"></i>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password-confirm">비밀번호 확인</label>
+                        <input type="password" id="register-password-confirm" placeholder="비밀번호를 다시 입력하세요" required>
+                        <i class="fas fa-eye toggle-password"></i>
+                    </div>
+                    <div class="form-group agree-terms">
+                        <input type="checkbox" id="terms-agree" required>
+                        <label for="terms-agree">이용약관 및 개인정보처리방침에 동의합니다.</label>
+                    </div>
+                    <button type="submit" class="btn-primary" id="register-submit">회원가입</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 푸터 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <!-- 회사 정보 -->
+                <div class="company-info">
+                    <h3>주식회사 팩션</h3>
+                    <p>주소: 서울특별시 강남구 테헤란로 123</p>
+                    <p>이메일: info@wvl.co.kr</p>
+ 
+                </div>
+                
+                <!-- 푸터 링크 그룹 -->
+                <div class="footer-links">
+                    <!-- 회사 정보 -->
+                    <div class="footer-links-group">
+                        <div class="footer-link-category">
+                            <h3>회사 정보</h3>
+                            <ul>
+                                <li><a href="#" id="terms-link">이용약관</a></li>
+                                <li><a href="#" id="privacy-link">개인정보처리방침</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- 고객 지원 -->
+                    <div class="footer-links-group">
+                        <div class="footer-link-category">
+                            <h3>고객 지원</h3>
+                            <ul>
+                                <li><a href="#" id="help-link">도움말</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 저작권 정보 -->
+            <div class="copyright">
+                © 2023 WVL 제재 조회 시스템. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- 모달 컨텐츠 템플릿 - 정적 내용을 위한 -->
+    <div id="about-content" style="display: none;">
+        <div class="info-content">
+            <h3>WVL 소개</h3>
+            <p>WVL은 글로벌 제재 정보 제공 플랫폼으로, 기업과 금융기관이 국제 제재 규정을 준수할 수 있도록 지원합니다.</p>
+            <p>UN, EU, US 등 주요 제재 당국의 데이터를 실시간으로 수집하고 분석하여 정확한 정보를 제공합니다.</p>
+        </div>
+    </div>
+
+    <div id="help-content" style="display: none;">
+        <div class="info-content">
+            <h3>도움말</h3>
+            <p>제재 검색 서비스 사용 방법:</p>
+            <ul>
+                <li>이름, 별칭, 국가, 식별번호 등으로 검색이 가능합니다.</li>
+                <li>고급 검색 기능을 통해 국가, 제재 프로그램, 날짜 범위로 필터링할 수 있습니다.</li>
+                <li>검색 결과에서 '상세 정보' 버튼을 클릭하여 제재 대상의 상세 정보를 확인할 수 있습니다.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="terms-content" style="display: none;">
+        <div class="info-content">
+            <h3>이용약관</h3>
+            <p>본 서비스 이용 시 아래 약관에 동의하는 것으로 간주됩니다.</p>
+            <p>서비스 이용 제한: 본 서비스는 WVL의 허가 없이 상업적 목적으로 재배포할 수 없습니다.</p>
+        </div>
+    </div>
+
+    <div id="privacy-content" style="display: none;">
+        <div class="info-content">
+            <h3>개인정보처리방침</h3>
+            <p>WVL은 사용자의 개인정보 보호를 중요시합니다.</p>
+            <p>수집 정보: 이메일, 사용자명, 이용 기록</p>
+            <p>이용 목적: 서비스 제공, 이용 패턴 분석, 서비스 개선</p>
+        </div>
+    </div>
+
+    <div id="contact-content" style="display: none;">
+        <div class="info-content">
+            <h3>문의하기</h3>
+              <p>이메일: support@wvl.co.kr</p>
+        </div>
+    </div>
+
+    <!-- 검색 기능 소개 모달 -->
+    <div id="search-info-modal" class="modal">
+        <div class="modal-content maximalist">
+            <div class="modal-header">
+                <h2>검색 가이드</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="guide-section">
+                    <h3>검색 유형</h3>
+                    <ul>
+                        <li><strong>텍스트 검색:</strong> 이름, 별칭, 단체명 등을 검색합니다</li>
+                        <li><strong>번호 검색:</strong> 여권번호, 신분증번호 등을 검색합니다</li>
+                    </ul>
+                </div>
+                <div class="guide-section">
+                    <h3>필터 옵션</h3>
+                    <ul>
+                        <li><strong>국가:</strong> 특정 국가에 속한 제재 대상만 표시합니다</li>
+                        <li><strong>프로그램:</strong> 특정 제재 프로그램에 속한 대상만 표시합니다</li>
+                        <li><strong>날짜:</strong> 설정한 기간 내에 등재된 제재 대상만 표시합니다</li>
+                    </ul>
+                </div>
+                <div class="guide-section">
+                    <h3>검색 팁</h3>
+                    <ul>
+                        <li>영문과 국문을 모두 사용하여 검색하면 더 많은 결과를 얻을 수 있습니다</li>
+                        <li>별표(*) 와일드카드를 사용하여 부분 일치 검색을 할 수 있습니다</li>
+                        <li>다중 국가나 프로그램 선택이 가능합니다</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 페이지 메타 정보 -->
+    <div id="page-meta" style="display: none;" 
+        data-version="1.0.2" 
+        data-last-update="2025-03-31"
+        data-environment="production">
+    </div>
+
+    <!-- JS 파일 -->
+    <script type="module">
+        import { checkSession, handleLogin, handleLogout, showAlert, performSearch, showDetail } from './js/app.js';
+        import { initThemeSwitcher, THEMES, applyTheme } from './js/theme-switcher.js';
+        import { initUpdateModule } from './js/update-data.js';
+        import { PERFORMANCE_CONFIG } from './js/animations.js';
+        
+        // 성능 설정 초기화
+        // URL 파라미터로 성능 모드 지정 가능 (?performance=high)
+        function initPerformanceSettings() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const performanceMode = urlParams.get('performance');
+            
+            if (performanceMode === 'high') {
+                // 고성능 모드 - 애니메이션 최소화
+                PERFORMANCE_CONFIG.enableParallax = false;
+                PERFORMANCE_CONFIG.enableHoverEffects = false;
+                PERFORMANCE_CONFIG.enableScrollAnimations = false;
+                PERFORMANCE_CONFIG.enableFloatingElements = false;
+                console.log('고성능 모드가 활성화되었습니다. 애니메이션이 최소화됩니다.');
+            } else if (performanceMode === 'medium') {
+                // 중간 성능 모드 - 일부 애니메이션만 활성화
+                PERFORMANCE_CONFIG.enableParallax = false;
+                PERFORMANCE_CONFIG.enableHoverEffects = true;
+                PERFORMANCE_CONFIG.enableScrollAnimations = true;
+                PERFORMANCE_CONFIG.enableFloatingElements = false;
+                console.log('중간 성능 모드가 활성화되었습니다.');
+            } else if (performanceMode === 'low') {
+                // 저성능 모드 - 모든 애니메이션 활성화
+                PERFORMANCE_CONFIG.enableParallax = true;
+                PERFORMANCE_CONFIG.enableHoverEffects = true;
+                PERFORMANCE_CONFIG.enableScrollAnimations = true;
+                PERFORMANCE_CONFIG.enableFloatingElements = true;
+                console.log('모든 애니메이션이 활성화되었습니다.');
+            }
+        }
+        
+        // 전역 함수로 노출
+        window.showDetail = showDetail;
+        window.performSearch = performSearch;
+        window.handleLogin = handleLogin;
+        window.handleLogout = handleLogout;
+        window.showAlert = showAlert;
+        
+        // DOM이 로드된 후 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            // 성능 설정 초기화
+            initPerformanceSettings();
+            
+            // 로그인 상태 확인
+            checkSession();
+            
+            // 테마 스위처 초기화
+            initThemeSwitcher();
+            
+            // 업데이트 모듈 초기화
+            initUpdateModule();
+            
+            // 검색 가이드 모달 설정
+            setupSearchGuideModal();
+            
+            console.log('세계 경제 제재 검색 서비스 초기화 완료');
+        });
+        
+        // 검색 가이드 모달 설정
+        function setupSearchGuideModal() {
+            // 검색 도움말 아이콘 클릭 시 가이드 표시
+            const searchHelpIcon = document.getElementById('search-help-icon');
+            if (searchHelpIcon) {
+                searchHelpIcon.addEventListener('click', function() {
+                    const guideContent = `
+                        <div class="search-guide">
+                            <h3>검색 가이드</h3>
+                            <ul>
+                                <li><strong>기본 검색:</strong> 이름, 별칭, 국가명을 입력하여 검색</li>
+                                <li><strong>번호 검색:</strong> 여권번호, 신분증번호 등으로 검색</li>
+                                <li><strong>필터링:</strong> 국가, 제재 프로그램, 등재일로 결과 필터링</li>
+                            </ul>
+                            <p>예시: '김정은', 'Putin', 'NK passport', 'Iran missile'</p>
+                        </div>
+                    `;
+                    showAlert(guideContent, 'info', { 
+                        isStatic: true, 
+                        duration: 10000,
+                        className: 'large-alert'
+                    });
+                });
+            }
+        }
+    </script>
+
+    <!-- 자바스크립트 -->
+    <script src="js/api.js"></script>
+    <script src="js/app.js" type="module"></script>
+    
+    <!-- 임시 직접 로그인 스크립트 추가 -->
+    <script>
+        // 전역 접근을 위한 로그인 함수 추가
+        window.handleLogin = function(e) {
+            if(e) e.preventDefault();
+            
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            
+            if(!email || !password) {
+                alert('이메일과 비밀번호를 모두 입력해주세요.');
+                return;
+            }
+            
+            // 테스트 로그인 처리
+            if(email === 'jaesu@kakao.com' && password === '1234') {
+                // 로그인 성공 - 세션/로컬 스토리지에 사용자 정보 저장
+                const currentUser = {
+                    email: email,
+                    name: '김재수'
+                };
+                
+                try {
+                    sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('userEmail', email);
+                    localStorage.setItem('userName', '김재수');
+                    
+                    // 로그인 성공 메시지
+                    alert('로그인 성공!');
+                    
+                    // 메인 섹션 표시
+                    document.getElementById('login-section').style.display = 'none';
+                    document.getElementById('main-section').style.display = 'block';
+                    
+                    // 사용자 이름 표시
+                    document.getElementById('user-name').textContent = '김재수';
+                    
+                    return true;
+                } catch(err) {
+                    console.error('스토리지 저장 실패:', err);
+                    alert('로그인 처리 중 오류가 발생했습니다.');
+                }
+            } else if(email.includes('@') && password.length > 0) {
+                // 백업 로그인 - 이메일 형식 확인 및 비밀번호 입력 확인
+                const name = email.split('@')[0];
+                const currentUser = {
+                    email: email,
+                    name: name.charAt(0).toUpperCase() + name.slice(1)
+                };
+                
+                try {
+                    sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('userEmail', email);
+                    localStorage.setItem('userName', currentUser.name);
+                    
+                    // 로그인 성공 메시지
+                    alert('로그인 성공!');
+                    
+                    // 메인 섹션 표시
+                    document.getElementById('login-section').style.display = 'none';
+                    document.getElementById('main-section').style.display = 'block';
+                    
+                    // 사용자 이름 표시
+                    document.getElementById('user-name').textContent = currentUser.name;
+                    
+                    return true;
+                } catch(err) {
+                    console.error('스토리지 저장 실패:', err);
+                    alert('로그인 처리 중 오류가 발생했습니다.');
+                }
+            } else {
+                // 로그인 실패
+                alert('이메일 또는 비밀번호가 올바르지 않습니다.');
+                return false;
+            }
+        };
+        
+        // 자동 로그인 처리
+        window.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if(urlParams.get('autologin') === 'true') {
+                // 테스트 계정으로 자동 로그인
+                const currentUser = {
+                    email: 'jaesu@kakao.com',
+                    name: '김재수'
+                };
+                
+                try {
+                    sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('userEmail', 'jaesu@kakao.com');
+                    localStorage.setItem('userName', '김재수');
+                    
+                    // 메인 섹션 표시
+                    document.getElementById('login-section').style.display = 'none';
+                    document.getElementById('main-section').style.display = 'block';
+                    
+                    // 사용자 이름 표시
+                    document.getElementById('user-name').textContent = '김재수';
+                } catch(err) {
+                    console.error('자동 로그인 - 스토리지 저장 실패:', err);
+                    alert('자동 로그인 처리 중 오류가 발생했습니다.');
+                }
+            } else {
+                // 로그인 상태 확인
+                const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+                const userEmail = localStorage.getItem('userEmail');
+                const userName = localStorage.getItem('userName');
+                
+                if(isLoggedIn && userEmail) {
+                    // 이미 로그인된 상태
+                    document.getElementById('login-section').style.display = 'none';
+                    document.getElementById('main-section').style.display = 'block';
+                    
+                    // 사용자 이름 표시
+                    document.getElementById('user-name').textContent = userName || userEmail.split('@')[0];
+                }
+            }
+        });
+        
+        // 고급 검색 및 필터 기능 추가
+        window.addEventListener('DOMContentLoaded', function() {
+            // 전역 변수
+            window.activeFilters = {
+                countries: new Set(),
+                programs: new Set(),
+                startDate: null,
+                endDate: null
+            };
+            
+            // 고급 검색 토글 기능
+            const advancedButton = document.getElementById('advanced-search-button');
+            const advancedOptions = document.getElementById('advanced-search-options');
+            
+            if (advancedButton && advancedOptions) {
+                advancedButton.addEventListener('click', function() {
+                    advancedOptions.classList.toggle('show');
+                    
+                    // 화살표 아이콘 방향 변경
+                    const icon = this.querySelector('i');
+                    if (icon) {
+                        if (advancedOptions.classList.contains('show')) {
+                            icon.classList.remove('fa-chevron-down');
+                            icon.classList.add('fa-chevron-up');
+                        } else {
+                            icon.classList.remove('fa-chevron-up');
+                            icon.classList.add('fa-chevron-down');
+                        }
+                    }
+                });
+            }
+            
+            // 국가 필터 설정
+            const countryOptions = document.querySelectorAll('.country-filter .filter-option');
+            
+            countryOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const countryValue = this.getAttribute('data-value');
+                    
+                    // "모든 국가" 옵션 처리
+                    if (!countryValue) {
+                        // 모든 국가 선택 시 다른 필터 해제
+                        countryOptions.forEach(opt => {
+                            if (opt !== this) {
+                                opt.classList.remove('selected');
+                            } else {
+                                opt.classList.add('selected');
+                            }
+                        });
+                        window.activeFilters.countries.clear();
+                    } else {
+                        // "모든 국가" 옵션 해제
+                        countryOptions[0].classList.remove('selected');
+                        
+                        // 현재 옵션 토글
+                        this.classList.toggle('selected');
+                        
+                        if (this.classList.contains('selected')) {
+                            window.activeFilters.countries.add(countryValue);
+                        } else {
+                            window.activeFilters.countries.delete(countryValue);
+                        }
+                        
+                        // 선택된 항목이 없으면 "모든 국가" 자동 선택
+                        if (window.activeFilters.countries.size === 0) {
+                            countryOptions[0].classList.add('selected');
+                        }
+                    }
+                    
+                    console.log('활성화된 국가 필터:', Array.from(window.activeFilters.countries));
+                });
+            });
+            
+            // 프로그램 필터 설정
+            const programOptions = document.querySelectorAll('.program-filter .filter-option');
+            
+            programOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const programValue = this.getAttribute('data-value');
+                    
+                    // "모든 프로그램" 옵션 처리
+                    if (!programValue) {
+                        // 모든 프로그램 선택 시 다른 필터 해제
+                        programOptions.forEach(opt => {
+                            if (opt !== this) {
+                                opt.classList.remove('selected');
+                            } else {
+                                opt.classList.add('selected');
+                            }
+                        });
+                        window.activeFilters.programs.clear();
+                    } else {
+                        // "모든 프로그램" 옵션 해제
+                        programOptions[0].classList.remove('selected');
+                        
+                        // 현재 옵션 토글
+                        this.classList.toggle('selected');
+                        
+                        if (this.classList.contains('selected')) {
+                            window.activeFilters.programs.add(programValue);
+                        } else {
+                            window.activeFilters.programs.delete(programValue);
+                        }
+                        
+                        // 선택된 항목이 없으면 "모든 프로그램" 자동 선택
+                        if (window.activeFilters.programs.size === 0) {
+                            programOptions[0].classList.add('selected');
+                        }
+                    }
+                    
+                    console.log('활성화된 프로그램 필터:', Array.from(window.activeFilters.programs));
+                });
+            });
+            
+            // 날짜 필터 설정
+            const startDateInput = document.getElementById('start-date');
+            const endDateInput = document.getElementById('end-date');
+            
+            if (startDateInput && endDateInput) {
+                startDateInput.addEventListener('change', function() {
+                    window.activeFilters.startDate = this.value ? new Date(this.value) : null;
+                    console.log('시작일 필터:', window.activeFilters.startDate);
+                });
+                
+                endDateInput.addEventListener('change', function() {
+                    window.activeFilters.endDate = this.value ? new Date(this.value) : null;
+                    console.log('종료일 필터:', window.activeFilters.endDate);
+                });
+            }
+            
+            // 검색 버튼 이벤트 설정
+            const searchButton = document.getElementById('search-button');
+            if (searchButton) {
+                searchButton.addEventListener('click', function() {
+                    performSearch();
+                });
+            }
+            
+            // 검색 실행 함수
+            window.performSearch = function() {
+                const searchInput = document.getElementById('search-input');
+                const resultsContainer = document.getElementById('results-container');
+                
+                if (!searchInput || !resultsContainer) return;
+                
+                const query = searchInput.value.trim();
+                if (!query) {
+                    alert('검색어를 입력해주세요.');
+                    return;
+                }
+                
+                // 결과 예시 표시 (실제로는 API 호출)
+                resultsContainer.innerHTML = '<div class="loading-spinner"></div>';
+                
+                // 1.5초 후 결과 표시 (API 호출 시뮬레이션)
+                setTimeout(() => {
+                    // 예시 결과
+                    const results = [
+                        {
+                            id: '001',
+                            name: '김정은',
+                            type: '개인',
+                            country: '북한',
+                            program: 'UN_SANCTIONS',
+                            listDate: '2022-05-10'
+                        },
+                        {
+                            id: '002',
+                            name: '조선중앙은행',
+                            type: '단체',
+                            country: '북한',
+                            program: 'EU_SANCTIONS',
+                            listDate: '2021-03-15'
+                        },
+                        {
+                            id: '003',
+                            name: '블라디미르 푸틴',
+                            type: '개인',
+                            country: '러시아',
+                            program: 'US_SANCTIONS',
+                            listDate: '2022-02-25'
+                        }
+                    ];
+                    
+                    // 필터 적용 (실제 구현에서는 서버 측에서 처리됨)
+                    let filteredResults = results;
+                    if (window.activeFilters.countries.size > 0) {
+                        filteredResults = filteredResults.filter(item => 
+                            window.activeFilters.countries.has(item.country));
+                    }
+                    
+                    if (window.activeFilters.programs.size > 0) {
+                        filteredResults = filteredResults.filter(item => 
+                            window.activeFilters.programs.has(item.program));
+                    }
+                    
+                    if (filteredResults.length === 0) {
+                        resultsContainer.innerHTML = `
+                            <div class="no-results">
+                                <h3>검색 결과가 없습니다</h3>
+                                <p>다른 검색어나 필터 옵션을 사용해보세요.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    // 결과 표시
+                    let resultsHTML = '';
+                    filteredResults.forEach(item => {
+                        let typeClass, typeColor;
+                        if (item.type === '개인') {
+                            typeClass = 'individual';
+                            typeColor = '#ff7043';
+                        } else {
+                            typeClass = 'entity';
+                            typeColor = '#42a5f5';
+                        }
+                        
+                        const date = new Date(item.listDate);
+                        const formattedDate = `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
+                        
+                        let programName;
+                        switch (item.program) {
+                            case 'UN_SANCTIONS': programName = 'UN 제재'; break;
+                            case 'EU_SANCTIONS': programName = 'EU 제재'; break;
+                            case 'US_SANCTIONS': programName = 'US 제재'; break;
+                            default: programName = item.program;
+                        }
+                        
+                        resultsHTML += `
+                            <div class="result-card" data-id="${item.id}">
+                                <div class="result-header">
+                                    <h3 class="result-title">${item.name}</h3>
+                                    <span class="result-type" style="background-color: ${typeColor};">
+                                        <i class="fas fa-${item.type === '개인' ? 'user' : 'building'}"></i> ${item.type}
+                                    </span>
+                                </div>
+                                <div class="result-body">
+                                    <div class="result-info">
+                                        <p><span class="info-label">국가:</span> ${item.country}</p>
+                                        <p><span class="info-label">등재일:</span> ${formattedDate}</p>
+                                        <p><span class="info-label">프로그램:</span> ${programName}</p>
+                                    </div>
+                                </div>
+                                <div class="result-footer">
+                                    <button class="btn-detail" onclick="showDetail('${item.id}')">상세 정보</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    resultsContainer.innerHTML = resultsHTML;
+                }, 1500);
+            };
+            
+            // 상세 정보 모달 함수
+            window.showDetail = function(id) {
+                const modal = document.getElementById('detail-modal');
+                const detailContent = document.getElementById('detail-content');
+                
+                if (!modal || !detailContent) return;
+                
+                // 예시 데이터 (실제로는 API에서 가져옴)
+                const detailData = {
+                    id: id,
+                    name: id === '001' ? '김정은' : (id === '002' ? '조선중앙은행' : '블라디미르 푸틴'),
+                    type: id === '002' ? '단체' : '개인',
+                    country: id === '003' ? '러시아' : '북한',
+                    program: id === '001' ? 'UN 제재' : (id === '002' ? 'EU 제재' : 'US 제재'),
+                    listDate: id === '001' ? '2022-05-10' : (id === '002' ? '2021-03-15' : '2022-02-25'),
+                    description: id === '001' ? '북한 최고지도자' : (id === '002' ? '북한 중앙은행' : '러시아 대통령'),
+                    aliases: id === '001' ? ['Kim Jong Un', 'Kim Jong-un'] : []
+                };
+                
+                // 날짜 형식화
+                const date = new Date(detailData.listDate);
+                const formattedDate = `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
+                
+                // 상세 정보 HTML 생성
+                let html = `
+                    <div class="detail-header">
+                        <h3>${detailData.name}</h3>
+                        <span class="detail-type" style="background-color: ${detailData.type === '개인' ? '#ff7043' : '#42a5f5'}; color: white; padding: 6px 12px; border-radius: 20px; display: inline-block;">
+                            <i class="fas fa-${detailData.type === '개인' ? 'user' : 'building'}"></i> ${detailData.type}
+                        </span>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h4 class="section-title">기본 정보</h4>
+                        <div class="detail-data">
+                            <div class="data-item">
+                                <div class="data-label">국가</div>
+                                <div class="data-value">${detailData.country}</div>
+                            </div>
+                            <div class="data-item">
+                                <div class="data-label">등재일</div>
+                                <div class="data-value">${formattedDate}</div>
+                            </div>
+                            <div class="data-item">
+                                <div class="data-label">제재 프로그램</div>
+                                <div class="data-value">${detailData.program}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                if (detailData.description) {
+                    html += `
+                        <div class="detail-section">
+                            <h4 class="section-title">상세 설명</h4>
+                            <div class="detail-data">
+                                <div class="data-item">
+                                    <div class="data-value">${detailData.description}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (detailData.aliases && detailData.aliases.length > 0) {
+                    html += `
+                        <div class="detail-section">
+                            <h4 class="section-title">다른 이름 / 별칭</h4>
+                            <div class="detail-data">
+                                <div class="data-item">
+                                    <ul style="list-style-type: disc; padding-left: 20px; margin: 0;">
+                    `;
+                    
+                    detailData.aliases.forEach(alias => {
+                        html += `<li>${alias}</li>`;
+                    });
+                    
+                    html += `
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // 내용 설정 및 모달 표시
+                detailContent.innerHTML = html;
+                modal.style.display = 'block';
+                document.body.classList.add('modal-open');
+                
+                // 닫기 버튼 이벤트
+                const closeBtn = document.getElementById('detail-close');
+                if (closeBtn) {
+                    closeBtn.onclick = function() {
+                        modal.style.display = 'none';
+                        document.body.classList.remove('modal-open');
+                    };
+                }
+                
+                // ESC 키로 닫기
+                const escHandler = function(e) {
+                    if (e.key === 'Escape') {
+                        modal.style.display = 'none';
+                        document.body.classList.remove('modal-open');
+                        document.removeEventListener('keydown', escHandler);
+                    }
+                };
+                document.addEventListener('keydown', escHandler);
+                
+                // 모달 외부 클릭 시 닫기
+                modal.onclick = function(e) {
+                    if (e.target === modal) {
+                        modal.style.display = 'none';
+                        document.body.classList.remove('modal-open');
+                    }
+                };
+            };
+        });
+    </script>
+</body>
+</html> 
