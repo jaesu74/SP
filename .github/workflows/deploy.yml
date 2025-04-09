@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main, master ]
   schedule:
-    - cron: '0 0 * * *'  # Daily at midnight UTC
+    - cron: '0 9 * * 0,3,4'  # 일요일(0), 수요일(3), 목요일(4) 오전 9시에 실행
 
 jobs:
   build-and-deploy:
@@ -50,8 +50,8 @@ jobs:
           echo "Running sanctions collector..."
           # 현재 디렉토리를 Python 경로에 추가
           export PYTHONPATH=$PYTHONPATH:$(pwd)
-          # UN 소스만 사용하여 실행 (더 적은 데이터로 테스트)
-          python -m sanctions_collector --sources UN
+          # 모든 제재 데이터 수집 (UN, EU, US)
+          python -m sanctions_collector
           echo "Collector execution completed"
           # 결과 확인
           ls -la docs/data
