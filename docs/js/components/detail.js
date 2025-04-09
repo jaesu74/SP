@@ -155,6 +155,20 @@ export function hideDetail() {
  * @param {Object} item 제재 대상 정보
  */
 function renderDetailContent(container, item) {
+    // 데이터 구조 분석 및 깊은 추출
+    const details = item.details || {};
+    const birthDate = details.birthDate || item.birthDate || '';
+    const aliases = details.aliases || item.aliases || [];
+    const addresses = details.addresses || item.addresses || [];
+    const nationalities = details.nationalities || item.nationalities || [];
+    const identifications = details.identifications || item.identifications || [];
+    const sanctions = details.sanctions || [];
+    const reason = sanctions.length > 0 ? (sanctions[0].reason || '') : (item.reason || '');
+    
+    // 프로그램 정보 추출
+    const programs = Array.isArray(item.programs) ? item.programs : 
+                     (item.program ? [item.program] : []);
+    
     // 등재일 형식화
     let formattedDate = '알 수 없음';
     if (item.date_listed) {
@@ -167,6 +181,17 @@ function renderDetailContent(container, item) {
             });
         } else {
             formattedDate = item.date_listed;
+        }
+    } else if (sanctions.length > 0 && sanctions[0].startDate) {
+        const date = new Date(sanctions[0].startDate);
+        if (!isNaN(date.getTime())) {
+            formattedDate = date.toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        } else {
+            formattedDate = sanctions[0].startDate;
         }
     }
 
@@ -193,6 +218,21 @@ function renderDetailContent(container, item) {
         }
     }
 
+    // 출처 정보 처리
+    let sourceInfo = item.source || '알 수 없음';
+    if (sourceInfo === 'UN') sourceInfo = '유엔(UN)';
+    else if (sourceInfo === 'EU') sourceInfo = '유럽연합(EU)';
+    else if (sourceInfo === 'US') sourceInfo = '미국(US/OFAC)';
+
+    // 프로그램 정보 처리
+    const programInfo = programs.map(p => {
+        if (p === 'DPRK') return '북한 제재';
+        if (p === 'RUSSIA') return '러시아 제재';
+        if (p === 'IRAN') return '이란 제재';
+        if (p === 'SYRIA') return '시리아 제재';
+        return p;
+    }).join(', ');
+
     // HTML 내용 생성
     const detailContent = `
         <div class="detail-header">
@@ -203,46 +243,80 @@ function renderDetailContent(container, item) {
             <div class="detail-meta">
                 <p><strong>국가:</strong> ${item.country || '알 수 없음'}</p>
                 <p><strong>등재일:</strong> ${formattedDate}</p>
-                <p><strong>출처:</strong> ${item.source || '알 수 없음'}</p>
-                ${item.program ? `<p><strong>프로그램:</strong> ${item.program}</p>` : ''}
+                <p><strong>출처:</strong> ${sourceInfo}</p>
+                ${programInfo ? `<p><strong>제재 프로그램:</strong> ${programInfo}</p>` : ''}
+                ${item.matchScore ? `<p><strong>일치도:</strong> ${item.matchScore}%</p>` : ''}
             </div>
         </div>
         <div class="detail-content">
-            ${item.reason ? `
+            ${birthDate ? `
+            <div class="detail-section">
+                <h3>생년월일</h3>
+                <p>${birthDate}</p>
+            </div>
+            ` : ''}
+
+            ${reason ? `
             <div class="detail-section">
                 <h3>제재 사유</h3>
-                <p>${item.reason}</p>
+                <p>${reason}</p>
             </div>
             ` : ''}
             
-            ${item.aliases && item.aliases.length > 0 ? `
+            ${sanctions.length > 0 ? `
+            <div class="detail-section">
+                <h3>제재 정보</h3>
+                <table class="detail-table">
+                    <thead>
+                        <tr>
+                            <th>프로그램</th>
+                            <th>시작일</th>
+                            <th>종료일</th>
+                            <th>사유</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sanctions.map(sanction => `
+                        <tr>
+                            <td>${sanction.program || '-'}</td>
+                            <td>${sanction.startDate ? new Date(sanction.startDate).toLocaleDateString('ko-KR') : '-'}</td>
+                            <td>${sanction.endDate ? new Date(sanction.endDate).toLocaleDateString('ko-KR') : '진행중'}</td>
+                            <td>${sanction.reason || '-'}</td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            ` : ''}
+            
+            ${aliases && aliases.length > 0 ? `
             <div class="detail-section">
                 <h3>별칭</h3>
                 <ul class="detail-list">
-                    ${item.aliases.map(alias => `<li>${alias}</li>`).join('')}
+                    ${aliases.map(alias => `<li>${alias}</li>`).join('')}
                 </ul>
             </div>
             ` : ''}
             
-            ${item.nationalities && item.nationalities.length > 0 ? `
+            ${nationalities && nationalities.length > 0 ? `
             <div class="detail-section">
                 <h3>국적</h3>
                 <ul class="detail-list">
-                    ${item.nationalities.map(nationality => `<li>${nationality}</li>`).join('')}
+                    ${nationalities.map(nationality => `<li>${nationality}</li>`).join('')}
                 </ul>
             </div>
             ` : ''}
             
-            ${item.addresses && item.addresses.length > 0 ? `
+            ${addresses && addresses.length > 0 ? `
             <div class="detail-section">
                 <h3>주소</h3>
                 <ul class="detail-list">
-                    ${item.addresses.map(address => `<li>${address}</li>`).join('')}
+                    ${addresses.map(address => `<li>${address}</li>`).join('')}
                 </ul>
             </div>
             ` : ''}
             
-            ${item.identifications && item.identifications.length > 0 ? `
+            ${identifications && identifications.length > 0 ? `
             <div class="detail-section">
                 <h3>신원 정보</h3>
                 <table class="detail-table">
@@ -255,7 +329,7 @@ function renderDetailContent(container, item) {
                         </tr>
                     </thead>
                     <tbody>
-                        ${item.identifications.map(id => `
+                        ${identifications.map(id => `
                         <tr>
                             <td>${id.type || '알 수 없음'}</td>
                             <td>${id.number || '알 수 없음'}</td>
@@ -267,9 +341,21 @@ function renderDetailContent(container, item) {
                 </table>
             </div>
             ` : ''}
+
+            ${item.vessel_info ? `
+            <div class="detail-section">
+                <h3>선박 정보</h3>
+                <table class="detail-table simple">
+                    ${item.vessel_info.imo_number ? `<tr><td>IMO 번호</td><td>${item.vessel_info.imo_number}</td></tr>` : ''}
+                    ${item.vessel_info.call_sign ? `<tr><td>호출 부호</td><td>${item.vessel_info.call_sign}</td></tr>` : ''}
+                    ${item.vessel_info.vessel_type ? `<tr><td>선박 유형</td><td>${item.vessel_info.vessel_type}</td></tr>` : ''}
+                    ${item.vessel_info.flag ? `<tr><td>국적기</td><td>${item.vessel_info.flag}</td></tr>` : ''}
+                    ${item.vessel_info.tonnage ? `<tr><td>톤수</td><td>${item.vessel_info.tonnage}</td></tr>` : ''}
+                </table>
+            </div>
+            ` : ''}
         </div>
         <div class="detail-actions">
-            <button id="download-pdf-btn" class="btn btn-primary">PDF 다운로드</button>
             <button id="close-detail-btn" class="btn btn-secondary">닫기</button>
         </div>
     `;
@@ -279,174 +365,4 @@ function renderDetailContent(container, item) {
     
     // 버튼 이벤트 리스너 추가
     container.querySelector('#close-detail-btn').addEventListener('click', hideDetail);
-    container.querySelector('#download-pdf-btn').addEventListener('click', () => {
-        generatePDF(item);
-    });
-}
-
-/**
- * PDF 생성 및 다운로드
- * @param {Object} item 제재 대상 정보
- */
-function generatePDF(item) {
-    try {
-        // PDF 생성 알림
-        showAlert('PDF를 생성하는 중입니다...', 'info');
-        
-        // 등재일 형식화
-        let formattedDate = '알 수 없음';
-        if (item.date_listed) {
-            const date = new Date(item.date_listed);
-            if (!isNaN(date.getTime())) {
-                formattedDate = date.toLocaleDateString('ko-KR', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-            } else {
-                formattedDate = item.date_listed;
-            }
-        }
-        
-        // 타입별 클래스 설정
-        let typeText = '알 수 없음';
-        if (item.type) {
-            const type = item.type.toLowerCase();
-            if (type === 'individual' || type === '개인') {
-                typeText = '개인';
-            } else if (type === 'entity' || type === '단체') {
-                typeText = '단체';
-            } else if (type === 'vessel' || type === '선박') {
-                typeText = '선박';
-            } else if (type === 'aircraft' || type === '항공기') {
-                typeText = '항공기';
-            } else {
-                typeText = item.type;
-            }
-        }
-        
-        // PDF HTML 내용 생성
-        const pdfContent = `
-            <!DOCTYPE html>
-            <html lang="ko">
-            <head>
-                <meta charset="UTF-8">
-                <title>제재 정보: ${item.name}</title>
-                <style>
-                    body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; margin: 30px; }
-                    h1 { color: #333; border-bottom: 2px solid #7e57c2; padding-bottom: 10px; margin-bottom: 20px; }
-                    .type-badge { display: inline-block; background-color: #5c6bc0; color: white; padding: 5px 10px; border-radius: 4px; margin-bottom: 20px; }
-                    .info-section { margin-bottom: 30px; }
-                    .info-section h2 { color: #5e35b1; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 15px; }
-                    .info-item { margin-bottom: 10px; }
-                    .info-item strong { color: #333; font-weight: bold; display: inline-block; width: 100px; }
-                    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                    th { background-color: #f5f5f5; }
-                    ul { padding-left: 20px; }
-                    li { margin-bottom: 5px; }
-                    .footer { margin-top: 50px; font-size: 12px; color: #777; text-align: center; border-top: 1px solid #eee; padding-top: 20px; }
-                </style>
-            </head>
-            <body>
-                <h1>${item.name || '이름 없음'}</h1>
-                <div class="type-badge">${typeText}</div>
-                
-                <div class="info-section">
-                    <h2>기본 정보</h2>
-                    <div class="info-item"><strong>국가:</strong> ${item.country || '알 수 없음'}</div>
-                    <div class="info-item"><strong>등재일:</strong> ${formattedDate}</div>
-                    <div class="info-item"><strong>출처:</strong> ${item.source || '알 수 없음'}</div>
-                    ${item.program ? `<div class="info-item"><strong>프로그램:</strong> ${item.program}</div>` : ''}
-                </div>
-                
-                ${item.reason ? `
-                <div class="info-section">
-                    <h2>제재 사유</h2>
-                    <p>${item.reason}</p>
-                </div>
-                ` : ''}
-                
-                ${item.aliases && item.aliases.length > 0 ? `
-                <div class="info-section">
-                    <h2>별칭</h2>
-                    <ul>
-                        ${item.aliases.map(alias => `<li>${alias}</li>`).join('')}
-                    </ul>
-                </div>
-                ` : ''}
-                
-                ${item.nationalities && item.nationalities.length > 0 ? `
-                <div class="info-section">
-                    <h2>국적</h2>
-                    <ul>
-                        ${item.nationalities.map(nationality => `<li>${nationality}</li>`).join('')}
-                    </ul>
-                </div>
-                ` : ''}
-                
-                ${item.addresses && item.addresses.length > 0 ? `
-                <div class="info-section">
-                    <h2>주소</h2>
-                    <ul>
-                        ${item.addresses.map(address => `<li>${address}</li>`).join('')}
-                    </ul>
-                </div>
-                ` : ''}
-                
-                ${item.identifications && item.identifications.length > 0 ? `
-                <div class="info-section">
-                    <h2>신원 정보</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>유형</th>
-                                <th>번호</th>
-                                <th>발급국</th>
-                                <th>추가 정보</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${item.identifications.map(id => `
-                            <tr>
-                                <td>${id.type || '알 수 없음'}</td>
-                                <td>${id.number || '알 수 없음'}</td>
-                                <td>${id.country || '알 수 없음'}</td>
-                                <td>${id.additional_info || '-'}</td>
-                            </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-                ` : ''}
-                
-                <div class="footer">
-                    <p>이 문서는 ${new Date().toLocaleString('ko-KR')}에 생성되었습니다.</p>
-                    <p>WVL 제재 조회 시스템에서 제공하는 정보입니다.</p>
-                </div>
-            </body>
-            </html>
-        `;
-        
-        // HTML Blob 생성
-        const blob = new Blob([pdfContent], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        
-        // 다운로드 링크 생성
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `제재정보_${item.name || 'unknown'}.html`;
-        document.body.appendChild(link);
-        link.click();
-        
-        // 리소스 정리
-        setTimeout(() => {
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            showAlert('PDF 형식으로 다운로드되었습니다. (HTML 형식으로 저장 후 인쇄하면 PDF로 변환됩니다)', 'success');
-        }, 100);
-    } catch (error) {
-        console.error('PDF 생성 오류:', error);
-        showAlert('PDF 생성 중 오류가 발생했습니다', 'error');
-    }
 }
