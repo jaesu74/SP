@@ -1,0 +1,498 @@
+/**
+ * 애니메이션 및 효과 스타일
+ * MZ 세대 트렌드에 맞춘 시각적 효과
+ */
+
+/* 애니메이션 기본 클래스 */
+.animated {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.animated.animated-in {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 지연 애니메이션 */
+.delay-100 {
+    transition-delay: 0.1s;
+}
+
+.delay-200 {
+    transition-delay: 0.2s;
+}
+
+.delay-300 {
+    transition-delay: 0.3s;
+}
+
+.delay-400 {
+    transition-delay: 0.4s;
+}
+
+.delay-500 {
+    transition-delay: 0.5s;
+}
+
+/* 애니메이션 방향 */
+.slide-left {
+    transform: translateX(-30px);
+}
+
+.slide-right {
+    transform: translateX(30px);
+}
+
+.fade-up {
+    transform: translateY(30px);
+}
+
+.fade-down {
+    transform: translateY(-30px);
+}
+
+/* 틸트 효과 */
+.tilt-effect {
+    transform-style: preserve-3d;
+    transition: transform 0.5s ease;
+    will-change: transform;
+}
+
+.tilt-effect:hover {
+    transform: perspective(1000px) rotateX(3deg) rotateY(3deg);
+}
+
+/* Y2K 스타일 효과 */
+.y2k-style {
+    position: relative;
+    background: linear-gradient(135deg, #f5f5f5, #e8e8e8);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 
+        2px 2px 0 rgba(0, 0, 0, 0.1),
+        inset -2px -2px 0 rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.y2k-style::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.8) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    transform: rotate(45deg);
+    animation: shine 6s infinite;
+    pointer-events: none;
+    z-index: 1;
+}
+
+@keyframes shine {
+    0% {
+        top: -100%;
+        left: -100%;
+    }
+    20% {
+        top: 100%;
+        left: 100%;
+    }
+    100% {
+        top: 100%;
+        left: 100%;
+    }
+}
+
+/* 반짝임 효과 */
+.sparkle-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+    overflow: hidden;
+}
+
+.sparkle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background-color: white;
+    border-radius: 50%;
+    transform: scale(0);
+    opacity: 0;
+    animation: sparkle 5s infinite;
+}
+
+@keyframes sparkle {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    20% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+    40% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(0);
+        opacity: 0;
+    }
+}
+
+/* 글로우 효과 */
+.glow {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.glow::after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    border-radius: inherit;
+    background: linear-gradient(45deg, #ff61d2, #fe9090, #6699ff);
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.glow:hover::after {
+    opacity: 0.6;
+    animation: glowPulse 1.5s infinite alternate;
+}
+
+@keyframes glowPulse {
+    0% {
+        opacity: 0.4;
+    }
+    100% {
+        opacity: 0.7;
+    }
+}
+
+/* 팝 효과 */
+.pop-effect {
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.pop-effect:hover {
+    transform: scale(1.05);
+}
+
+.pop-effect:active {
+    transform: scale(0.95);
+}
+
+/* 부드러운 스크롤 */
+html {
+    scroll-behavior: smooth;
+}
+
+/* 로딩 애니메이션 */
+.loading-animation {
+    display: inline-block;
+    position: relative;
+    width: 80px;
+    height: 80px;
+}
+
+.loading-animation div {
+    position: absolute;
+    top: 33px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #6699ff;
+    animation-timing-function: cubic-bezier(0, 1, 1, 0);
+}
+
+.loading-animation div:nth-child(1) {
+    left: 8px;
+    animation: loading1 0.6s infinite;
+}
+
+.loading-animation div:nth-child(2) {
+    left: 8px;
+    animation: loading2 0.6s infinite;
+}
+
+.loading-animation div:nth-child(3) {
+    left: 32px;
+    animation: loading2 0.6s infinite;
+}
+
+.loading-animation div:nth-child(4) {
+    left: 56px;
+    animation: loading3 0.6s infinite;
+}
+
+@keyframes loading1 {
+    0% {
+        transform: scale(0);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes loading2 {
+    0% {
+        transform: translate(0, 0);
+    }
+    100% {
+        transform: translate(24px, 0);
+    }
+}
+
+@keyframes loading3 {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(0);
+    }
+}
+
+/* 스크롤 다운 애니메이션 */
+.scroll-down {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 50px;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    border-radius: 15px;
+}
+
+.scroll-down::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    width: 6px;
+    height: 6px;
+    margin-left: -3px;
+    background-color: white;
+    border-radius: 50%;
+    animation: scrollDown 2s infinite;
+}
+
+@keyframes scrollDown {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    80% {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 0;
+    }
+}
+
+/* 물결 애니메이션 */
+.wave-animation {
+    position: relative;
+    overflow: hidden;
+}
+
+.wave-animation::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        rgba(255, 255, 255, 0) 0%, 
+        rgba(255, 255, 255, 0.3) 50%, 
+        rgba(255, 255, 255, 0) 100%
+    );
+    transform: translateX(-100%);
+    animation: wave 3s infinite linear;
+}
+
+@keyframes wave {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* 모달 애니메이션 */
+@keyframes scaleUp {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes scaleDown {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+}
+
+/* 반응형 조정 */
+@media (max-width: 768px) {
+    .animated {
+        transform: translateY(20px);
+    }
+    
+    .slide-left,
+    .slide-right {
+        transform: translateY(20px);
+    }
+    
+    .delay-300,
+    .delay-400,
+    .delay-500 {
+        transition-delay: 0.2s;
+    }
+}
+
+/* 페이드인 애니메이션 */
+.fade-in {
+    opacity: 0;
+    transition: opacity 1s ease;
+}
+
+.fade-in.visible {
+    opacity: 1;
+}
+
+/* 흔들림 효과 */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.shake {
+    animation: shake 0.8s cubic-bezier(.36,.07,.19,.97) both;
+    animation-play-state: paused;
+}
+
+.shake.visible {
+    animation-play-state: running;
+}
+
+/* 펄스 효과 */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+    animation-play-state: paused;
+}
+
+.pulse.visible {
+    animation-play-state: running;
+}
+
+/* 줌 애니메이션 */
+.zoom-in {
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.zoom-in.visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* 스크롤 트리거 패럴랙스 효과 */
+.parallax {
+    transition: transform 0.5s cubic-bezier(0.42, 0, 0.58, 1);
+}
+
+.parallax-slow {
+    transform: translateY(0);
+    will-change: transform;
+}
+
+.parallax-medium {
+    transform: translateY(0);
+    will-change: transform;
+}
+
+.parallax-fast {
+    transform: translateY(0);
+    will-change: transform;
+}
+
+/* 힌지 효과 */
+@keyframes hinge {
+    0% { transform: rotate(0); transform-origin: top left; animation-timing-function: ease-in-out; }
+    20%, 60% { transform: rotate(80deg); transform-origin: top left; animation-timing-function: ease-in-out; }
+    40%, 80% { transform: rotate(60deg); opacity: 1; transform-origin: top left; animation-timing-function: ease-in-out; }
+    100% { transform: translateY(700px); opacity: 0; }
+}
+
+.hinge {
+    animation: hinge 2s both;
+    animation-play-state: paused;
+}
+
+.hinge.visible {
+    animation-play-state: running;
+}
+
+/* JavaScript로 애니메이션을 구현하기 위한 도움말:
+ * 
+ * 1. 문서가 로드되면 다음과 같은 코드로 요소를 관찰합니다:
+ * document.addEventListener('DOMContentLoaded', function() {
+ *   const observerOptions = {
+ *     root: null,
+ *     rootMargin: '0px',
+ *     threshold: 0.2
+ *   };
+ *   
+ *   const observer = new IntersectionObserver(function(entries, observer) {
+ *     entries.forEach(entry => {
+ *       if (entry.isIntersecting) {
+ *         entry.target.classList.add('visible');
+ *       }
+ *     });
+ *   }, observerOptions);
+ *   
+ *   document.querySelectorAll('.animated, .fade-in, .slide-left, .slide-right, .zoom-in, .shake, .pulse, .hinge')
+ *     .forEach(element => {
+ *       observer.observe(element);
+ *     });
+ * });
+ */ 

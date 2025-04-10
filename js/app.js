@@ -6,120 +6,11 @@
 // 전역 앱 객체 생성
 window.app = window.app || {};
 
-// API 함수들을 설정
-const apiModule = {
-    // 실제 제재 데이터 가져오기
-    fetchSanctionsData: async () => {
-        try {
-            // 실제 API 엔드포인트에서 데이터 가져오기
-            const response = await fetch('https://api.wvl.co.kr/sanctions/all');
-            if (!response.ok) {
-                throw new Error('API 응답 오류: ' + response.status);
-            }
-            const data = await response.json();
-            return data.data || [];
-        } catch (e) {
-            console.error('제재 데이터 로드 실패:', e);
-            // 실패 시 백업 JSON 파일에서 로드
-            try {
-                const backupResponse = await fetch('data/sanctions_data.json');
-                const backupData = await backupResponse.json();
-                console.warn('백업 데이터 사용 중');
-                return backupData.data || [];
-            } catch (backupError) {
-                console.error('백업 데이터도 로드 실패:', backupError);
-                return [];
-            }
-        }
-    },
-    
-    // 제재 대상 검색
-    searchSanctions: async (query, options = {}) => {
-        try {
-            const searchType = options.searchType || 'text';
-            const numberType = options.numberType || 'all';
-            
-            // 실제 API 검색
-            const apiUrl = new URL('https://api.wvl.co.kr/sanctions/search');
-            apiUrl.searchParams.append('q', query);
-            apiUrl.searchParams.append('type', searchType);
-            
-            if (searchType === 'number') {
-                apiUrl.searchParams.append('numberType', numberType);
-            }
-            
-            const response = await fetch(apiUrl.toString());
-            if (!response.ok) {
-                throw new Error('검색 API 응답 오류: ' + response.status);
-            }
-            
-            const data = await response.json();
-            return { results: data.data || [] };
-        } catch (e) {
-            console.error('API 검색 오류:', e);
-            
-            // API 실패 시 로컬 검색 수행
-            console.warn('로컬 검색으로 대체');
-            const data = await apiModule.fetchSanctionsData();
-            
-            if (!query) return { results: data };
-            
-            let filtered;
-            
-            if (options.searchType === 'number') {
-                // 번호 검색 로직
-                filtered = data.filter(item => {
-                    // 식별 번호 검색
-                    if (!item.identifications) return false;
-                    
-                    return item.identifications.some(id => {
-                        // 번호 유형에 따라 필터링
-                        if (options.numberType !== 'all' && 
-                            id.type && 
-                            !id.type.toLowerCase().includes(options.numberType.toLowerCase())) {
-                            return false;
-                        }
-                        
-                        // 번호 검색
-                        return id.number && id.number.toLowerCase().includes(query.toLowerCase());
-                    });
-                });
-            } else {
-                // 텍스트 검색 로직
-                filtered = data.filter(item => 
-                    (item.name && item.name.toLowerCase().includes(query.toLowerCase())) ||
-                    (item.aliases && item.aliases.some(alias => 
-                        alias.toLowerCase().includes(query.toLowerCase())
-                    )) ||
-                    (item.country && item.country.toLowerCase().includes(query.toLowerCase())) ||
-                    (item.type && item.type.toLowerCase().includes(query.toLowerCase()))
-                );
-            }
-            
-            return { results: filtered };
-        }
-    },
-    
-    // 제재 대상 상세 정보 가져오기
-    getSanctionDetails: async (id) => {
-        try {
-            // 실제 API에서 상세 정보 가져오기
-            const response = await fetch(`https://api.wvl.co.kr/sanctions/details/${id}`);
-            if (!response.ok) {
-                throw new Error('상세 정보 API 응답 오류: ' + response.status);
-            }
-            
-            const data = await response.json();
-            return data.data || null;
-        } catch (e) {
-            console.error('API 상세 정보 조회 오류:', e);
-            
-            // API 실패 시 로컬 데이터에서 조회
-            console.warn('로컬 데이터에서 상세 정보 조회');
-            const data = await apiModule.fetchSanctionsData();
-            return data.find(item => item.id === id) || null;
-        }
-    }
+// 필요한 API 함수들을 나중에 로드할 것이므로 일단 더미 함수로 설정
+let apiModule = {
+    fetchSanctionsData: async () => [],
+    searchSanctions: async () => ({ results: [] }),
+    getSanctionDetails: async () => null
 };
 
 // 전역 변수
@@ -151,6 +42,13 @@ document.addEventListener('DOMContentLoaded', initializeApp);
 function initializeApp() {
     console.log('세계 경제 제재 검색 서비스 초기화...');
     
+    // API 모듈 동적 로드 시도
+    loadModules().then(() => {
+        console.log('모듈 로드 성공');
+    }).catch(error => {
+        console.error('모듈 로드 실패:', error);
+    });
+    
     // 맥시멀리즘 UI 스타일 적용
     applyMaximalistStyle();
     
@@ -173,6 +71,50 @@ function initializeApp() {
     loadInitialData();
     
     console.log('세계 경제 제재 검색 서비스 초기화 완료');
+}
+
+/**
+ * 모듈 동적 로드 함수
+ */
+async function loadModules() {
+    try {
+        // 모듈 동적 로드 시도
+        const apiModuleImport = await import('./api.js');
+        apiModule = apiModuleImport;
+        console.log('API 모듈 로드 완료');
+    } catch (error) {
+        console.error('모듈 로드 중 오류:', error);
+        // 오류 시 폴백 함수 사용
+        apiModule = {
+            fetchSanctionsData: async () => {
+                try {
+                    const response = await fetch('data/all_sanctions.json');
+                    const data = await response.json();
+                    return data.data || [];
+                } catch (e) {
+                    console.error('제재 데이터 로드 실패:', e);
+                    return [];
+                }
+            },
+            searchSanctions: async (query) => {
+                const data = await apiModule.fetchSanctionsData();
+                if (!query) return { results: data };
+                
+                const filtered = data.filter(item => 
+                    item.name.toLowerCase().includes(query.toLowerCase()) ||
+                    (item.aliases && item.aliases.some(alias => 
+                        alias.toLowerCase().includes(query.toLowerCase())
+                    ))
+                );
+                
+                return { results: filtered };
+            },
+            getSanctionDetails: async (id) => {
+                const data = await apiModule.fetchSanctionsData();
+                return data.find(item => item.id === id) || null;
+            }
+        };
+    }
 }
 
 /**
