@@ -170,23 +170,23 @@
             </div>
             <div class="modal-body">
                 <div class="alert-container"></div>
-                <form id="register-form">
+                <form id="register-form-modal">
                     <div class="form-group">
-                        <label for="register-name">이름 (실명)</label>
-                        <input type="text" id="register-name" placeholder="이름을 입력하세요" required>
+                        <label for="register-name-modal">이름 (실명)</label>
+                        <input type="text" id="register-name-modal" placeholder="이름을 입력하세요" required>
                     </div>
                     <div class="form-group">
-                        <label for="register-email">이메일</label>
-                        <input type="email" id="register-email" placeholder="이메일을 입력하세요" required>
+                        <label for="register-email-modal">이메일</label>
+                        <input type="email" id="register-email-modal" placeholder="이메일을 입력하세요" required>
                     </div>
                     <div class="form-group">
-                        <label for="register-password">비밀번호</label>
-                        <input type="password" id="register-password" placeholder="비밀번호를 입력하세요" required>
+                        <label for="register-password-modal">비밀번호</label>
+                        <input type="password" id="register-password-modal" placeholder="비밀번호를 입력하세요" required>
                         <i class="fas fa-eye toggle-password"></i>
                     </div>
                     <div class="form-group">
-                        <label for="register-password-confirm">비밀번호 확인</label>
-                        <input type="password" id="register-password-confirm" placeholder="비밀번호를 다시 입력하세요" required>
+                        <label for="register-password-confirm-modal">비밀번호 확인</label>
+                        <input type="password" id="register-password-confirm-modal" placeholder="비밀번호를 다시 입력하세요" required>
                         <i class="fas fa-eye toggle-password"></i>
                     </div>
                     <div class="form-group agree-terms">
@@ -293,6 +293,14 @@
         data-environment="production">
     </div>
 
-    <!-- 모든 스크립트 파일은 모듈로 불러옵니다 -->
+    <!-- 상세 정보 관련 스크립트 추가 -->
+    <script type="module">
+        // 페이지 로드 시 모달 초기화
+        import { initDetailComponent } from './js/components/detail.js';
+        document.addEventListener('DOMContentLoaded', function() {
+            // 기존 모달 제거 및 초기화
+            initDetailComponent();
+        });
+    </script>
 </body>
 </html> 

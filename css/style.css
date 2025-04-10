@@ -55,6 +55,12 @@ body {
   position: relative;
   overflow-y: auto;
   overflow-x: hidden;
+  height: 100%;
+}
+
+html {
+  height: 100%;
+  overflow-y: scroll;
 }
 
 .container {
@@ -62,6 +68,7 @@ body {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
+  overflow: visible;
 }
 
 a {
@@ -296,6 +303,14 @@ ul, ol {
 }
 
 /* ===== 메인 섹션 ===== */
+#main-section {
+  min-height: 100vh;
+  padding-bottom: 80px;
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
 .main-header {
   background-color: var(--bg-white);
   padding: 15px 0;
@@ -428,6 +443,10 @@ ul, ol {
 .results-section {
   margin-top: 30px;
   padding-bottom: 50px;
+  position: relative;
+  width: 100%;
+  overflow: visible;
+  min-height: 300px;
 }
 
 .result-count {
@@ -438,6 +457,13 @@ ul, ol {
 
 /* ===== 검색 결과 그리드 ===== */
 #results-container {
+  width: 100%;
+  overflow: visible;
+  margin-bottom: 40px;
+  min-height: 200px;
+}
+
+.result-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
@@ -447,17 +473,22 @@ ul, ol {
 
 .result-item {
   background-color: #fff;
-  border-radius: 8px;
+  border-radius: 12px;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-  padding: 15px;
+  padding: 18px;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  min-height: 220px;
+  border: 1px solid var(--border-color);
+  position: relative;
 }
 
 .result-item:hover {
   transform: translateY(-5px);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  border-color: rgba(126, 87, 194, 0.3);
 }
 
 .result-header {
@@ -468,9 +499,12 @@ ul, ol {
 }
 
 .result-header h3 {
-  font-size: 18px;
+  font-size: 16px;
   margin: 0;
   color: var(--text-primary);
+  line-height: 1.4;
+  max-width: 70%;
+  word-break: break-word;
 }
 
 .result-type {
@@ -479,6 +513,7 @@ ul, ol {
   font-size: 12px;
   font-weight: 500;
   color: white;
+  white-space: nowrap;
 }
 
 .result-type.individual {
@@ -504,6 +539,27 @@ ul, ol {
 .result-body {
   flex: 1;
   margin-bottom: 15px;
+  overflow-y: auto;
+  max-height: 150px;
+  padding-right: 5px;
+}
+
+.result-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.result-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.result-body::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 10px;
+}
+
+.result-body::-webkit-scrollbar-thumb:hover {
+  background: #ccc;
 }
 
 .result-body p {
@@ -511,19 +567,24 @@ ul, ol {
   font-size: 14px;
   color: var(--text-secondary);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
+  line-height: 1.4;
 }
 
 .result-body i {
   color: var(--primary-color);
   width: 16px;
   text-align: center;
+  margin-top: 3px;
 }
 
 .result-footer {
   margin-top: auto;
   text-align: right;
+  position: relative;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
 }
 
 .btn-details {
@@ -561,6 +622,8 @@ ul, ol {
   height: 100%;
   z-index: 2000;
   overflow-y: auto;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 20px;
 }
 
 .modal-overlay {
@@ -578,12 +641,17 @@ ul, ol {
   background-color: white;
   border-radius: var(--border-radius);
   max-width: 800px;
-  width: 90%;
+  width: 95%;
   margin: 50px auto;
+  margin-bottom: 50px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   position: relative;
   animation: fadeIn 0.3s ease;
   z-index: 2001;
+  max-height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .modal-header {
@@ -592,6 +660,11 @@ ul, ol {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background-color: #f8f9fc;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .modal-header h2 {
@@ -607,6 +680,11 @@ ul, ol {
   color: var(--text-light);
   cursor: pointer;
   transition: color var(--transition-speed);
+  padding: 5px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-close:hover, .close-btn:hover {
@@ -615,11 +693,15 @@ ul, ol {
 
 .modal-body {
   padding: 25px;
+  overflow-y: auto;
+  flex: 1;
+  max-height: calc(100vh - 180px);
 }
 
 /* ===== 상세 정보 스타일 ===== */
 .detail-container {
   padding: 10px;
+  overflow-y: auto;
 }
 
 .detail-header {
@@ -767,7 +849,7 @@ ul, ol {
 
 /* ===== 반응형 스타일 ===== */
 @media (max-width: 992px) {
-  #results-container {
+  .result-grid {
     grid-template-columns: repeat(2, 1fr);
   }
   
@@ -776,8 +858,8 @@ ul, ol {
   }
 }
 
-@media (max-width: 768px) {
-  #results-container {
+@media (max-width: 576px) {
+  .result-grid {
     grid-template-columns: 1fr;
   }
   

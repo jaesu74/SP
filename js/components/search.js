@@ -4,6 +4,7 @@
 
 import { debounce, showAlert } from '../utils/common.js';
 import { searchSanctions, getSuggestedSearchTerms } from '../services/api.js';
+import { initDetailComponent, showDetail } from '../components/detail.js';
 
 // 현재 검색 결과 저장
 let currentResults = [];
@@ -13,7 +14,6 @@ let currentResults = [];
  */
 export function initSearchComponent() {
     setupSearchOptions();
-    setupAdvancedSearch();
     setupAutocomplete();
     setupFilterEventListeners();
 }
@@ -54,28 +54,6 @@ function setupSearchOptions() {
             e.target.closest('.search-option').classList.add('active');
         });
     });
-}
-
-/**
- * 고급 검색 설정
- */
-function setupAdvancedSearch() {
-    const advancedSearchButton = document.getElementById('advanced-search-button');
-    const advancedSearchOptions = document.getElementById('advanced-search-options');
-    
-    if (advancedSearchButton && advancedSearchOptions) {
-        advancedSearchButton.addEventListener('click', () => {
-            const isExpanded = advancedSearchOptions.classList.contains('expanded');
-            
-            if (isExpanded) {
-                advancedSearchOptions.classList.remove('expanded');
-                advancedSearchButton.innerHTML = '고급 검색 <i class="fas fa-chevron-down"></i>';
-            } else {
-                advancedSearchOptions.classList.add('expanded');
-                advancedSearchButton.innerHTML = '기본 검색 <i class="fas fa-chevron-up"></i>';
-            }
-        });
-    }
 }
 
 /**
@@ -265,7 +243,6 @@ function displaySearchResults(searchResult) {
     resultGrid.style.display = 'grid';
     resultGrid.style.gridTemplateColumns = 'repeat(3, 1fr)';
     resultGrid.style.gap = '20px';
-    resultGrid.style.width = '100%';
     
     // 결과 항목 생성
     results.forEach(item => {
@@ -303,6 +280,7 @@ function displaySearchResults(searchResult) {
                     formattedDate = item.date_listed;
                 }
             } catch (e) {
+                console.error('날짜 형식화 오류:', e);
                 formattedDate = item.date_listed;
             }
         }
@@ -344,27 +322,25 @@ function displaySearchResults(searchResult) {
                 ${aliasText ? `<p class="result-alias"><i class="fas fa-user-tag"></i> ${aliasText}</p>` : ''}
             </div>
             <div class="result-footer">
-                <button class="btn-details" onclick="window.showDetail('${item.id}')">상세정보</button>
+                <button class="btn-details" data-id="${item.id}">상세정보</button>
             </div>
         `;
+        
+        // 상세 정보 버튼 클릭 이벤트 설정
+        const detailButton = resultItem.querySelector('.btn-details');
+        if (detailButton) {
+            detailButton.addEventListener('click', function() {
+                const itemId = this.getAttribute('data-id');
+                if (itemId) {
+                    showDetail(itemId);
+                }
+            });
+        }
         
         resultGrid.appendChild(resultItem);
     });
     
     resultsContainer.appendChild(resultGrid);
-    
-    // 상세 정보 표시 함수를 전역에 등록
-    if (typeof window.showDetail !== 'function') {
-        window.showDetail = (id) => {
-            // js/components/detail.js에서 가져온 showDetail 함수 사용
-            import('./detail.js').then(module => {
-                module.showDetail(id);
-            }).catch(error => {
-                console.error('상세 정보 모듈 로드 실패:', error);
-                showAlert('상세 정보를 표시할 수 없습니다.', 'error');
-            });
-        };
-    }
 }
 
 /**

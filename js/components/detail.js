@@ -13,6 +13,8 @@ let modalOverlay = null;
  * 상세 정보 컴포넌트 초기화
  */
 export function initDetailComponent() {
+    console.log('상세 정보 컴포넌트 초기화');
+    
     // 기존 모달 제거 (중복 방지)
     removeExistingModals();
     
@@ -26,7 +28,7 @@ export function initDetailComponent() {
 /**
  * 기존 모달 제거
  */
-function removeExistingModals() {
+export function removeExistingModals() {
     // id로 찾기
     const existingModal = document.getElementById('detail-modal');
     if (existingModal) {
@@ -49,7 +51,7 @@ function createModalElements() {
     // 모달 생성
     detailModal = document.createElement('div');
     detailModal.id = 'detail-modal';
-    detailModal.className = 'modal';
+    detailModal.className = 'modal detail-modal';
     detailModal.innerHTML = `
         <div class="modal-content maximalist">
             <div class="modal-header">
@@ -147,7 +149,7 @@ export async function showDetail(id) {
         console.log('상세 정보 로드 완료:', item);
         
         // 상세 정보 표시
-        renderDetailContent(modalBody, item);
+        renderDetailContent(item);
         
     } catch (error) {
         console.error('상세 정보 로드 오류:', error);
@@ -170,11 +172,16 @@ export function hideDetail() {
 
 /**
  * 상세 정보 내용 렌더링
- * @param {HTMLElement} container 내용을 표시할 컨테이너
  * @param {Object} item 제재 대상 정보
  */
-function renderDetailContent(container, item) {
+function renderDetailContent(item) {
     console.log('상세 정보 렌더링:', item);
+    
+    const modalBody = detailModal.querySelector('.modal-body');
+    if (!modalBody) {
+        console.error('모달 본문을 찾을 수 없습니다.');
+        return;
+    }
     
     // 필수 필드 확인 및 기본값 설정
     const name = item.name || '이름 없음';
@@ -236,7 +243,7 @@ function renderDetailContent(container, item) {
     }
     
     // 컨테이너에 HTML 생성
-    container.innerHTML = `
+    modalBody.innerHTML = `
         <div class="detail-container">
             <div class="detail-header">
                 <div class="detail-title">
@@ -244,7 +251,7 @@ function renderDetailContent(container, item) {
                     <span class="detail-type ${typeClass}">${type}</span>
                 </div>
                 <div class="detail-actions">
-                    <button class="btn-pdf" onclick="window.generatePDF()">PDF 다운로드</button>
+                    <button class="btn-pdf" id="btn-download-pdf">PDF 다운로드</button>
                 </div>
             </div>
             
@@ -358,8 +365,11 @@ function renderDetailContent(container, item) {
         </div>
     `;
     
-    // PDF 생성 함수를 전역 객체에 등록
-    window.generatePDF = () => generatePDF(item);
+    // PDF 다운로드 버튼 이벤트 리스너 추가
+    const pdfButton = modalBody.querySelector('#btn-download-pdf');
+    if (pdfButton) {
+        pdfButton.addEventListener('click', () => generatePDF(item));
+    }
 }
 
 /**
@@ -368,20 +378,23 @@ function renderDetailContent(container, item) {
  */
 function generatePDF(item) {
     try {
-        // jsPDF 라이브러리가 로드되었는지 확인
-        if (typeof jsPDF === 'undefined') {
-            // 라이브러리 로드
+        // jsPDF 라이브러리 확인
+        if (typeof window.jspdf === 'undefined') {
+            console.log('jsPDF 라이브러리 로드 필요');
+            showAlert('PDF 생성을 위한 라이브러리를 로드 중입니다. 잠시 후 다시 시도하세요.', 'info');
+            
+            // jsPDF 라이브러리 로드
             const script = document.createElement('script');
             script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-            document.head.appendChild(script);
-            
             script.onload = () => {
-                // 스크립트 로드 완료 후 PDF 생성 시도
-                setTimeout(() => generatePDF(item), 100);
+                console.log('jsPDF 라이브러리 로드 완료');
+                setTimeout(() => generatePDF(item), 500);
             };
-            
-            return showAlert('PDF 생성을 위한 라이브러리를 로드 중입니다. 잠시 후 다시 시도하세요.', 'info');
+            document.head.appendChild(script);
+            return;
         }
+        
+        console.log('PDF 생성 시작:', item);
         
         // 필수 필드 확인 및 기본값 설정
         const name = item.name || '이름 없음';
