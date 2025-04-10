@@ -21,6 +21,11 @@ let activeFilters = {
 SearchComponent.init = function() {
     console.log('검색 컴포넌트 초기화...');
     
+    // API 서비스 초기화 확인
+    if (window.ApiService && typeof window.ApiService.init === 'function' && !window.ApiService.initialized) {
+        window.ApiService.init();
+    }
+    
     // 검색 옵션 설정
     this.setupSearchOptions();
     
@@ -47,6 +52,14 @@ SearchComponent.performSearch = async function(e) {
     const searchType = document.querySelector('input[name="search-type"]:checked')?.value || 'text';
     const numberType = document.querySelector('input[name="number-type"]:checked')?.value || 'all';
     
+    // 검색어 없는 경우 확인
+    if (!query) {
+        window.showAlert ?
+            window.showAlert('검색어를 입력해주세요.', 'warning') :
+            this._showSimpleAlert('검색어를 입력해주세요.', 'warning');
+        return;
+    }
+    
     const options = {
         searchType: searchType,
         numberType: numberType,
@@ -57,12 +70,22 @@ SearchComponent.performSearch = async function(e) {
     };
     
     // 로딩 표시
-    const loadingIndicator = window.Utils?.showLoadingIndicator('results-container', '검색 중...') ||
-        this._showSimpleLoadingIndicator('results-container');
+    const loadingIndicator = 
+        (window.showLoadingIndicator ? 
+            window.showLoadingIndicator('results-container', '검색 중...') :
+            this._showSimpleLoadingIndicator('results-container'));
     
     try {
-        // 검색 수행
-        const results = await window.ApiService.searchSanctions(query, options);
+        // 검색 수행 - ApiService 우선 사용
+        let results;
+        if (window.ApiService && typeof window.ApiService.searchSanctions === 'function') {
+            results = await window.ApiService.searchSanctions(query, options);
+        } else if (window.apiModule && typeof window.apiModule.searchSanctions === 'function') {
+            results = await window.apiModule.searchSanctions(query, options);
+        } else {
+            throw new Error('검색 API를 찾을 수 없습니다.');
+        }
+        
         currentResults = results.results || [];
         
         // 검색 결과 표시
@@ -73,22 +96,29 @@ SearchComponent.performSearch = async function(e) {
         
         // 검색어가 있지만 결과가 없는 경우 추천 검색어 표시
         if (query && currentResults.length === 0) {
-            const suggestions = window.ApiService.getSuggestedSearchTerms(query);
+            let suggestions = [];
+            if (window.ApiService && typeof window.ApiService.getSuggestedSearchTerms === 'function') {
+                suggestions = window.ApiService.getSuggestedSearchTerms(query);
+            }
             this.displaySearchSuggestions(suggestions);
         }
     } catch (error) {
         console.error('검색 오류:', error);
         
         // 오류 메시지 표시
-        const alertMessage = window.Utils?.showAlert || this._showSimpleAlert;
-        alertMessage('검색 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+        window.showAlert ? 
+            window.showAlert('검색 중 오류가 발생했습니다. 다시 시도해주세요.', 'error') :
+            this._showSimpleAlert('검색 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
         
         // 빈 결과 표시
         this.displayResults([]);
     } finally {
         // 로딩 인디케이터 제거
-        window.Utils?.hideLoadingIndicator(loadingIndicator) || 
+        if (window.hideLoadingIndicator) {
+            window.hideLoadingIndicator(loadingIndicator);
+        } else {
             this._hideSimpleLoadingIndicator('results-container');
+        }
     }
 };
 
@@ -263,36 +293,67 @@ SearchComponent.displaySearchSuggestions = function(suggestions) {
  * @param {string} id 항목 ID
  */
 SearchComponent.showDetail = async function(id) {
+    if (!id) return;
+    
+    console.log('상세 정보 표시:', id);
+    
     try {
-        // 로딩 인디케이터 표시
-        const loadingIndicator = window.Utils?.showLoadingIndicator('detail-content', '상세 정보를 불러오는 중...') ||
-            this._showSimpleLoadingIndicator('detail-content');
+        let item = null;
         
-        // 상세 정보 가져오기
-        const data = await window.ApiService.getSanctionDetails(id);
+        // 현재 결과에서 먼저 찾기
+        if (currentResults && currentResults.length > 0) {
+            item = currentResults.find(result => result.id === id);
+        }
         
-        // 로딩 인디케이터 제거
-        window.Utils?.hideLoadingIndicator(loadingIndicator) || 
-            this._hideSimpleLoadingIndicator('detail-content');
+        // 현재 결과에 없으면 API에서 가져오기
+        if (!item) {
+            if (window.ApiService && typeof window.ApiService.getSanctionDetails === 'function') {
+                item = await window.ApiService.getSanctionDetails(id);
+            } else if (window.apiModule && typeof window.apiModule.getSanctionDetails === 'function') {
+                item = await window.apiModule.getSanctionDetails(id);
+            } else {
+                throw new Error('상세 정보 API를 찾을 수 없습니다.');
+            }
+        }
         
-        if (!data) {
-            window.Utils?.showAlert('상세 정보를 찾을 수 없습니다.', 'error') || 
+        if (!item) {
+            window.showAlert ?
+                window.showAlert('상세 정보를 찾을 수 없습니다.', 'error') :
                 this._showSimpleAlert('상세 정보를 찾을 수 없습니다.', 'error');
             return;
         }
         
-        // detail.js 컴포넌트 사용
-        if (window.detailModule && typeof window.detailModule.showDetail === 'function') {
-            window.detailModule.showDetail(data);
-        } else {
-            // 폴백: 기본 모달 표시
-            console.warn('상세 정보 모듈을 찾을 수 없습니다. 기본 방식을 사용합니다.');
-            this._showSimpleDetailModal(data);
+        // 상세 정보 모달 요소 확인
+        const detailModal = document.getElementById('detail-modal');
+        const detailContent = document.getElementById('detail-content');
+        
+        if (!detailModal || !detailContent) {
+            console.error('상세 정보 모달 요소를 찾을 수 없습니다.');
+            return;
         }
+        
+        // 현재 아이템 저장 (PDF 생성용)
+        window.currentItem = item;
+        
+        // 상세 정보 컨텐츠 렌더링 함수 호출
+        if (window.detailModule && typeof window.detailModule.renderDetailContent === 'function') {
+            window.detailModule.renderDetailContent(item);
+        } else if (window.renderDetailContent) {
+            window.renderDetailContent(item, detailContent);
+        } else {
+            // 기본 렌더링 로직
+            this.renderDetailContent(item, detailContent);
+        }
+        
+        // 모달 표시
+        detailModal.style.display = 'block';
+        detailModal.classList.add('show');
+        document.body.classList.add('modal-open');
     } catch (error) {
-        console.error('상세 정보 로드 오류:', error);
-        window.Utils?.showAlert('상세 정보를 불러오는데 실패했습니다.', 'error') || 
-            this._showSimpleAlert('상세 정보를 불러오는데 실패했습니다.', 'error');
+        console.error('상세 정보 로드 중 오류:', error);
+        window.showAlert ?
+            window.showAlert('상세 정보를 가져오는 중 오류가 발생했습니다.', 'error') :
+            this._showSimpleAlert('상세 정보를 가져오는 중 오류가 발생했습니다.', 'error');
     }
 };
 
@@ -348,22 +409,79 @@ SearchComponent.setupSearchOptions = function() {
  * 이벤트 리스너 설정
  */
 SearchComponent.setupEventListeners = function() {
-    // 검색 버튼 이벤트
-    const searchButton = document.getElementById('search-button');
-    if (searchButton) {
-        searchButton.addEventListener('click', (e) => this.performSearch(e));
+    console.log('검색 컴포넌트 이벤트 리스너 설정...');
+    
+    // 검색 폼 제출
+    const searchForm = document.getElementById('search-form');
+    if (searchForm && !searchForm._searchComponentInitialized) {
+        searchForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.performSearch();
+        });
+        searchForm._searchComponentInitialized = true;
     }
     
-    // 검색 입력창 Enter 키 이벤트
+    // 검색 버튼 클릭
+    const searchButton = document.getElementById('search-button');
+    if (searchButton && !searchButton._searchComponentInitialized) {
+        searchButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.performSearch();
+        });
+        searchButton._searchComponentInitialized = true;
+    }
+    
+    // 엔터 키 검색 실행
     const searchInput = document.getElementById('search-input');
-    if (searchInput) {
+    if (searchInput && !searchInput._searchComponentInitialized) {
         searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 this.performSearch();
             }
         });
+        searchInput._searchComponentInitialized = true;
     }
+    
+    // 고급 검색 토글
+    const advancedToggle = document.getElementById('advanced-toggle');
+    const advancedSearch = document.getElementById('advanced-search');
+    if (advancedToggle && advancedSearch && !advancedToggle._searchComponentInitialized) {
+        advancedToggle.addEventListener('click', () => {
+            advancedSearch.classList.toggle('show');
+        });
+        advancedToggle._searchComponentInitialized = true;
+    }
+    
+    // 모달 닫기 버튼
+    const detailClose = document.getElementById('detail-close');
+    const detailModal = document.getElementById('detail-modal');
+    if (detailClose && detailModal && !detailClose._searchComponentInitialized) {
+        detailClose.addEventListener('click', () => {
+            this.hideDetail();
+        });
+        detailClose._searchComponentInitialized = true;
+    }
+    
+    // 필터 버튼
+    const filterButton = document.getElementById('filter-button');
+    if (filterButton && !filterButton._searchComponentInitialized) {
+        filterButton.addEventListener('click', () => {
+            this.applyFilters();
+        });
+        filterButton._searchComponentInitialized = true;
+    }
+    
+    // 필터 초기화 버튼
+    const resetFiltersButton = document.getElementById('reset-filters');
+    if (resetFiltersButton && !resetFiltersButton._searchComponentInitialized) {
+        resetFiltersButton.addEventListener('click', () => {
+            this.resetFilters();
+        });
+        resetFiltersButton._searchComponentInitialized = true;
+    }
+    
+    console.log('검색 컴포넌트 이벤트 리스너 설정 완료');
 };
 
 /**
@@ -531,160 +649,165 @@ SearchComponent._debounce = function(func, wait) {
 };
 
 /**
- * 간단한 상세 정보 모달 표시 (폴백)
- * @param {Object} data 상세 정보 데이터
+ * 상세 정보 렌더링 함수 추가
+ * @param {Object} item 상세 정보 객체
+ * @param {HTMLElement} container 상세 정보를 표시할 컨테이너
  * @private
  */
-SearchComponent._showSimpleDetailModal = function(data) {
-    // 모달 요소 가져오기
-    const modal = document.getElementById('detail-modal');
-    const detailContent = document.getElementById('detail-content');
+SearchComponent.renderDetailContent = function(item, container) {
+    if (!item || !container) return;
     
-    if (!modal || !detailContent) {
-        console.error('모달 요소를 찾을 수 없습니다.');
-        return;
-    }
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '정보 없음';
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return dateStr;
+        return date.toLocaleDateString('ko-KR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    };
     
-    // 날짜 형식화
-    const formattedDate = this._formatDate(data.date_listed);
-    
-    // 상세 정보 HTML 생성
-    let html = `
-        <div class="detail-header">
-            <h3>${data.name}</h3>
-            <span class="detail-type ${data.type?.toLowerCase() || ''}">
-                <i class="fas fa-${data.type === 'INDIVIDUAL' ? 'user' : 'building'}"></i>
-                ${data.type === 'INDIVIDUAL' ? '개인' : '단체'}
-            </span>
-        </div>
+    const getTypeClass = (type) => {
+        if (!type) return '';
+        const lowerType = type.toLowerCase();
         
-        <div class="detail-section">
-            <h4>기본 정보</h4>
-            <div class="detail-data">
-                <div class="data-item">
-                    <div class="data-label">국가</div>
-                    <div class="data-value">${data.country || '정보 없음'}</div>
-                </div>
-                <div class="data-item">
-                    <div class="data-label">등재일</div>
-                    <div class="data-value">${formattedDate}</div>
-                </div>
-                <div class="data-item">
-                    <div class="data-label">제재 출처</div>
-                    <div class="data-value">${data.source || '정보 없음'}</div>
+        if (lowerType.includes('개인') || lowerType.includes('individual')) {
+            return 'individual';
+        } else if (lowerType.includes('단체') || lowerType.includes('entity') || lowerType.includes('기업')) {
+            return 'entity';
+        } else if (lowerType.includes('선박') || lowerType.includes('vessel')) {
+            return 'vessel';
+        } else if (lowerType.includes('항공') || lowerType.includes('aircraft')) {
+            return 'aircraft';
+        }
+        return '';
+    };
+    
+    container.innerHTML = `
+        <div class="detail-container">
+            <div class="detail-header">
+                <h3>${item.name || '이름 정보 없음'}</h3>
+                <span class="detail-type ${getTypeClass(item.type)}">${item.type || '유형 정보 없음'}</span>
+            </div>
+            
+            <div class="detail-section">
+                <h3 class="section-title">기본 정보</h3>
+                <div class="detail-data">
+                    <div class="data-item">
+                        <div class="data-label">ID</div>
+                        <div class="data-value">${item.id || '-'}</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">국가</div>
+                        <div class="data-value">${item.country || '정보 없음'}</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">제재 프로그램</div>
+                        <div class="data-value">${Array.isArray(item.programs) ? item.programs.join(', ') : (item.program || '정보 없음')}</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">출처</div>
+                        <div class="data-value">${item.source || '정보 없음'}</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">등재일</div>
+                        <div class="data-value">${formatDate(item.date_listed)}</div>
+                    </div>
                 </div>
             </div>
+            
+            ${item.reason ? `
+            <div class="detail-section">
+                <h3 class="section-title">제재 사유</h3>
+                <div class="detail-data">
+                    <div class="data-item reason">
+                        <div class="data-value">${item.reason}</div>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+            
+            ${item.details && item.details.aliases && item.details.aliases.length > 0 ? `
+            <div class="detail-section">
+                <h3 class="section-title">별칭</h3>
+                <div class="detail-data">
+                    <div class="data-item">
+                        <div class="data-value">
+                            <ul class="detail-list">
+                                ${item.details.aliases.map(alias => `<li>${alias}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+            
+            ${item.details && item.details.addresses && item.details.addresses.length > 0 ? `
+            <div class="detail-section">
+                <h3 class="section-title">주소</h3>
+                <div class="detail-data">
+                    <div class="data-item">
+                        <div class="data-value">
+                            <ul class="detail-list">
+                                ${item.details.addresses.map(addr => `<li>${addr}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+            
+            ${item.details && item.details.identifications && item.details.identifications.length > 0 ? `
+            <div class="detail-section">
+                <h3 class="section-title">신분증 정보</h3>
+                <div class="detail-data">
+                    <div class="data-item">
+                        <div class="data-value">
+                            <ul class="detail-list">
+                                ${item.details.identifications.map(id => `
+                                    <li>
+                                        ${id.type || '기타'}: ${id.number || '번호 없음'}
+                                        ${id.country ? ` (${id.country})` : ''}
+                                        ${id.issueDate ? ` - 발급일: ${id.issueDate}` : ''}
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
         </div>
     `;
-    
-    // 프로그램 정보
-    if (data.programs && data.programs.length > 0) {
-        html += `
-            <div class="detail-section">
-                <h4>제재 프로그램</h4>
-                <div class="detail-data">
-                    <div class="data-item">
-                        <ul class="program-list">
-                            ${data.programs.map(program => `<li>${program}</li>`).join('')}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // 별칭 정보
-    if (data.details?.aliases && data.details.aliases.length > 0) {
-        html += `
-            <div class="detail-section">
-                <h4>별칭</h4>
-                <div class="detail-data">
-                    <div class="data-item">
-                        <ul class="alias-list">
-                            ${data.details.aliases.map(alias => `<li>${alias}</li>`).join('')}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // 주소 정보
-    if (data.details?.addresses && data.details.addresses.length > 0) {
-        html += `
-            <div class="detail-section">
-                <h4>주소</h4>
-                <div class="detail-data">
-                    <div class="data-item">
-                        <ul class="address-list">
-                            ${data.details.addresses.map(address => `<li>${address}</li>`).join('')}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // 신분증 정보
-    if (data.details?.identifications && data.details.identifications.length > 0) {
-        html += `
-            <div class="detail-section">
-                <h4>신분증 정보</h4>
-                <div class="detail-data">
-                    <div class="data-item">
-                        <ul class="id-list">
-                            ${data.details.identifications.map(id => `
-                                <li>
-                                    <strong>${id.type || '기타'}:</strong> ${id.number || '번호 없음'}
-                                    ${id.country ? `(${id.country})` : ''}
-                                </li>
-                            `).join('')}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // 내용 설정 및 모달 표시
-    detailContent.innerHTML = html;
-    modal.style.display = 'block';
-    document.body.classList.add('modal-open');
-    
-    // 닫기 버튼 이벤트
-    const closeBtn = document.getElementById('detail-close');
-    if (closeBtn) {
-        closeBtn.onclick = () => {
-            modal.style.display = 'none';
-            document.body.classList.remove('modal-open');
-        };
-    }
-    
-    // ESC 키로 닫기
-    const escHandler = (e) => {
-        if (e.key === 'Escape') {
-            modal.style.display = 'none';
-            document.body.classList.remove('modal-open');
-            document.removeEventListener('keydown', escHandler);
-        }
-    };
-    document.addEventListener('keydown', escHandler);
-    
-    // 모달 외부 클릭 시 닫기
-    modal.onclick = (e) => {
-        if (e.target === modal) {
-            modal.style.display = 'none';
-            document.body.classList.remove('modal-open');
-        }
-    };
 };
 
-// 전역 객체로 내보내기
-window.SearchComponent = SearchComponent;
+/**
+ * 상세 정보 모달 닫기 함수 추가
+ * @private
+ */
+SearchComponent.hideDetail = function() {
+    const detailModal = document.getElementById('detail-modal');
+    if (!detailModal) return;
+    
+    detailModal.classList.remove('show');
+    document.body.classList.remove('modal-open');
+    
+    // 일정 시간 후 display 속성도 변경
+    setTimeout(() => {
+        detailModal.style.display = 'none';
+    }, 300);
+};
 
-// DOMContentLoaded 이벤트에서 초기화
-document.addEventListener('DOMContentLoaded', function() {
-    if (window.SearchComponent) {
-        window.SearchComponent.init();
+// 모듈 내보내기 확인
+if (typeof window.SearchComponent === 'undefined') {
+    window.SearchComponent = SearchComponent;
+}
+
+// 페이지 로드 시 자동 초기화
+document.addEventListener('DOMContentLoaded', () => {
+    // app.js에서 명시적 초기화를 기다리지 않고 자동 초기화
+    if (!window.appInitialized) {
+        SearchComponent.init();
     }
 }); 

@@ -180,6 +180,16 @@ document.addEventListener('DOMContentLoaded', initializeApp);
 function initializeApp() {
     console.log('세계 경제 제재 검색 서비스 초기화...');
     
+    // API 서비스 초기화
+    if (window.ApiService && typeof window.ApiService.init === 'function') {
+        window.ApiService.init();
+    }
+    
+    // 검색 컴포넌트 초기화
+    if (window.SearchComponent && typeof window.SearchComponent.init === 'function') {
+        window.SearchComponent.init();
+    }
+    
     // 맥시멀리즘 UI 스타일 적용
     applyMaximalistStyle();
     
@@ -188,9 +198,10 @@ function initializeApp() {
     
     // 필터 및 검색 옵션 설정
     setupFilterOptions();
-    setupSearchOptions();
-    setupAdvancedSearch();
-    setupAutocomplete();
+    // SearchComponent로 이동된 기능은 제거
+    // setupSearchOptions();
+    // setupAdvancedSearch();
+    // setupAutocomplete();
     
     // 로그인 상태 확인 (이벤트 리스너 등록 후에 실행)
     setTimeout(() => {
@@ -641,7 +652,7 @@ function adjustFooterForMainSection() {
 }
 
 /**
- * 이벤트 리스너 등록
+ * 이벤트 리스너 설정
  */
 function setupEventListeners() {
     // 로그인 폼 이벤트 설정
@@ -691,7 +702,7 @@ function setupEventListeners() {
             showMainSection('jaesu@kakao.com');
             
             // 알림 표시
-            showAlert('테스트 계정으로 로그인되었습니다.', 'success');
+            window.showAlert('테스트 계정으로 로그인되었습니다.', 'success');
         });
     }
     
@@ -699,47 +710,6 @@ function setupEventListeners() {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', handleLogout);
-    }
-    
-    // 검색 폼 제출
-    const searchForm = document.getElementById('search-form');
-    if (searchForm) {
-        searchForm.addEventListener('submit', performSearch);
-    }
-    
-    // 검색 버튼 클릭
-    const searchButton = document.getElementById('search-button');
-    if (searchButton) {
-        searchButton.addEventListener('click', performSearch);
-    }
-    
-    // 엔터 키 검색 실행
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                performSearch();
-            }
-        });
-    }
-    
-    // 고급 검색 토글
-    const advancedToggle = document.getElementById('advanced-toggle');
-    const advancedSearch = document.getElementById('advanced-search');
-    if (advancedToggle && advancedSearch) {
-        advancedToggle.addEventListener('click', () => {
-            advancedSearch.classList.toggle('show');
-        });
-    }
-    
-    // 상세 정보 모달 닫기
-    const detailClose = document.getElementById('detail-close');
-    const detailModal = document.getElementById('detail-modal');
-    if (detailClose && detailModal) {
-        detailClose.addEventListener('click', () => {
-            detailModal.classList.remove('show');
-        });
     }
     
     // 회원가입 모달 표시
@@ -1007,462 +977,96 @@ function handleLogout() {
 }
 
 /**
- * 검색 수행
- */
-async function performSearch() {
-    console.log('검색 실행...');
-    
-    // 검색어 가져오기
-    const searchInput = document.getElementById('search-input');
-    if (!searchInput) {
-        console.error('검색 입력 필드를 찾을 수 없습니다.');
-        return;
-    }
-    
-    const query = searchInput.value.trim();
-    if (!query) {
-        showAlert('검색어를 입력해주세요.', 'warning');
-        return;
-    }
-    
-    // 검색 유형 확인
-    const searchType = document.querySelector('input[name="search-type"]:checked').value;
-    
-    // 번호 유형 (번호 검색인 경우에만)
-    let numberType = 'all';
-    if (searchType === 'number') {
-        numberType = document.querySelector('input[name="number-type"]:checked').value;
-    }
-    
-    try {
-        // 로딩 인디케이터 표시
-        const loadingIndicator = showLoadingIndicator('results-container', '검색 중...');
-        
-        // API 모듈을 사용하여 검색
-        const results = await apiModule.searchSanctions(query, {
-            searchType: searchType,
-            numberType: numberType
-        });
-        
-        // 필터 적용
-        let filteredResults = results.results;
-        if (activeFilters.countries.size > 0 || activeFilters.programs.size > 0 ||
-            activeFilters.startDate || activeFilters.endDate) {
-            
-            filteredResults = filteredResults.filter(item => {
-                // 국가 필터
-                if (activeFilters.countries.size > 0) {
-                    if (!item.country || !activeFilters.countries.has(item.country)) {
-                        return false;
-                    }
-                }
-                
-                // 프로그램 필터
-                if (activeFilters.programs.size > 0) {
-                    if (!item.programs || !item.programs.some(program => 
-                        activeFilters.programs.has(program))) {
-                        return false;
-                    }
-                }
-                
-                // 날짜 필터
-                if (activeFilters.startDate || activeFilters.endDate) {
-                    const itemDate = new Date(item.date_listed);
-                    if (activeFilters.startDate && itemDate < activeFilters.startDate) {
-                        return false;
-                    }
-                    if (activeFilters.endDate && itemDate > activeFilters.endDate) {
-                        return false;
-                    }
-                }
-                
-                return true;
-            });
-        }
-        
-        // 결과 표시
-        displayResults(filteredResults);
-        
-        // 로딩 인디케이터 숨기기
-        hideLoadingIndicator(loadingIndicator);
-    } catch (error) {
-        console.error('검색 중 오류 발생:', error);
-        showAlert('검색 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
-    }
-}
-
-/**
- * 검색 결과 표시
- * @param {Array} results 검색 결과 배열
- */
-function displayResults(results) {
-    const resultsContainer = document.getElementById('results-container');
-    if (!resultsContainer) {
-        console.error('결과 컨테이너를 찾을 수 없습니다.');
-        return;
-    }
-    
-    // 현재 결과 저장 (상세 정보 표시용)
-    currentResults = results;
-    
-    // 검색 결과가 없는 경우
-    if (!results || results.length === 0) {
-        resultsContainer.innerHTML = '<div class="no-results">검색 결과가 없습니다.</div>';
-        return;
-    }
-    
-    // 결과 표시
-    let html = '';
-    
-    results.forEach(result => {
-        const resultType = result.type || '정보 없음';
-        const resultTypeClass = getTypeClass(resultType);
-        
-        html += `
-            <div class="result-item" data-id="${result.id}">
-                <div class="result-header">
-                    <h3>${result.name || '이름 정보 없음'}</h3>
-                    <span class="result-type ${resultTypeClass}">${resultType}</span>
-                </div>
-                <div class="result-body">
-                    <div class="result-info">
-                        <p><strong>국가:</strong> ${result.country || '정보 없음'}</p>
-                        <p><strong>출처:</strong> ${result.source || '정보 없음'}</p>
-                        ${result.date_listed ? `<p><strong>등재일:</strong> ${formatDate(result.date_listed)}</p>` : ''}
-                    </div>
-                </div>
-                <div class="result-actions">
-                    <button class="btn-detail" data-id="${result.id}">상세 정보</button>
-                </div>
-            </div>
-        `;
-    });
-    
-    resultsContainer.innerHTML = html;
-    
-    // 상세 정보 버튼 이벤트 설정
-    const detailButtons = resultsContainer.querySelectorAll('.btn-detail');
-    detailButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const id = this.getAttribute('data-id');
-            showDetail(id);
-        });
-    });
-    
-    // 결과 항목 클릭 이벤트 설정 (버튼 외 영역)
-    const resultItems = resultsContainer.querySelectorAll('.result-item');
-    resultItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            // 버튼 클릭은 제외 (버튼의 자체 이벤트 처리)
-            if (e.target.classList.contains('btn-detail')) return;
-            
-            const id = this.getAttribute('data-id');
-            showDetail(id);
-        });
-    });
-}
-
-/**
- * 유형에 따른 CSS 클래스 반환
- * @param {string} type 유형
- * @returns {string} CSS 클래스
- */
-function getTypeClass(type) {
-    if (!type) return '';
-    
-    const lowerType = type.toLowerCase();
-    
-    if (lowerType.includes('개인') || lowerType.includes('individual')) {
-        return 'individual';
-    } else if (lowerType.includes('단체') || lowerType.includes('entity') || lowerType.includes('기업')) {
-        return 'entity';
-    } else if (lowerType.includes('선박') || lowerType.includes('vessel')) {
-        return 'vessel';
-    } else if (lowerType.includes('항공') || lowerType.includes('aircraft')) {
-        return 'aircraft';
-    }
-    
-    return '';
-}
-
-/**
- * 날짜 포맷팅
- * @param {string} dateStr 날짜 문자열
- * @returns {string} 포맷팅된 날짜 문자열
- */
-function formatDate(dateStr) {
-    if (!dateStr) return '정보 없음';
-    
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
-    
-    return date.toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-}
-
-/**
- * 상세 정보 표시
- * @param {string} id 항목 ID
- */
-async function showDetail(id) {
-    console.log('상세 정보 표시:', id);
-    
-    // ID로 항목 찾기
-    let item = null;
-    
-    // 현재 결과에서 먼저 찾기
-    if (currentResults && currentResults.length > 0) {
-        item = currentResults.find(result => result.id === id);
-    }
-    
-    // 현재 결과에 없으면 API에서 가져오기
-    if (!item) {
-        try {
-            item = await apiModule.getSanctionDetails(id);
-        } catch (error) {
-            console.error('상세 정보 로드 중 오류:', error);
-            showAlert('상세 정보를 가져오는 중 오류가 발생했습니다.', 'error');
-            return;
-        }
-    }
-    
-    if (!item) {
-        showAlert('상세 정보를 찾을 수 없습니다.', 'error');
-        return;
-    }
-    
-    // 상세 정보 모달 요소 확인
-    const detailModal = document.getElementById('detail-modal');
-    const detailContent = document.getElementById('detail-content');
-    
-    if (!detailModal || !detailContent) {
-        console.error('상세 정보 모달 요소를 찾을 수 없습니다.');
-        return;
-    }
-    
-    // 현재 아이템 저장 (PDF 생성용)
-    window.currentItem = item;
-    
-    // 상세 정보 컨텐츠 렌더링 함수 호출
-    if (window.renderDetailContent) {
-        window.renderDetailContent(item);
-    } else {
-        // 기본 렌더링 로직
-        detailContent.innerHTML = `
-            <div class="detail-container">
-                <div class="detail-header">
-                    <h3>${item.name || '이름 정보 없음'}</h3>
-                    <span class="detail-type ${getTypeClass(item.type)}">${item.type || '유형 정보 없음'}</span>
-                </div>
-                
-                <div class="detail-section">
-                    <h3 class="section-title">기본 정보</h3>
-                    <div class="detail-data">
-                        <div class="data-item">
-                            <div class="data-label">ID</div>
-                            <div class="data-value">${item.id || '-'}</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">국가</div>
-                            <div class="data-value">${item.country || '정보 없음'}</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">제재 프로그램</div>
-                            <div class="data-value">${Array.isArray(item.programs) ? item.programs.join(', ') : (item.program || '정보 없음')}</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">출처</div>
-                            <div class="data-value">${item.source || '정보 없음'}</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">등재일</div>
-                            <div class="data-value">${formatDate(item.date_listed)}</div>
-                        </div>
-                    </div>
-                </div>
-                
-                ${item.reason ? `
-                <div class="detail-section">
-                    <h3 class="section-title">제재 사유</h3>
-                    <div class="detail-data">
-                        <div class="data-item reason">
-                            <div class="data-value">${item.reason}</div>
-                        </div>
-                    </div>
-                </div>
-                ` : ''}
-            </div>
-        `;
-    }
-    
-    // 모달 표시
-    detailModal.style.display = 'block';
-    document.body.classList.add('modal-open');
-}
-
-/**
- * 로딩 인디케이터 표시
- * @param {string} containerId 컨테이너 ID
- * @param {string} message 표시할 메시지
- * @returns {HTMLElement} 생성된 로딩 인디케이터 요소
- */
-function showLoadingIndicator(containerId, message = '로딩 중...') {
-    const container = document.getElementById(containerId);
-    if (!container) return null;
-    
-    const loadingIndicator = document.createElement('div');
-    loadingIndicator.className = 'loading-indicator';
-    loadingIndicator.innerHTML = `
-        <div class="spinner"></div>
-        <p>${message}</p>
-    `;
-    
-    container.innerHTML = '';
-    container.appendChild(loadingIndicator);
-    
-    return loadingIndicator;
-}
-
-/**
- * 로딩 인디케이터 숨기기
- * @param {HTMLElement} indicatorElement 로딩 인디케이터 요소
- */
-function hideLoadingIndicator(indicatorElement) {
-    if (!indicatorElement) return;
-    
-    indicatorElement.classList.add('fade-out');
-    setTimeout(() => {
-        if (indicatorElement.parentNode) {
-            indicatorElement.parentNode.removeChild(indicatorElement);
-        }
-    }, 300);
-}
-
-/**
- * 알림 표시
- * @param {string} message 메시지
- * @param {string} type 알림 유형 (success, error, warning, info)
- * @param {object} options 옵션
- */
-function showAlert(message, type = 'info', options = {}) {
-    const defaults = {
-        duration: 3000,
-        isStatic: false
-    };
-    
-    const settings = { ...defaults, ...options };
-    
-    // 알림 컨테이너 찾기
-    let container = document.querySelector('.alert-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.className = 'alert-container';
-        document.body.appendChild(container);
-    }
-    
-    // 알림 요소 생성
-    const alertId = 'alert-' + Date.now();
-    const alertElement = document.createElement('div');
-    alertElement.id = alertId;
-    alertElement.className = `alert alert-${type}`;
-    alertElement.innerHTML = `
-        <div class="alert-content">${message}</div>
-        <button class="alert-close">&times;</button>
-    `;
-    
-    // 닫기 버튼 이벤트
-    const closeButton = alertElement.querySelector('.alert-close');
-    if (closeButton) {
-        closeButton.addEventListener('click', () => {
-            removeAlert(alertElement);
-        });
-    }
-    
-    // 알림 표시
-    container.appendChild(alertElement);
-    
-    // 애니메이션 효과
-    setTimeout(() => {
-        alertElement.classList.add('alert-visible');
-    }, 10);
-    
-    // 자동 닫힘
-    if (!settings.isStatic && settings.duration > 0) {
-        setTimeout(() => {
-            removeAlert(alertElement);
-        }, settings.duration);
-    }
-    
-    return alertElement;
-}
-
-/**
- * 알림 제거
- * @param {HTMLElement} alertElement 
- */
-function removeAlert(alertElement) {
-    if (!alertElement) return;
-    
-    alertElement.classList.remove('alert-visible');
-    alertElement.classList.add('alert-hiding');
-    
-    setTimeout(() => {
-        if (alertElement.parentNode) {
-            alertElement.parentNode.removeChild(alertElement);
-        }
-    }, 300);
-}
-
-/**
  * 초기 데이터 로드
  */
 async function loadInitialData() {
     try {
         console.log('초기 데이터 로드 시작...');
-        const loadingIndicator = showLoadingIndicator('results-container', '데이터를 불러오는 중...');
+        const loadingIndicator = window.showLoadingIndicator ? 
+            window.showLoadingIndicator('results-container', '데이터를 불러오는 중...') :
+            showLoadingIndicator('results-container', '데이터를 불러오는 중...');
         
-        // API를 통해 제재 데이터 로드
-        const data = await apiModule.fetchSanctionsData();
+        // API 서비스를 통해 데이터 로드
+        let data;
+        if (window.ApiService && typeof window.ApiService.fetchSanctionsData === 'function') {
+            data = await window.ApiService.fetchSanctionsData();
+        } else {
+            // 대체 로드 방법
+            data = await apiModule.fetchSanctionsData();
+        }
         
         if (data && data.length > 0) {
             console.log(`${data.length}개의 제재 데이터 로드 성공`);
             
             try {
                 // 최근 제재 데이터 표시
-                const recentSanctions = await apiModule.getRecentSanctions(10);
+                let recentSanctions;
+                if (window.ApiService && typeof window.ApiService.getRecentSanctions === 'function') {
+                    recentSanctions = await window.ApiService.getRecentSanctions(10);
+                } else {
+                    recentSanctions = await apiModule.getRecentSanctions(10);
+                }
+                
                 if (recentSanctions && recentSanctions.length > 0) {
                     console.log(`${recentSanctions.length}개의 최근 제재 데이터 표시`);
-                    displayResults(recentSanctions);
+                    if (window.SearchComponent && typeof window.SearchComponent.displayResults === 'function') {
+                        window.SearchComponent.displayResults(recentSanctions);
+                    } else {
+                        displayResults(recentSanctions);
+                    }
                 } else {
                     console.warn('최근 제재 데이터가 없어 전체 데이터 중 일부 표시');
-                    displayResults(data.slice(0, 10));
+                    if (window.SearchComponent && typeof window.SearchComponent.displayResults === 'function') {
+                        window.SearchComponent.displayResults(data.slice(0, 10));
+                    } else {
+                        displayResults(data.slice(0, 10));
+                    }
                 }
             } catch (recentError) {
                 console.error('최근 제재 데이터 로드 실패, 전체 데이터 사용:', recentError);
-                displayResults(data.slice(0, 10));
+                if (window.SearchComponent && typeof window.SearchComponent.displayResults === 'function') {
+                    window.SearchComponent.displayResults(data.slice(0, 10));
+                } else {
+                    displayResults(data.slice(0, 10));
+                }
             }
         } else {
             console.error('데이터 로드 실패, 샘플 데이터 사용');
             const sampleData = getSampleSanctionsData();
-            displayResults(sampleData);
-            showAlert('실제 데이터를 불러오는데 실패했습니다. 샘플 데이터를 표시합니다.', 'warning');
+            if (window.SearchComponent && typeof window.SearchComponent.displayResults === 'function') {
+                window.SearchComponent.displayResults(sampleData);
+            } else {
+                displayResults(sampleData);
+            }
+            window.showAlert ? window.showAlert('실제 데이터를 불러오는데 실패했습니다. 샘플 데이터를 표시합니다.', 'warning') :
+                showAlert('실제 데이터를 불러오는데 실패했습니다. 샘플 데이터를 표시합니다.', 'warning');
         }
         
-        hideLoadingIndicator(loadingIndicator);
+        if (window.hideLoadingIndicator) {
+            window.hideLoadingIndicator(loadingIndicator);
+        } else {
+            hideLoadingIndicator(loadingIndicator);
+        }
     } catch (error) {
         console.error('초기 데이터 로드 중 오류:', error);
         const loadingIndicator = document.querySelector('.loading-indicator');
         if (loadingIndicator) {
-            hideLoadingIndicator(loadingIndicator);
+            if (window.hideLoadingIndicator) {
+                window.hideLoadingIndicator(loadingIndicator);
+            } else {
+                hideLoadingIndicator(loadingIndicator);
+            }
         }
         
         // 오류 발생 시 샘플 데이터 표시
         const sampleData = getSampleSanctionsData();
-        displayResults(sampleData);
-        showAlert('데이터를 불러오는데 문제가 발생했습니다. 샘플 데이터를 표시합니다.', 'warning');
+        if (window.SearchComponent && typeof window.SearchComponent.displayResults === 'function') {
+            window.SearchComponent.displayResults(sampleData);
+        } else {
+            displayResults(sampleData);
+        }
+        window.showAlert ? window.showAlert('데이터를 불러오는데 문제가 발생했습니다. 샘플 데이터를 표시합니다.', 'warning') :
+            showAlert('데이터를 불러오는데 문제가 발생했습니다. 샘플 데이터를 표시합니다.', 'warning');
     }
 }
 
