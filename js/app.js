@@ -3,7 +3,15 @@
  * 메인 애플리케이션 파일
  */
 
-import { fetchSanctionsData, searchSanctions, getSanctionDetails } from './api.js';
+// 전역 앱 객체 생성
+window.app = window.app || {};
+
+// 필요한 API 함수들을 나중에 로드할 것이므로 일단 더미 함수로 설정
+let apiModule = {
+    fetchSanctionsData: async () => [],
+    searchSanctions: async () => ({ results: [] }),
+    getSanctionDetails: async () => null
+};
 
 // 전역 변수
 let currentResults = [];
@@ -13,7 +21,14 @@ let activeFilters = {
     startDate: null,
     endDate: null
 };
-let users = JSON.parse(localStorage.getItem('users')) || [];
+let users = [];
+
+try {
+    users = JSON.parse(localStorage.getItem('users')) || [];
+} catch (e) {
+    console.error('로컬 스토리지 데이터 파싱 오류:', e);
+    users = [];
+}
 
 // 로그인 상태 관리
 let currentUser = null;
@@ -26,6 +41,13 @@ document.addEventListener('DOMContentLoaded', initializeApp);
  */
 function initializeApp() {
     console.log('세계 경제 제재 검색 서비스 초기화...');
+    
+    // API 모듈 동적 로드 시도
+    loadModules().then(() => {
+        console.log('모듈 로드 성공');
+    }).catch(error => {
+        console.error('모듈 로드 실패:', error);
+    });
     
     // 맥시멀리즘 UI 스타일 적용
     applyMaximalistStyle();
@@ -49,6 +71,50 @@ function initializeApp() {
     loadInitialData();
     
     console.log('세계 경제 제재 검색 서비스 초기화 완료');
+}
+
+/**
+ * 모듈 동적 로드 함수
+ */
+async function loadModules() {
+    try {
+        // 모듈 동적 로드 시도
+        const apiModuleImport = await import('./api.js');
+        apiModule = apiModuleImport;
+        console.log('API 모듈 로드 완료');
+    } catch (error) {
+        console.error('모듈 로드 중 오류:', error);
+        // 오류 시 폴백 함수 사용
+        apiModule = {
+            fetchSanctionsData: async () => {
+                try {
+                    const response = await fetch('data/all_sanctions.json');
+                    const data = await response.json();
+                    return data.data || [];
+                } catch (e) {
+                    console.error('제재 데이터 로드 실패:', e);
+                    return [];
+                }
+            },
+            searchSanctions: async (query) => {
+                const data = await apiModule.fetchSanctionsData();
+                if (!query) return { results: data };
+                
+                const filtered = data.filter(item => 
+                    item.name.toLowerCase().includes(query.toLowerCase()) ||
+                    (item.aliases && item.aliases.some(alias => 
+                        alias.toLowerCase().includes(query.toLowerCase())
+                    ))
+                );
+                
+                return { results: filtered };
+            },
+            getSanctionDetails: async (id) => {
+                const data = await apiModule.fetchSanctionsData();
+                return data.find(item => item.id === id) || null;
+            }
+        };
+    }
 }
 
 /**
@@ -1674,16 +1740,16 @@ async function getSanctionDetail(id) {
 }
 
 // 전역 함수 노출
-window.showDetail = showDetail;
-window.performSearch = performSearch;
-
-// 함수 내보내기
-export {
-    showDetail,
-    performSearch,
-    showAlert,
-    handleLogout,
-    checkSession,
-    searchSanctionData,
-    getSanctionDetail
+window.initializeApp = initializeApp;
+window.app = {
+    init: initializeApp,
+    performSearch: async function(e) {
+        if (e) e.preventDefault();
+        await performSearch();
+    },
+    showDetail: showDetail,
+    handleLogout: handleLogout
 };
+
+// 함수 나머지 함수들은 변경 없이 유지
+// ... existing code ...

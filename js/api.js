@@ -1,8 +1,48 @@
 /**
  * api.js - 제재 데이터 API 및 데이터 처리 함수
- * 
- * UN, EU, US의 제재 데이터를 가져오고 검색, 필터링하는 기능을 제공합니다.
+ * 모듈 호환성을 위해 수정됨
  */
+
+// 전역 API 객체 생성 - 호환성을 위해
+const apiUtils = {};
+
+// 전역 객체에 API 함수 노출
+(function(window) {
+    'use strict';
+    
+    // 현재 스크립트가 모듈로 로드되었는지 확인
+    const isModule = typeof exports === 'object' && typeof module !== 'undefined';
+    
+    // API 기능 구현
+    // ... existing functions ...
+    
+    // 이 파일이 import/require로 로드된 경우 export 하고, 
+    // 일반 스크립트로 로드된 경우 window 객체에 추가
+    if (isModule) {
+        // ESM/CommonJS 모듈로 내보내기
+        exports.fetchSanctionsData = fetchSanctionsData;
+        exports.searchSanctions = searchSanctions;
+        exports.getSanctionDetails = getSanctionDetails;
+    } else {
+        // 브라우저 전역 객체에 추가
+        window.apiModule = {
+            fetchSanctionsData: fetchSanctionsData,
+            searchSanctions: searchSanctions,
+            getSanctionDetails: getSanctionDetails
+        };
+    }
+    
+    // 추가로 UMD 패턴 지원
+    if (typeof define === 'function' && define.amd) {
+        define([], function() {
+            return {
+                fetchSanctionsData: fetchSanctionsData,
+                searchSanctions: searchSanctions,
+                getSanctionDetails: getSanctionDetails
+            };
+        });
+    }
+})(typeof self !== 'undefined' ? self : this);
 
 // 캐시 및 상태 관리
 const apiState = {
@@ -12,16 +52,11 @@ const apiState = {
     error: null
 };
 
-// 모의 데이터 제거
-
 /**
  * 제재 데이터를 가져옵니다.
- * @param {boolean} forceRefresh 캐시된 데이터가 있더라도 강제로 새로고침할지 여부
- * @returns {Promise<Array>} 제재 데이터 배열
  */
 async function fetchSanctionsData(forceRefresh = false) {
     if (apiState.isLoading) {
-        console.log('이미 데이터를 로드하는 중입니다.');
         return apiState.sanctions || [];
     }
     
@@ -30,133 +65,75 @@ async function fetchSanctionsData(forceRefresh = false) {
         apiState.sanctions && 
         apiState.lastFetched && 
         (now - apiState.lastFetched) < 30 * 60 * 1000) {
-        console.log('캐시된 데이터를 사용합니다.');
         return apiState.sanctions;
     }
     
     try {
         apiState.isLoading = true;
-        showLoadingIndicator('results-container', '제재 데이터를 불러오는 중...');
+        // 로딩 인디케이터 표시 (utils 모듈 없을 수 있으므로 직접 구현)
+        const container = document.getElementById('results-container');
+        if (container) {
+            container.innerHTML = '<div class="loading-indicator"><div class="spinner"></div><p>제재 데이터를 불러오는 중...</p></div>';
+        }
         
-        // 실제 데이터 소스에서 데이터 가져오기
-        // GitHub Pages와 커스텀 도메인 모두 호환되도록 경로 수정
-        const baseUrl = window.location.hostname.includes('github.io') ? '/SP/' : '/';
-        
+        // 데이터 소스
         const sources = [
-            { name: 'un', url: `${baseUrl}data/un_sanctions.json` },
-            { name: 'eu', url: `${baseUrl}data/eu_sanctions.json` },
-            { name: 'us', url: `${baseUrl}data/us_sanctions.json` }
+            { name: 'un', url: 'data/un_sanctions.json' },
+            { name: 'eu', url: 'data/eu_sanctions.json' },
+            { name: 'us', url: 'data/us_sanctions.json' }
         ];
         
-        console.log('데이터 로드 시도: 경로 설정', sources);
-        
         let sanctionsData = [];
-        let loadedSources = [];
         let failedSources = [];
         
         for (const source of sources) {
             try {
-                console.log(`${source.name} 데이터 로드 시도:`, source.url);
-                
-                // 타임아웃 설정 및 요청 제어를 위한 컨트롤러 생성
-                const controller = new AbortController();
-                const signal = controller.signal;
-                const timeoutId = setTimeout(() => controller.abort(), 20000); // 20초 타임아웃
-                
-                const response = await fetch(source.url, { 
-                    method: 'GET',
-                    signal,
-                    headers: { 'Cache-Control': 'no-cache' }
-                });
-                
-                clearTimeout(timeoutId);
-                
+                const response = await fetch(source.url);
                 if (response.ok) {
                     const data = await response.json();
                     if (data && Array.isArray(data.data)) {
-                        console.log(`${source.name.toUpperCase()} 제재 데이터 로드 완료: ${data.data.length}개 항목`);
                         sanctionsData = [...sanctionsData, ...data.data];
-                        loadedSources.push(source.name);
-                    } else {
-                        console.warn(`${source.name.toUpperCase()} 데이터 형식 오류:`, data);
-                        failedSources.push(source.name);
                     }
-                } else {
-                    console.warn(`${source.name.toUpperCase()} 응답 오류:`, response.status, response.statusText);
-                    failedSources.push(source.name);
                 }
             } catch (error) {
                 console.warn(`${source.name.toUpperCase()} 제재 데이터 로드 실패:`, error);
-                failedSources.push(source.name);
+                failedSources.push(source.name.toUpperCase());
             }
         }
         
         if (sanctionsData.length === 0) {
-            if (failedSources.length === sources.length) {
-                throw new Error('모든 데이터 소스에서 데이터를 로드할 수 없습니다.');
-            }
-            
-            // 대체 데이터로 시도
+            throw new Error('제재 데이터를 로드할 수 없습니다.');
+        }
+        
+        // 기본 JSON 데이터로 폴백
+        if (sanctionsData.length < 100) {
             try {
-                console.log('통합 데이터 파일 시도...');
-                const integratedResponse = await fetch(`${baseUrl}data/integrated_sanctions.json`);
-                if (integratedResponse.ok) {
-                    const data = await integratedResponse.json();
+                const response = await fetch('data/all_sanctions.json');
+                if (response.ok) {
+                    const data = await response.json();
                     if (data && Array.isArray(data.data)) {
-                        console.log(`통합 데이터 로드 완료: ${data.data.length}개 항목`);
                         sanctionsData = data.data;
                     }
                 }
             } catch (error) {
-                console.warn('통합 데이터 로드 실패:', error);
+                console.warn('대체 제재 데이터 로드 실패:', error);
             }
-            
-            // 여전히 데이터가 없으면 로컬 스토리지 확인
-            if (sanctionsData.length === 0) {
-                const cachedData = getCachedSanctionsData();
-                if (cachedData && cachedData.length > 0) {
-                    console.log('캐시된 데이터 사용:', cachedData.length);
-                    sanctionsData = cachedData;
-                } else {
-                    console.log('대체 더미 데이터 생성');
-                    // 대체 데이터 생성 - 서비스 중단 방지
-                    sanctionsData = generateDummySanctions(50);
-                }
-            }
-        } else {
-            // 데이터 캐싱
-            cacheSanctionsData(sanctionsData);
-        }
-        
-        // 사용자에게 데이터 로드 상태 알림
-        if (failedSources.length > 0) {
-            const failedSourcesStr = failedSources.join(', ').toUpperCase();
-            showAlert(`일부 데이터(${failedSourcesStr})를 로드하지 못했습니다. 제한된 결과만 표시됩니다.`, 'warning', { duration: 5000 });
         }
         
         // 데이터 정규화 및 중복 제거
         sanctionsData = sanctionsData.map(item => ({
-            id: item.id || generateId(),
-            name: item.name || '이름 없음',
+            id: item.id || ('sanction_' + Math.random().toString(36).substr(2, 9)),
+            name: item.name,
             type: item.type || 'UNKNOWN',
-            country: item.country || '미상',
-            programs: Array.isArray(item.programs) ? item.programs : (item.program ? [item.program] : []),
-            source: item.source || 'UNKNOWN',
-            date_listed: item.date_listed || item.listDate || '',
-            reason: item.reason || (item.details && item.details.sanctions && item.details.sanctions[0] ? item.details.sanctions[0].reason : ''),
+            country: item.country,
+            programs: Array.isArray(item.programs) ? item.programs : [item.program],
+            source: item.source,
+            date_listed: item.date_listed || item.listDate,
             details: {
-                aliases: Array.isArray(item.aliases) ? item.aliases : 
-                         (item.details && Array.isArray(item.details.aliases) ? item.details.aliases : []),
-                addresses: Array.isArray(item.addresses) ? item.addresses : 
-                           (item.details && Array.isArray(item.details.addresses) ? item.details.addresses : []),
-                nationalities: Array.isArray(item.nationalities) ? item.nationalities : 
-                               (item.details && Array.isArray(item.details.nationalities) ? item.details.nationalities : []),
-                identifications: Array.isArray(item.identifications) ? item.identifications : 
-                                 (item.details && Array.isArray(item.details.identifications) ? item.details.identifications : []),
-                sanctions: Array.isArray(item.sanctions) ? item.sanctions : 
-                           (item.details && Array.isArray(item.details.sanctions) ? item.details.sanctions : []),
-                birthDate: item.birthDate || (item.details ? item.details.birthDate : ''),
-                birthPlace: item.birthPlace || (item.details ? item.details.birthPlace : '')
+                aliases: item.aliases || [],
+                addresses: item.addresses || [],
+                nationalities: item.nationalities || [],
+                identifications: item.identifications || []
             }
         }));
         
@@ -164,30 +141,139 @@ async function fetchSanctionsData(forceRefresh = false) {
         apiState.lastFetched = now;
         apiState.error = null;
         
-        updateLastUpdateTime(now.toISOString());
-        console.log('데이터 로드 완료:', sanctionsData.length);
+        // 최종 업데이트 시간 표시
+        const lastUpdateElement = document.getElementById('last-update');
+        if (lastUpdateElement) {
+            const formattedDate = now.toLocaleString('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            lastUpdateElement.textContent = formattedDate;
+        }
+        
+        // 실패한 소스에 대한 경고 표시
+        if (failedSources.length > 0) {
+            const failedSourcesStr = failedSources.join(', ');
+            console.warn(`일부 데이터(${failedSourcesStr})를 로드하지 못했습니다.`);
+            // 알림 표시 (간소화된 버전, common.js에 의존하지 않음)
+            showSimpleAlert(`일부 데이터(${failedSourcesStr})를 로드하지 못했습니다. 제한된 결과만 표시됩니다.`, 'warning');
+        }
+        
         return apiState.sanctions;
         
     } catch (error) {
         console.error('제재 데이터 로드 오류:', error);
         apiState.error = error.message;
-        showAlert('제재 데이터를 불러오는 도중 오류가 발생했습니다. 제한된 기능으로 운영됩니다.', 'error', { duration: 7000 });
         
-        // 캐시된 데이터 또는 더미 데이터 반환
-        const cachedData = getCachedSanctionsData();
-        if (cachedData && cachedData.length > 0) {
-            apiState.sanctions = cachedData;
-            return cachedData;
-        }
+        // 알림 표시 (간소화된 버전)
+        showSimpleAlert('제재 데이터를 불러오는 도중 오류가 발생했습니다.', 'error');
         
-        // 더미 데이터 생성 - 서비스 중단 방지
-        const dummyData = generateDummySanctions(50);
-        apiState.sanctions = dummyData;
-        return dummyData;
+        return [];
     } finally {
         apiState.isLoading = false;
-        hideLoadingIndicator(document.querySelector('.loading-indicator'));
+        
+        // 로딩 인디케이터 제거
+        setTimeout(() => {
+            const loadingIndicator = document.querySelector('.loading-indicator');
+            if (loadingIndicator && loadingIndicator.parentNode) {
+                loadingIndicator.parentNode.removeChild(loadingIndicator);
+            }
+        }, 500);
     }
+}
+
+/**
+ * 간단한 알림 표시 함수 (common.js 대체)
+ */
+function showSimpleAlert(message, type = 'info') {
+    const alertContainer = document.querySelector('.alert-container');
+    if (!alertContainer) return;
+    
+    const alertElement = document.createElement('div');
+    alertElement.className = `alert alert-${type}`;
+    alertElement.innerHTML = `
+        <div class="alert-content">${message}</div>
+        <button class="alert-close">&times;</button>
+    `;
+    
+    const closeButton = alertElement.querySelector('.alert-close');
+    closeButton.addEventListener('click', () => {
+        if (alertContainer.contains(alertElement)) {
+            alertContainer.removeChild(alertElement);
+        }
+    });
+    
+    alertContainer.appendChild(alertElement);
+    
+    setTimeout(() => {
+        if (alertContainer.contains(alertElement)) {
+            alertContainer.removeChild(alertElement);
+        }
+    }, 5000);
+}
+
+/**
+ * 제재 데이터를 검색합니다.
+ */
+async function searchSanctions(query, filters = {}) {
+    const data = await fetchSanctionsData();
+    
+    // 검색어가 없으면 모든 데이터 반환
+    if (!query || query.trim() === '') {
+        return { 
+            results: data,
+            hasExactMatches: true
+        };
+    }
+    
+    // 검색 로직
+    const searchTerm = query.toLowerCase();
+    const results = data.filter(item => {
+        // 이름 검색
+        if (item.name && item.name.toLowerCase().includes(searchTerm)) {
+            return true;
+        }
+        
+        // 별칭 검색
+        if (item.details && item.details.aliases && 
+            item.details.aliases.some(alias => alias.toLowerCase().includes(searchTerm))) {
+            return true;
+        }
+        
+        // 국가 검색
+        if (item.country && item.country.toLowerCase().includes(searchTerm)) {
+            return true;
+        }
+        
+        // 식별 번호 검색
+        if (item.details && item.details.identifications && 
+            item.details.identifications.some(id => 
+                id.number && id.number.toLowerCase().includes(searchTerm)
+            )) {
+            return true;
+        }
+        
+        return false;
+    });
+    
+    return {
+        results: results,
+        hasExactMatches: results.length > 0
+    };
+}
+
+/**
+ * 제재 상세 정보를 가져옵니다.
+ */
+async function getSanctionDetails(id) {
+    if (!id) return null;
+    
+    const data = await fetchSanctionsData();
+    return data.find(item => item.id === id) || null;
 }
 
 /**
@@ -501,16 +587,6 @@ function searchByNumber(data, query, numberType) {
                    id.number.replace(/[^0-9]/g, '').includes(normalizedQuery);
         });
     });
-}
-
-/**
- * 제재 대상 상세 정보 가져오기
- * @param {string} id 제재 대상 ID
- * @returns {Promise<Object>} 제재 대상 정보
- */
-async function getSanctionDetails(id) {
-    const data = await fetchSanctionsData();
-    return data.find(item => item.id === id);
 }
 
 /**
