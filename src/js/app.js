@@ -636,6 +636,36 @@ function setupEventListeners() {
         }
     }
     
+    // 자동 로그인 버튼 이벤트 설정
+    const autoLoginBtn = document.getElementById('auto-login-btn');
+    if (autoLoginBtn) {
+        autoLoginBtn.addEventListener('click', function() {
+            console.log('자동 로그인 버튼 클릭됨');
+            // 테스트 계정으로 로그인
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('userEmail', 'jaesu@kakao.com');
+            localStorage.setItem('userName', '김재수');
+            
+            // 세션 스토리지에도 저장
+            try {
+                const userInfo = {
+                    email: 'jaesu@kakao.com',
+                    name: '김재수'
+                };
+                sessionStorage.setItem('currentUser', JSON.stringify(userInfo));
+                currentUser = userInfo;
+            } catch(e) {
+                console.error('세션 스토리지 저장 오류:', e);
+            }
+            
+            // 메인 섹션으로 전환
+            showMainSection('jaesu@kakao.com');
+            
+            // 알림 표시
+            showAlert('테스트 계정으로 로그인되었습니다.', 'success');
+        });
+    }
+    
     // 로그아웃 버튼
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
@@ -727,6 +757,61 @@ function setupEventListeners() {
     
     // 푸터 링크
     setupFooterLinks();
+}
+
+/**
+ * 로그인 처리
+ * @param {Event} e 이벤트 객체
+ */
+function handleLogin(e) {
+    e.preventDefault();
+    
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    
+    if (!emailInput || !passwordInput) {
+        console.error('로그인 폼 요소를 찾을 수 없습니다.');
+        return;
+    }
+    
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    
+    if (!email) {
+        showAlert('이메일을 입력해주세요.', 'warning');
+        return;
+    }
+    
+    if (!password) {
+        showAlert('비밀번호를 입력해주세요.', 'warning');
+        return;
+    }
+    
+    // 테스트 계정 검증
+    if (email === 'jaesu@kakao.com' && password === '1234') {
+        // 로그인 성공
+        currentUser = {
+            email: 'jaesu@kakao.com',
+            name: '김재수'
+        };
+        
+        // 로컬 스토리지에 정보 저장
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userEmail', email);
+        localStorage.setItem('userName', '김재수');
+        
+        // 세션 스토리지에도 저장
+        sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        // 메인 섹션으로 전환
+        showMainSection(email);
+        
+        // 성공 메시지
+        showAlert('로그인 성공!', 'success');
+    } else {
+        // 로그인 실패
+        showAlert('이메일 또는 비밀번호가 올바르지 않습니다.', 'error');
+    }
 }
 
 /**
