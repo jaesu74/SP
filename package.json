@@ -1,0 +1,21 @@
+{
+  "name": "economic-sanctions-search",
+  "version": "1.0.0",
+  "description": "세계 경제 제재 검색 서비스",
+  "main": "index.html",
+  "scripts": {
+    "start": "http-server ./src -p 3000",
+    "build": "node build.js",
+    "serve:dist": "http-server ./dist -p 3000"
+  },
+  "keywords": [
+    "sanctions",
+    "search",
+    "economic"
+  ],
+  "author": "WVL",
+  "license": "ISC",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+} 
