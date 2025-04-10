@@ -12,7 +12,7 @@
     <meta http-equiv="Expires" content="0">
     <!-- 성능 관련 메타 태그 -->
     <meta name="performance-mode" content="medium">
-    <meta name="application-version" content="1.1.0">
+    <meta name="application-version" content="1.2.0">
     
     <title>세계 경제 제재 검색 서비스</title>
     <link rel="stylesheet" href="css/style.css">
@@ -20,8 +20,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     
+    <!-- 선로딩 스크립트 - API 서비스 먼저 로드 -->
+    <script src="js/services/api.js"></script>
+    
     <!-- PDF 생성 라이브러리 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- 컴포넌트 스크립트 -->
+    <script src="js/components/detail.js"></script>
     
     <!-- 앱 코어 스크립트 -->
     <script src="js/app.js"></script>
@@ -85,48 +91,35 @@
         <div class="container">
             <div class="alert-container"></div>
             
-            <!-- 검색 섹션 업데이트 -->
+            <!-- 검색 섹션 업데이트 - 통합 검색 인터페이스 -->
             <div class="search-section maximalist">
                 <div class="container">
                     <h2>제재 정보 검색</h2>
                     <div class="search-bar">
-                        <input type="text" id="search-input" placeholder="이름, 별칭, 국가 또는 유형으로 검색...">
-                        <button id="search-button">검색</button>
+                        <input type="text" id="search-input" placeholder="이름, 별칭, 국가, 식별번호 등으로 검색..." aria-label="검색어 입력">
+                        <button id="search-button" aria-label="검색">
+                            <i class="fas fa-search"></i> 검색
+                        </button>
                     </div>
 
-                    <!-- 검색 유형 선택 -->
+                    <!-- 간소화된 검색 옵션 -->
                     <div class="search-options">
-                        <div class="search-type-options">
-                            <label class="search-option active">
-                                <input type="radio" name="search-type" value="text" checked>
-                                <span>텍스트 검색</span>
-                            </label>
-                            <label class="search-option">
-                                <input type="radio" name="search-type" value="number">
-                                <span>번호 검색</span>
-                            </label>
+                        <div class="search-hints">
+                            <p class="hint-text">이름, 별칭, 국가, 여권번호, 신분증번호 등 모든 정보로 통합 검색이 가능합니다.</p>
                         </div>
                         
-                        <!-- 번호 유형 옵션 (기본적으로 숨김) -->
-                        <div class="number-type-options" style="display: none;">
-                            <label class="search-option active">
-                                <input type="radio" name="number-type" value="all" checked>
-                                <span>모든 번호</span>
-                            </label>
-                            <label class="search-option">
-                                <input type="radio" name="number-type" value="passport">
-                                <span>여권번호</span>
-                            </label>
-                            <label class="search-option">
-                                <input type="radio" name="number-type" value="id">
-                                <span>신분증번호</span>
-                            </label>
-                            <label class="search-option">
-                                <input type="radio" name="number-type" value="other">
-                                <span>기타 식별번호</span>
-                            </label>
+                        <div id="search-suggestions" class="search-suggestions" style="display: none;">
+                            <p>추천 검색어:</p>
+                            <div class="suggestion-tags"></div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- 필터 및 결과 요약 -->
+            <div class="filter-summary">
+                <div class="results-count-container">
+                    검색 결과: <span id="results-count">0</span>개
                 </div>
             </div>
 
@@ -147,11 +140,11 @@
     </section>
 
     <!-- 상세 정보 모달 -->
-    <div id="detail-modal" class="modal">
+    <div id="detail-modal" class="modal" role="dialog" aria-labelledby="detail-title" aria-hidden="true">
         <div class="modal-content maximalist">
             <div class="modal-header">
-                <h2>제재 대상 상세 정보</h2>
-                <button id="detail-close" class="close-btn">&times;</button>
+                <h2 id="detail-title">제재 대상 상세 정보</h2>
+                <button id="detail-close" class="close-btn" aria-label="닫기">&times;</button>
             </div>
             <div class="modal-body">
                 <div id="detail-content"></div>
@@ -165,11 +158,11 @@
     </div>
     
     <!-- 정보 모달 -->
-    <div id="info-modal" class="modal">
+    <div id="info-modal" class="modal" role="dialog" aria-labelledby="info-title" aria-hidden="true">
         <div class="modal-content maximalist">
             <div class="modal-header">
                 <h2 id="info-title">정보</h2>
-                <button id="info-close" class="close-btn">&times;</button>
+                <button id="info-close" class="close-btn" aria-label="닫기">&times;</button>
             </div>
             <div class="modal-body">
                 <div id="info-content"></div>
@@ -178,11 +171,11 @@
     </div>
     
     <!-- 회원가입 모달 -->
-    <div id="register-modal" class="modal">
+    <div id="register-modal" class="modal" role="dialog" aria-labelledby="register-title" aria-hidden="true">
         <div class="modal-content maximalist">
             <div class="modal-header">
-                <h2>회원가입</h2>
-                <button id="register-close" class="close-btn">&times;</button>
+                <h2 id="register-title">회원가입</h2>
+                <button id="register-close" class="close-btn" aria-label="닫기">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="alert-container"></div>
@@ -347,10 +340,8 @@
     </div>
 
     <!-- 스크립트 로딩 -->
-    <script src="js/api.js"></script>
     <script src="js/animations.js"></script>
     <script src="js/app.js"></script>
-    <script src="js/components/detail.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             initializeApp();
