@@ -19,7 +19,9 @@ $directories = @(
     "docs/js/animations",
     "docs/assets",
     "docs/assets/img",
-    "docs/assets/images"
+    "docs/assets/img/textures",
+    "docs/assets/images",
+    "docs/data"
 )
 
 foreach ($dir in $directories) {
@@ -77,8 +79,13 @@ Copy-Item -Path "src/js/animations.js" -Destination "docs/js/animations.js" -For
 
 Write-Host " - Copied JavaScript files" -ForegroundColor Yellow
 
+# 데이터 파일 복사
+Write-Host "6. Copying data files..." -ForegroundColor Cyan
+Copy-Item -Path "src/data/*" -Destination "docs/data/" -Recurse -Force -ErrorAction SilentlyContinue
+Write-Host " - Copied data files" -ForegroundColor Yellow
+
 # 이미지 및 자산 복사
-Write-Host "6. Copying assets..." -ForegroundColor Cyan
+Write-Host "7. Copying assets..." -ForegroundColor Cyan
 Copy-Item -Path "src/assets/img/*" -Destination "docs/assets/img/" -Recurse -Force -ErrorAction SilentlyContinue
 Copy-Item -Path "src/assets/images/*" -Destination "docs/assets/images/" -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host " - Copied assets" -ForegroundColor Yellow
