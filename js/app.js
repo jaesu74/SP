@@ -987,11 +987,20 @@ function displayResults(results) {
                     </div>
                 </div>
                 <div class="result-footer">
-                    <button class="btn-detail" onclick="showDetail('${result.id}')">상세 정보</button>
+                    <button class="btn-detail" data-id="${result.id}">상세 정보</button>
                 </div>
             `;
             
             resultsContainer.appendChild(resultCard);
+            
+            // 상세 정보 버튼 클릭 이벤트 등록
+            const detailBtn = resultCard.querySelector('.btn-detail');
+            if (detailBtn) {
+                detailBtn.addEventListener('click', function() {
+                    const itemId = this.getAttribute('data-id');
+                    showDetail(itemId);
+                });
+            }
             
             // 카드 클릭 이벤트 등록 (상세 정보 표시)
             resultCard.addEventListener('click', function(e) {
@@ -1033,7 +1042,7 @@ function displayResults(results) {
                         <p class="result-source">${result.source || (result.programs && result.programs.join(', ')) || '-'}</p>
                     </div>
                     <div class="result-actions">
-                        <button class="btn-detail" onclick="showDetail('${result.id}')">상세 정보</button>
+                        <button class="btn-detail" data-id="${result.id}">상세 정보</button>
                     </div>
                 </li>
             `;
@@ -1052,6 +1061,15 @@ function displayResults(results) {
                 resultsList.innerHTML = html;
             }
         }
+        
+        // 상세 정보 버튼 클릭 이벤트 등록
+        const detailBtns = resultsList.querySelectorAll('.btn-detail');
+        detailBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const itemId = this.getAttribute('data-id');
+                showDetail(itemId);
+            });
+        });
         
         // 더보기 버튼 추가
         if (window.resultPaging.currentPage < window.resultPaging.totalPages) {
@@ -1080,6 +1098,7 @@ function displayResults(results) {
  */
 async function showDetail(id) {
     try {
+        // 로딩 표시
         const loadingIndicator = showLoadingIndicator('detail-content', '상세 정보를 불러오는 중...');
         
         // API를 통해 상세 정보 가져오기
@@ -1089,157 +1108,174 @@ async function showDetail(id) {
             throw new Error('상세 정보를 찾을 수 없습니다.');
         }
         
-        // 모달 요소 가져오기
-        const modal = document.getElementById('detail-modal');
-        const detailContent = document.getElementById('detail-content');
-        
-        if (!modal || !detailContent) {
-            throw new Error('모달 요소를 찾을 수 없습니다.');
-        }
-        
-        // 날짜 형식화
-        const date = new Date(data.date_listed);
-        const formattedDate = date.toLocaleDateString('ko-KR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-        
-        // 상세 정보 HTML 생성
-        let html = `
-            <div class="detail-header">
-                <h3>${data.name}</h3>
-                <span class="detail-type ${data.type.toLowerCase()}">
-                    <i class="fas fa-${data.type === 'INDIVIDUAL' ? 'user' : 'building'}"></i>
-                    ${data.type === 'INDIVIDUAL' ? '개인' : '단체'}
-                </span>
-            </div>
-            
-            <div class="detail-section">
-                <h4>기본 정보</h4>
-                <div class="detail-data">
-                    <div class="data-item">
-                        <div class="data-label">국가</div>
-                        <div class="data-value">${data.country || '정보 없음'}</div>
-                    </div>
-                    <div class="data-item">
-                        <div class="data-label">등재일</div>
-                        <div class="data-value">${formattedDate}</div>
-                    </div>
-                    <div class="data-item">
-                        <div class="data-label">제재 출처</div>
-                        <div class="data-value">${data.source}</div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // 프로그램 정보
-        if (data.programs && data.programs.length > 0) {
-            html += `
-                <div class="detail-section">
-                    <h4>제재 프로그램</h4>
-                    <div class="detail-data">
-                        <div class="data-item">
-                            <ul class="program-list">
-                                ${data.programs.map(program => `<li>${program}</li>`).join('')}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // 별칭 정보
-        if (data.details.aliases && data.details.aliases.length > 0) {
-            html += `
-                <div class="detail-section">
-                    <h4>별칭</h4>
-                    <div class="detail-data">
-                        <div class="data-item">
-                            <ul class="alias-list">
-                                ${data.details.aliases.map(alias => `<li>${alias}</li>`).join('')}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // 주소 정보
-        if (data.details.addresses && data.details.addresses.length > 0) {
-            html += `
-                <div class="detail-section">
-                    <h4>주소</h4>
-                    <div class="detail-data">
-                        <div class="data-item">
-                            <ul class="address-list">
-                                ${data.details.addresses.map(address => `<li>${address}</li>`).join('')}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // 신분증 정보
-        if (data.details.identifications && data.details.identifications.length > 0) {
-            html += `
-                <div class="detail-section">
-                    <h4>신분증 정보</h4>
-                    <div class="detail-data">
-                        <div class="data-item">
-                            <ul class="id-list">
-                                ${data.details.identifications.map(id => `
-                                    <li>
-                                        <strong>${id.type}:</strong> ${id.number}
-                                        ${id.country ? `(${id.country})` : ''}
-                                    </li>
-                                `).join('')}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // 내용 설정 및 모달 표시
-        detailContent.innerHTML = html;
-        modal.style.display = 'block';
-        document.body.classList.add('modal-open');
-        
-        // 닫기 버튼 이벤트
-        const closeBtn = document.getElementById('detail-close');
-        if (closeBtn) {
-            closeBtn.onclick = () => {
-                modal.style.display = 'none';
-                document.body.classList.remove('modal-open');
-            };
-        }
-        
-        // ESC 키로 닫기
-        const escHandler = (e) => {
-            if (e.key === 'Escape') {
-                modal.style.display = 'none';
-                document.body.classList.remove('modal-open');
-                document.removeEventListener('keydown', escHandler);
-            }
-        };
-        document.addEventListener('keydown', escHandler);
-        
-        // 모달 외부 클릭 시 닫기
-        modal.onclick = (e) => {
-            if (e.target === modal) {
-                modal.style.display = 'none';
-                document.body.classList.remove('modal-open');
-            }
-        };
-        
+        // 로딩 종료
         hideLoadingIndicator(loadingIndicator);
+        
+        // detail.js 컴포넌트의 showDetail 함수 사용
+        if (window.detailModule && typeof window.detailModule.showDetail === 'function') {
+            window.detailModule.showDetail(data);
+        } else {
+            // 폴백: 기존 방식으로 모달 표시
+            console.warn('상세 정보 모듈을 찾을 수 없습니다. 기본 모달 표시 방식을 사용합니다.');
+            showLegacyDetailModal(data);
+        }
     } catch (error) {
         console.error('상세 정보 로드 중 오류:', error);
         showAlert('상세 정보를 불러오는데 실패했습니다.', 'error');
     }
+}
+
+/**
+ * 레거시 상세 정보 모달 표시 (폴백)
+ * @param {Object} data 제재 대상 데이터
+ */
+function showLegacyDetailModal(data) {
+    // 모달 요소 가져오기
+    const modal = document.getElementById('detail-modal');
+    const detailContent = document.getElementById('detail-content');
+    
+    if (!modal || !detailContent) {
+        console.error('모달 요소를 찾을 수 없습니다.');
+        return;
+    }
+    
+    // 날짜 형식화
+    const date = new Date(data.date_listed);
+    const formattedDate = date.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    
+    // 상세 정보 HTML 생성
+    let html = `
+        <div class="detail-header">
+            <h3>${data.name}</h3>
+            <span class="detail-type ${data.type.toLowerCase()}">
+                <i class="fas fa-${data.type === 'INDIVIDUAL' ? 'user' : 'building'}"></i>
+                ${data.type === 'INDIVIDUAL' ? '개인' : '단체'}
+            </span>
+        </div>
+        
+        <div class="detail-section">
+            <h4>기본 정보</h4>
+            <div class="detail-data">
+                <div class="data-item">
+                    <div class="data-label">국가</div>
+                    <div class="data-value">${data.country || '정보 없음'}</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">등재일</div>
+                    <div class="data-value">${formattedDate}</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">제재 출처</div>
+                    <div class="data-value">${data.source}</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 프로그램 정보
+    if (data.programs && data.programs.length > 0) {
+        html += `
+            <div class="detail-section">
+                <h4>제재 프로그램</h4>
+                <div class="detail-data">
+                    <div class="data-item">
+                        <ul class="program-list">
+                            ${data.programs.map(program => `<li>${program}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // 별칭 정보
+    if (data.details.aliases && data.details.aliases.length > 0) {
+        html += `
+            <div class="detail-section">
+                <h4>별칭</h4>
+                <div class="detail-data">
+                    <div class="data-item">
+                        <ul class="alias-list">
+                            ${data.details.aliases.map(alias => `<li>${alias}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // 주소 정보
+    if (data.details.addresses && data.details.addresses.length > 0) {
+        html += `
+            <div class="detail-section">
+                <h4>주소</h4>
+                <div class="detail-data">
+                    <div class="data-item">
+                        <ul class="address-list">
+                            ${data.details.addresses.map(address => `<li>${address}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // 신분증 정보
+    if (data.details.identifications && data.details.identifications.length > 0) {
+        html += `
+            <div class="detail-section">
+                <h4>신분증 정보</h4>
+                <div class="detail-data">
+                    <div class="data-item">
+                        <ul class="id-list">
+                            ${data.details.identifications.map(id => `
+                                <li>
+                                    <strong>${id.type}:</strong> ${id.number}
+                                    ${id.country ? `(${id.country})` : ''}
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // 내용 설정 및 모달 표시
+    detailContent.innerHTML = html;
+    modal.style.display = 'block';
+    document.body.classList.add('modal-open');
+    
+    // 닫기 버튼 이벤트
+    const closeBtn = document.getElementById('detail-close');
+    if (closeBtn) {
+        closeBtn.onclick = () => {
+            modal.style.display = 'none';
+            document.body.classList.remove('modal-open');
+        };
+    }
+    
+    // ESC 키로 닫기
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            modal.style.display = 'none';
+            document.body.classList.remove('modal-open');
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+    
+    // 모달 외부 클릭 시 닫기
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+            document.body.classList.remove('modal-open');
+        }
+    };
 }
 
 /**
