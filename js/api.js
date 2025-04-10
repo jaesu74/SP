@@ -93,6 +93,7 @@ async function fetchSanctionsData(forceRefresh = false) {
                     const data = await response.json();
                     if (data && Array.isArray(data.data)) {
                         sanctionsData = [...sanctionsData, ...data.data];
+                        console.log(`${source.name.toUpperCase()} 제재 데이터 로드 완료: ${data.data.length}개 항목`);
                     }
                 }
             } catch (error) {
@@ -470,114 +471,121 @@ async function searchSanctions(query, country = '', program = '', searchType = '
     // 검색 유형에 따른 검색
     switch (searchType) {
         case 'number':
-            searchResults = searchByNumber(data, query, numberType);
+            // 번호 검색은 기존 방식 유지하되 결과 형식 통일
+            const numberResults = searchByNumber(data, query, numberType);
+            searchResults = {
+                results: numberResults,
+                hasExactMatches: numberResults.length > 0,
+                hasSimilarMatches: false,
+                suggestions: null
+            };
             break;
-        case 'text':
+        case 'image':
+            // 이미지 검색은 추후 구현
+            console.log('이미지 검색은 추후 구현 예정입니다.');
+            searchResults = {
+                results: [],
+                hasExactMatches: false,
+                hasSimilarMatches: false,
+                suggestions: null
+            };
+            break;
         default:
+            // 텍스트 검색 (유사어 검색 지원)
             searchResults = searchByText(data, query);
-            break;
     }
     
-    // 필터링
-    searchResults = filterResults(searchResults, country, program);
+    // 국가 필터링
+    if (country) {
+        searchResults.results = searchResults.results.filter(item => item.country === country);
+    }
     
-    // 검색 결과 없을 때 제안어 찾기
+    // 프로그램 필터링
+    if (program) {
+        searchResults.results = searchResults.results.filter(item => item.programs.includes(program));
+    }
+    
+    return searchResults;
+}
+
+/**
+ * 텍스트 기반 검색을 수행합니다. (유사어 검색 지원)
+ * @param {Array} data 검색할 데이터 배열
+ * @param {string} query 검색어
+ * @returns {Object} 검색 결과와 관련 정보를 포함한 객체
+ */
+function searchByText(data, query) {
+    const lowerQuery = query.toLowerCase();
+    const exactMatches = [];
+    const similarMatches = [];
     let suggestions = null;
-    if (searchResults.length === 0 && searchType === 'text') {
-        suggestions = suggestedTerms[query.toLowerCase()] || null;
+    
+    // 유사어 확장을 위한 검색어 집합
+    const searchTerms = new Set([lowerQuery]);
+    
+    // 검색어의 유사어 추가
+    Object.keys(similarTerms).forEach(term => {
+        if (term.toLowerCase().includes(lowerQuery) || 
+            similarTerms[term].some(similar => similar.toLowerCase().includes(lowerQuery))) {
+            // 주요 용어나 유사어가 검색어를 포함하면 모든 유사어 추가
+            searchTerms.add(term.toLowerCase());
+            similarTerms[term].forEach(similar => searchTerms.add(similar.toLowerCase()));
+        }
+    });
+    
+    // 검색 실행
+    data.forEach(item => {
+        // 정확한 일치 확인
+        if (item.name.toLowerCase().includes(lowerQuery) || 
+            item.details.aliases.some(alias => alias.toLowerCase().includes(lowerQuery))) {
+            exactMatches.push(item);
+            return;
+        }
+        
+        // 유사어 일치 확인
+        const hasMatch = Array.from(searchTerms).some(term => {
+            return (
+                item.name.toLowerCase().includes(term) ||
+                item.details.aliases.some(alias => alias.toLowerCase().includes(term)) ||
+                item.details.addresses.some(address => address.toLowerCase().includes(term))
+            );
+        });
+        
+        if (hasMatch) {
+            similarMatches.push(item);
+        }
+    });
+    
+    // 검색 결과가 없으면 추천 검색어 제안
+    if (exactMatches.length === 0 && similarMatches.length === 0) {
+        const possibleSuggestions = Object.keys(suggestedTerms)
+            .filter(term => term.includes(lowerQuery) || lowerQuery.includes(term))
+            .map(term => suggestedTerms[term]);
+        
+        if (possibleSuggestions.length > 0) {
+            suggestions = [...new Set(possibleSuggestions)];
+        }
     }
     
     return {
-        results: searchResults,
-        hasExactMatches: searchResults.length > 0,
-        hasSimilarMatches: false,
+        results: [...exactMatches, ...similarMatches],
+        hasExactMatches: exactMatches.length > 0,
+        hasSimilarMatches: similarMatches.length > 0,
         suggestions
     };
 }
 
 /**
- * 결과 필터링
- * @param {Array} results 검색 결과
- * @param {string} country 국가 필터
- * @param {string} program 프로그램 필터
- * @returns {Array} 필터링된 결과
- */
-function filterResults(results, country, program) {
-    let filteredResults = [...results];
-    
-    // 국가 필터링
-    if (country) {
-        filteredResults = filteredResults.filter(item => 
-            item.country.toLowerCase() === country.toLowerCase());
-    }
-    
-    // 프로그램 필터링
-    if (program) {
-        filteredResults = filteredResults.filter(item => 
-            item.programs.some(p => p.toLowerCase() === program.toLowerCase()));
-    }
-    
-    return filteredResults;
-}
-
-/**
- * 텍스트 검색 수행
- * @param {Array} data 검색 대상 데이터
- * @param {string} query 검색어
- * @returns {Array} 검색 결과
- */
-function searchByText(data, query) {
-    const lowercaseQuery = query.toLowerCase();
-    
-    // 유사어 검색 준비
-    let expandedTerms = [lowercaseQuery];
-    
-    // 유사어 사전에서 검색어 확장
-    for (const [term, similarWords] of Object.entries(similarTerms)) {
-        if (term.toLowerCase() === lowercaseQuery || similarWords.some(word => word.toLowerCase() === lowercaseQuery)) {
-            // 원래 단어와 모든 유사어 추가
-            expandedTerms = [...expandedTerms, term.toLowerCase(), ...similarWords.map(w => w.toLowerCase())];
-            break;
-        }
-    }
-    
-    // 중복 제거
-    expandedTerms = [...new Set(expandedTerms)];
-    
-    return data.filter(item => {
-        // 이름 검색
-        if (item.name && expandedTerms.some(term => item.name.toLowerCase().includes(term))) {
-            return true;
-        }
-        
-        // 별칭 검색
-        const aliases = item.details && item.details.aliases ? item.details.aliases : [];
-        if (aliases.some(alias => expandedTerms.some(term => alias.toLowerCase().includes(term)))) {
-            return true;
-        }
-        
-        // 국가명 검색
-        if (item.country && expandedTerms.some(term => item.country.toLowerCase().includes(term))) {
-            return true;
-        }
-        
-        return false;
-    });
-}
-
-/**
- * 번호 검색 수행
- * @param {Array} data 검색 대상 데이터
+ * 번호 기반 검색을 수행합니다.
+ * @param {Array} data 검색할 데이터 배열
  * @param {string} query 검색어
  * @param {string} numberType 번호 유형
- * @returns {Array} 검색 결과
+ * @returns {Array} 검색 결과 배열
  */
 function searchByNumber(data, query, numberType) {
     const normalizedQuery = query.replace(/[^0-9]/g, '');
     
     return data.filter(item => {
-        if (!item.details || !item.details.identifications) return false;
-        
         return item.details.identifications.some(id => {
             if (!numberType || numberType === 'all') {
                 return id.number.replace(/[^0-9]/g, '').includes(normalizedQuery);

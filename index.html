@@ -12,7 +12,7 @@
     <meta http-equiv="Expires" content="0">
     <!-- 성능 관련 메타 태그 -->
     <meta name="performance-mode" content="medium">
-    <meta name="application-version" content="1.2.0">
+    <meta name="application-version" content="1.1.0">
     
     <title>세계 경제 제재 검색 서비스</title>
     <link rel="stylesheet" href="css/style.css">
@@ -105,6 +105,10 @@
                                 <input type="radio" name="search-type" value="number">
                                 <span>번호 검색</span>
                             </label>
+                            <label class="search-option">
+                                <input type="radio" name="search-type" value="image">
+                                <span>이미지 검색</span>
+                            </label>
                         </div>
                         
                         <!-- 번호 유형 옵션 (기본적으로 숨김) -->
@@ -127,13 +131,63 @@
                             </label>
                         </div>
                     </div>
+                    
+                    <!-- 고급 검색 섹션 -->
+                    <div class="advanced-search-toggle">
+                        <button id="advanced-search-button">
+                            고급 검색 <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
+                    
+                    <div id="advanced-search-options" class="advanced-search-options">
+                        <div class="search-filters">
+                            <!-- 국가 필터 -->
+                            <div class="filter-group country-filter">
+                                <h3>국가</h3>
+                                <div class="filter-options">
+                                    <div class="filter-option selected" data-value="">모든 국가</div>
+                                    <div class="filter-option" data-value="NK">북한</div>
+                                    <div class="filter-option" data-value="RU">러시아</div>
+                                    <div class="filter-option" data-value="IR">이란</div>
+                                    <div class="filter-option" data-value="SY">시리아</div>
+                                    <div class="filter-option" data-value="CN">중국</div>
+                                </div>
+                            </div>
+
+                            <!-- 프로그램 필터 -->
+                            <div class="filter-group program-filter">
+                                <h3>제재 프로그램</h3>
+                                <div class="filter-options">
+                                    <div class="filter-option selected" data-value="">모든 프로그램</div>
+                                    <div class="filter-option" data-value="UN_SANCTIONS">UN 제재</div>
+                                    <div class="filter-option" data-value="EU_SANCTIONS">EU 제재</div>
+                                    <div class="filter-option" data-value="US_SANCTIONS">US 제재</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 날짜 필터 -->
+                        <div class="date-range-filter">
+                            <h3>등재일 범위</h3>
+                            <div class="date-inputs">
+                                <div class="date-input">
+                                    <label for="start-date">시작일:</label>
+                                    <input type="date" id="start-date">
+                                </div>
+                                <div class="date-input">
+                                    <label for="end-date">종료일:</label>
+                                    <input type="date" id="end-date">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- 결과 컨테이너 -->
             <div class="results-section">
                 <div class="container">
-                    <div id="results-container" class="animated delay-300">
+                    <div id="results-container" class="results-grid animated delay-300">
                         <!-- 검색 결과가 여기에 표시됩니다 -->
                     </div>
                 </div>
@@ -141,12 +195,31 @@
 
             <!-- 최신 업데이트 정보 -->
             <div class="update-info animated delay-400">
-                <p>마지막 업데이트: <span id="last-update">로딩 중...</span></p>
+                <p>마지막 업데이트: <span id="last-update">2025-03-26 12:00 LT</span></p>
             </div>
         </div>
     </section>
 
-    <!-- 상세 정보 모달은 JavaScript에서 동적으로 생성됩니다 -->
+    <!-- 상세 정보 모달 -->
+    <div id="detail-modal" class="modal">
+        <div class="modal-content maximalist">
+            <div class="modal-header">
+                <h2>제재 대상 상세 정보</h2>
+                <button id="detail-close" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="detail-content"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="detail-print" class="btn-secondary">
+                    <i class="fas fa-print"></i> 인쇄
+                </button>
+                <button id="detail-download" class="btn-secondary">
+                    <i class="fas fa-download"></i> PDF 다운로드
+                </button>
+            </div>
+        </div>
+    </div>
     
     <!-- 정보 모달 -->
     <div id="info-modal" class="modal">
@@ -170,23 +243,23 @@
             </div>
             <div class="modal-body">
                 <div class="alert-container"></div>
-                <form id="register-form-modal">
+                <form id="register-form">
                     <div class="form-group">
-                        <label for="register-name-modal">이름 (실명)</label>
-                        <input type="text" id="register-name-modal" placeholder="이름을 입력하세요" required>
+                        <label for="register-name">이름 (실명)</label>
+                        <input type="text" id="register-name" placeholder="이름을 입력하세요" required>
                     </div>
                     <div class="form-group">
-                        <label for="register-email-modal">이메일</label>
-                        <input type="email" id="register-email-modal" placeholder="이메일을 입력하세요" required>
+                        <label for="register-email">이메일</label>
+                        <input type="email" id="register-email" placeholder="이메일을 입력하세요" required>
                     </div>
                     <div class="form-group">
-                        <label for="register-password-modal">비밀번호</label>
-                        <input type="password" id="register-password-modal" placeholder="비밀번호를 입력하세요" required>
+                        <label for="register-password">비밀번호</label>
+                        <input type="password" id="register-password" placeholder="비밀번호를 입력하세요" required>
                         <i class="fas fa-eye toggle-password"></i>
                     </div>
                     <div class="form-group">
-                        <label for="register-password-confirm-modal">비밀번호 확인</label>
-                        <input type="password" id="register-password-confirm-modal" placeholder="비밀번호를 다시 입력하세요" required>
+                        <label for="register-password-confirm">비밀번호 확인</label>
+                        <input type="password" id="register-password-confirm" placeholder="비밀번호를 다시 입력하세요" required>
                         <i class="fas fa-eye toggle-password"></i>
                     </div>
                     <div class="form-group agree-terms">
@@ -200,9 +273,46 @@
     </div>
     
     <!-- 푸터 -->
-    <footer class="site-footer">
+    <footer class="footer">
         <div class="container">
-            <p>&copy; 2023-2025 WVL 제재 조회 시스템. All rights reserved.</p>
+            <div class="footer-content">
+                <!-- 회사 정보 -->
+                <div class="company-info">
+                    <h3>주식회사 팩션</h3>
+                    <p>주소: 서울특별시 강남구 테헤란로 123</p>
+                    <p>이메일: info@wvl.co.kr</p>
+ 
+                </div>
+                
+                <!-- 푸터 링크 그룹 -->
+                <div class="footer-links">
+                    <!-- 회사 정보 -->
+                    <div class="footer-links-group">
+                        <div class="footer-link-category">
+                            <h3>회사 정보</h3>
+                            <ul>
+                                <li><a href="#" id="terms-link">이용약관</a></li>
+                                <li><a href="#" id="privacy-link">개인정보처리방침</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- 고객 지원 -->
+                    <div class="footer-links-group">
+                        <div class="footer-link-category">
+                            <h3>고객 지원</h3>
+                            <ul>
+                                <li><a href="#" id="help-link">도움말</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 저작권 정보 -->
+            <div class="copyright">
+                © 2023 WVL 제재 조회 시스템. All rights reserved.
+            </div>
         </div>
     </footer>
 
@@ -293,13 +403,13 @@
         data-environment="production">
     </div>
 
-    <!-- 상세 정보 관련 스크립트 추가 -->
-    <script type="module">
-        // 페이지 로드 시 모달 초기화
-        import { initDetailComponent } from './js/components/detail.js';
+    <!-- 스크립트 로딩 -->
+    <script src="js/api.js"></script>
+    <script src="js/animations.js"></script>
+    <script src="js/app.js"></script>
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // 기존 모달 제거 및 초기화
-            initDetailComponent();
+            initializeApp();
         });
     </script>
 
