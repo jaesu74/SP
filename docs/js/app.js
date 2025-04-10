@@ -46,37 +46,29 @@ document.addEventListener('DOMContentLoaded', initializeApp);
  * 애플리케이션 초기화
  */
 function initializeApp() {
-    console.log('세계 경제 제재 검색 서비스 초기화...');
+    console.log('애플리케이션 초기화 중...');
     
-    // API 모듈 동적 로드 시도
-    loadModules().then(() => {
-        console.log('모듈 로드 성공');
-    }).catch(error => {
-        console.error('모듈 로드 실패:', error);
-    });
+    // 알림 시스템 초기화 (새로운 alerts.js 사용)
+    if (window.AlertsComponent && typeof window.AlertsComponent.init === 'function') {
+        window.AlertsComponent.init();
+    }
     
-    // 맥시멀리즘 UI 스타일 적용
-    applyMaximalistStyle();
+    // 로그인 상태 확인
+    checkLoginStatus();
     
-    // 이벤트 리스너 등록 (세션 체크 전에 등록하여 요소들이 준비되도록)
+    // 자동완성 설정
+    setupAutoComplete();
+    
+    // 검색 설정
+    setupSearch();
+    
+    // 이벤트 리스너 설정
     setupEventListeners();
     
-    // 필터 및 검색 옵션 설정
-    setupFilterOptions();
-    setupSearchOptions();
-    setupAdvancedSearch();
-    setupAutocomplete();
+    // 최신 데이터 가져오기
+    fetchLatestData();
     
-    // 로그인 상태 확인 (이벤트 리스너 등록 후에 실행)
-    setTimeout(() => {
-        checkSession();
-        console.log('세션 체크 완료');
-    }, 100);
-    
-    // 초기 데이터 로드
-    loadInitialData();
-    
-    console.log('세계 경제 제재 검색 서비스 초기화 완료');
+    console.log('애플리케이션 초기화 완료');
 }
 
 /**
@@ -837,7 +829,7 @@ function handleLogout() {
     showLoginSection();
     
     // 성공 메시지
-    showAlert('로그아웃 되었습니다.', 'success');
+    window.showToast('로그아웃 되었습니다.', 'success', { duration: 2000 });
 }
 
 /**
@@ -857,7 +849,7 @@ async function performSearch() {
     
     // 검색어가 2글자 미만이면 검색하지 않음
     if (query.length < 2) {
-        showAlert('검색어는 최소 2글자 이상 입력해주세요.', 'warning');
+        window.showToast('검색어는 최소 2글자 이상 입력해주세요.', 'warning', { duration: 3000 });
         return;
     }
     
@@ -929,7 +921,7 @@ async function performSearch() {
         }
     } catch (error) {
         console.error('검색 중 오류:', error);
-        showAlert('검색 중 오류가 발생했습니다.', 'error');
+        window.showToast('검색 중 오류가 발생했습니다.', 'error', { duration: 3000 });
     }
 }
 
@@ -1154,7 +1146,7 @@ async function showDetail(id) {
         }
     } catch (error) {
         console.error('상세 정보 로드 중 오류:', error);
-        showAlert('상세 정보를 불러오는데 실패했습니다.', 'error');
+        window.showToast('상세 정보를 불러오는데 실패했습니다.', 'error', { duration: 3000 });
     }
 }
 
@@ -1326,13 +1318,13 @@ async function loadInitialData() {
             const recentSanctions = await window.SanctionsAPI.getRecentSanctions(10);
             displayResults(recentSanctions);
         } else {
-            showAlert('데이터를 불러오는데 실패했습니다.', 'error');
+            window.showToast('데이터를 불러오는데 실패했습니다.', 'error', { duration: 3000 });
         }
         
         hideLoadingIndicator(loadingIndicator);
     } catch (error) {
         console.error('초기 데이터 로드 중 오류:', error);
-        showAlert('데이터를 불러오는데 실패했습니다.', 'error');
+        window.showToast('데이터를 불러오는데 실패했습니다.', 'error', { duration: 3000 });
     }
 }
 
@@ -1559,46 +1551,46 @@ function handleRegister(e) {
     
     // 입력값 검증
     if (!nameInput.value.trim()) {
-        showAlert('이름을 입력해주세요.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        window.showToast('이름을 입력해주세요.', 'error', { duration: 3000 });
         return;
     }
     
     if (!emailInput.value.trim()) {
-        showAlert('이메일을 입력해주세요.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        window.showToast('이메일을 입력해주세요.', 'error', { duration: 3000 });
         return;
     }
     
     // 이메일 형식 검증
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(emailInput.value)) {
-        showAlert('유효한 이메일 주소를 입력해주세요.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        window.showToast('유효한 이메일 주소를 입력해주세요.', 'error', { duration: 3000 });
         return;
     }
     
     if (!passwordInput.value) {
-        showAlert('비밀번호를 입력해주세요.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        window.showToast('비밀번호를 입력해주세요.', 'error', { duration: 3000 });
         return;
     }
     
     if (passwordInput.value.length < 4) {
-        showAlert('비밀번호는 4자 이상이어야 합니다.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        window.showToast('비밀번호는 4자 이상이어야 합니다.', 'error', { duration: 3000 });
         return;
     }
     
     if (passwordInput.value !== passwordConfirmInput.value) {
-        showAlert('비밀번호가 일치하지 않습니다.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        window.showToast('비밀번호가 일치하지 않습니다.', 'error', { duration: 3000 });
         return;
     }
     
     if (!termsAgree.checked) {
-        showAlert('이용약관 및 개인정보처리방침에 동의해주세요.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        window.showToast('이용약관 및 개인정보처리방침에 동의해주세요.', 'error', { duration: 3000 });
         return;
     }
     
     // 이메일 중복 검사
     const existingUser = users.find(user => user.email === emailInput.value);
     if (existingUser) {
-        showAlert('이미 등록된 이메일입니다.', 'error', { target: '#register-modal .alert-container', isStatic: true });
+        window.showToast('이미 등록된 이메일입니다.', 'error', { duration: 3000 });
         return;
     }
     
@@ -1615,7 +1607,7 @@ function handleRegister(e) {
     localStorage.setItem('users', JSON.stringify(users));
     
     // 회원가입 성공 메시지
-    showAlert('회원가입이 완료되었습니다. 로그인해주세요.', 'success', { target: '#register-modal .alert-container', isStatic: true });
+    window.showToast('회원가입이 완료되었습니다. 로그인해주세요.', 'success', { duration: 2000 });
     
     // 폼 초기화 및 모달 닫기
     setTimeout(() => {
@@ -1644,81 +1636,6 @@ function getSuggestedSearchTerms(query) {
     return sampleTerms.filter(term => 
         term.toLowerCase().includes(query.toLowerCase())
     ).slice(0, 5); // 최대 5개 표시
-}
-
-/**
- * 알림 표시
- * @param {string} message 알림 메시지
- * @param {string} type 알림 타입 (info, success, warning, error)
- * @param {Object} options 옵션 객체
- */
-function showAlert(message, type = 'info', options = {}) {
-    console.log(`알림 표시: "${message}" (타입: ${type})`, options);
-    
-    const defaults = {
-        duration: 3000,            // 알림 표시 시간 (ms)
-        isStatic: false,           // true면 자동으로 사라지지 않음
-        target: '.alert-container' // 알림을 표시할 컨테이너 선택자
-    };
-    
-    const settings = { ...defaults, ...options };
-    console.log('알림 설정:', settings);
-    
-    const alertContainer = document.querySelector(settings.target);
-    if (!alertContainer) {
-        console.error(`알림 컨테이너를 찾을 수 없음: ${settings.target}`);
-        return;
-    }
-    
-    // 동일한 알림이 이미 표시중인지 확인
-    const existingAlerts = alertContainer.querySelectorAll('.alert');
-    for (let i = 0; i < existingAlerts.length; i++) {
-        const existingAlert = existingAlerts[i];
-        const alertContent = existingAlert.querySelector('.alert-content');
-        if (alertContent && alertContent.textContent === message) {
-            console.log('동일한 알림이 이미 표시되어 있음. 중복 제거');
-            return;
-        }
-    }
-    
-    // 새 알림 생성
-    const alertElement = document.createElement('div');
-    alertElement.className = `alert alert-${type}`;
-    
-    // 알림 내용 추가
-    alertElement.innerHTML = `
-        <div class="alert-content">${message}</div>
-        <button class="alert-close">&times;</button>
-    `;
-    
-    // 닫기 버튼 설정
-    const closeButton = alertElement.querySelector('.alert-close');
-    closeButton.addEventListener('click', () => {
-        alertElement.classList.add('fade-out');
-        setTimeout(() => {
-            if (alertContainer.contains(alertElement)) {
-                alertContainer.removeChild(alertElement);
-                console.log('알림 닫힘 (사용자 클릭)');
-            }
-        }, 300);
-    });
-    
-    // 컨테이너에 알림 추가
-    alertContainer.appendChild(alertElement);
-    console.log('알림 요소가 DOM에 추가됨');
-    
-    // 일정 시간 후 자동으로 사라지기
-    if (!settings.isStatic) {
-        setTimeout(() => {
-            alertElement.classList.add('fade-out');
-            setTimeout(() => {
-                if (alertContainer.contains(alertElement)) {
-                    alertContainer.removeChild(alertElement);
-                    console.log('알림 자동 닫힘 (시간 경과)');
-                }
-            }, 300);
-        }, settings.duration);
-    }
 }
 
 /**
@@ -1786,7 +1703,7 @@ async function searchSanctionData(params) {
         return results;
     } catch (error) {
         console.error('검색 오류:', error);
-        showAlert('검색 중 오류가 발생했습니다.', 'error');
+        window.showToast('검색 중 오류가 발생했습니다.', 'error', { duration: 3000 });
         return [];
     }
 }
@@ -1803,7 +1720,7 @@ async function getSanctionDetail(id) {
         return sanctions.find(item => item.id === id) || null;
     } catch (error) {
         console.error('상세 정보 조회 오류:', error);
-        showAlert('상세 정보를 불러오는 중 오류가 발생했습니다.', 'error');
+        window.showToast('상세 정보를 불러오는 중 오류가 발생했습니다.', 'error', { duration: 3000 });
         return null;
     }
 }
