@@ -978,447 +978,413 @@ function handleLogout() {
 }
 
 /**
- * 검색 처리 - 통합된 검색 함수
- * @param {Event} e 이벤트 객체 (선택적)
+ * 검색 수행
  */
-async function performSearch(e) {
-    if (e) e.preventDefault();
+async function performSearch() {
+    console.log('검색 실행...');
     
+    // 검색어 가져오기
     const searchInput = document.getElementById('search-input');
+    if (!searchInput) {
+        console.error('검색 입력 필드를 찾을 수 없습니다.');
+        return;
+    }
+    
     const query = searchInput.value.trim();
+    if (!query) {
+        showAlert('검색어를 입력해주세요.', 'warning');
+        return;
+    }
     
     // 검색 유형 확인
     const searchType = document.querySelector('input[name="search-type"]:checked').value;
-    const numberType = searchType === 'number' ? 
-        document.querySelector('input[name="number-type"]:checked').value : '';
     
-    // 필터 값 가져오기
-    const selectedCountries = Array.from(document.querySelectorAll('.country-filter .filter-option.selected'))
-        .map(el => el.dataset.value)
-        .filter(Boolean);
-    
-    const selectedPrograms = Array.from(document.querySelectorAll('.program-filter .filter-option.selected'))
-        .map(el => el.dataset.value)
-        .filter(Boolean);
-    
-    const startDate = document.getElementById('start-date').value;
-    const endDate = document.getElementById('end-date').value;
+    // 번호 유형 (번호 검색인 경우에만)
+    let numberType = 'all';
+    if (searchType === 'number') {
+        numberType = document.querySelector('input[name="number-type"]:checked').value;
+    }
     
     try {
+        // 로딩 인디케이터 표시
         const loadingIndicator = showLoadingIndicator('results-container', '검색 중...');
         
-        // API 호출
-        const results = await window.SanctionsAPI.searchSanctions(
-            query,
-            selectedCountries.join(','),
-            selectedPrograms.join(','),
-            searchType,
-            numberType
-        );
+        // API 모듈을 사용하여 검색
+        const results = await apiModule.searchSanctions(query, {
+            searchType: searchType,
+            numberType: numberType
+        });
         
-        // 날짜 필터링
+        // 필터 적용
         let filteredResults = results.results;
-        if (startDate || endDate) {
+        if (activeFilters.countries.size > 0 || activeFilters.programs.size > 0 ||
+            activeFilters.startDate || activeFilters.endDate) {
+            
             filteredResults = filteredResults.filter(item => {
-                const itemDate = new Date(item.date_listed);
-                if (startDate && new Date(startDate) > itemDate) return false;
-                if (endDate && new Date(endDate) < itemDate) return false;
+                // 국가 필터
+                if (activeFilters.countries.size > 0) {
+                    if (!item.country || !activeFilters.countries.has(item.country)) {
+                        return false;
+                    }
+                }
+                
+                // 프로그램 필터
+                if (activeFilters.programs.size > 0) {
+                    if (!item.programs || !item.programs.some(program => 
+                        activeFilters.programs.has(program))) {
+                        return false;
+                    }
+                }
+                
+                // 날짜 필터
+                if (activeFilters.startDate || activeFilters.endDate) {
+                    const itemDate = new Date(item.date_listed);
+                    if (activeFilters.startDate && itemDate < activeFilters.startDate) {
+                        return false;
+                    }
+                    if (activeFilters.endDate && itemDate > activeFilters.endDate) {
+                        return false;
+                    }
+                }
+                
                 return true;
             });
         }
         
         // 결과 표시
         displayResults(filteredResults);
-        updateResultsCount(filteredResults.length);
         
-        // 검색 제안어 표시
-        if (results.suggestions && results.suggestions.length > 0) {
-            displaySearchSuggestions(results.suggestions);
-        }
-        
+        // 로딩 인디케이터 숨기기
         hideLoadingIndicator(loadingIndicator);
     } catch (error) {
-        console.error('검색 중 오류:', error);
-        showAlert('검색 중 오류가 발생했습니다.', 'error');
+        console.error('검색 중 오류 발생:', error);
+        showAlert('검색 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
     }
 }
 
 /**
- * 결과 카운트 업데이트
- * @param {number} count 결과 수
- */
-function updateResultsCount(count) {
-    const countElements = document.querySelectorAll('#results-count');
-    countElements.forEach(element => {
-        if (element) element.textContent = count;
-    });
-}
-
-/**
- * 검색 결과 표시 - 통합된 함수
+ * 검색 결과 표시
  * @param {Array} results 검색 결과 배열
  */
 function displayResults(results) {
-    // 새로운 UI (grid 레이아웃)용 결과 표시
     const resultsContainer = document.getElementById('results-container');
-    // 이전 UI (list 레이아웃)용 결과 표시 호환성
-    const resultsList = document.getElementById('results-list');
-    
-    // 타겟 컨테이너 결정
-    const targetContainer = resultsContainer || resultsList;
-    if (!targetContainer) return;
-    
-    // 검색 결과가 없는 경우
-    if (!results || !results.length) {
-        targetContainer.innerHTML = '<div class="no-results">검색 결과가 없습니다.</div>';
+    if (!resultsContainer) {
+        console.error('결과 컨테이너를 찾을 수 없습니다.');
         return;
     }
     
-    // 전역 변수에 결과 저장 (상세 정보 표시용)
+    // 현재 결과 저장 (상세 정보 표시용)
     currentResults = results;
     
-    // 결과 페이징 처리
-    const itemsPerPage = 10;
-    const totalPages = Math.ceil(results.length / itemsPerPage);
-    
-    // 페이지 상태 초기화
-    if (!window.resultPaging) {
-        window.resultPaging = {
-            currentPage: 1,
-            itemsPerPage: itemsPerPage,
-            totalPages: totalPages
-        };
-    } else {
-        window.resultPaging.totalPages = totalPages;
+    // 검색 결과가 없는 경우
+    if (!results || results.length === 0) {
+        resultsContainer.innerHTML = '<div class="no-results">검색 결과가 없습니다.</div>';
+        return;
     }
     
-    // 현재 페이지에 해당하는 결과만 표시
-    const startIndex = (window.resultPaging.currentPage - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + itemsPerPage, results.length);
-    const pageResults = results.slice(startIndex, endIndex);
+    // 결과 표시
+    let html = '';
     
-    // UI 타입에 따라 다른 형태의 결과 표시
-    if (resultsContainer) {
-        // Grid UI 결과 표시 (모던 UI)
-        let html = '';
+    results.forEach(result => {
+        const resultType = result.type || '정보 없음';
+        const resultTypeClass = getTypeClass(resultType);
         
-        // 페이지가 1이면 기존 내용 지우고 새로 표시, 아니면 추가
-        if (window.resultPaging.currentPage === 1) {
-            resultsContainer.innerHTML = '';
-        }
-        
-        pageResults.forEach((result) => {
-            const resultTypeClass = result.type === '개인' || result.type === 'Individual' ? 'individual' : 'entity';
-            const resultType = result.type === '개인' || result.type === 'Individual' ? '개인' : '단체';
-            
-            const resultCard = document.createElement('div');
-            resultCard.className = 'result-card';
-            resultCard.dataset.id = result.id;
-            
-            resultCard.innerHTML = `
+        html += `
+            <div class="result-item" data-id="${result.id}">
                 <div class="result-header">
-                    <h3 class="result-title">${result.name}</h3>
+                    <h3>${result.name || '이름 정보 없음'}</h3>
                     <span class="result-type ${resultTypeClass}">${resultType}</span>
                 </div>
                 <div class="result-body">
                     <div class="result-info">
-                        <p><span class="info-label">국가:</span> ${result.country}</p>
-                        <p><span class="info-label">출처:</span> ${result.source || (result.programs && result.programs.join(', ')) || '-'}</p>
-                    </div>
-                    <div class="result-meta">
-                        ${result.date_listed ? `<p class="date-listed">등재일: ${result.date_listed}</p>` : ''}
+                        <p><strong>국가:</strong> ${result.country || '정보 없음'}</p>
+                        <p><strong>출처:</strong> ${result.source || '정보 없음'}</p>
+                        ${result.date_listed ? `<p><strong>등재일:</strong> ${formatDate(result.date_listed)}</p>` : ''}
                     </div>
                 </div>
-                <div class="result-footer">
+                <div class="result-actions">
                     <button class="btn-detail" data-id="${result.id}">상세 정보</button>
                 </div>
-            `;
-            
-            resultsContainer.appendChild(resultCard);
-            
-            // 상세 정보 버튼 클릭 이벤트 등록
-            const detailBtn = resultCard.querySelector('.btn-detail');
-            if (detailBtn) {
-                detailBtn.addEventListener('click', function() {
-                    const itemId = this.getAttribute('data-id');
-                    showDetail(itemId);
-                });
-            }
-            
-            // 카드 클릭 이벤트 등록 (상세 정보 표시)
-            resultCard.addEventListener('click', function(e) {
-                // 버튼 클릭은 무시 (이미 onclick 이벤트가 있음)
-                if (e.target.classList.contains('btn-detail')) return;
-                
-                // 카드 클릭 시 상세 정보 표시
-                const id = this.getAttribute('data-id');
-                showDetail(id);
-            });
-        });
-        
-        // 더보기 버튼 추가
-        if (window.resultPaging.currentPage < window.resultPaging.totalPages) {
-            const loadMoreContainer = document.createElement('div');
-            loadMoreContainer.className = 'load-more-container';
-            loadMoreContainer.innerHTML = `
-                <button id="load-more-btn" class="btn-primary">더 보기 (${startIndex + pageResults.length}/${results.length})</button>
-            `;
-            resultsContainer.appendChild(loadMoreContainer);
-            
-            // 더보기 버튼 클릭 이벤트
-            document.getElementById('load-more-btn').addEventListener('click', function() {
-                window.resultPaging.currentPage++;
-                displayResults(results);
-            });
-        }
-        
-    } else if (resultsList) {
-        // List UI 결과 표시 (기존 UI 호환성)
-        let html = '<ul class="results-list">';
-        
-        pageResults.forEach((result, index) => {
-            html += `
-                <li class="result-item">
-                    <div class="result-info">
-                        <h3>${result.name}</h3>
-                        <p>${result.type} | ${result.country}</p>
-                        <p class="result-source">${result.source || (result.programs && result.programs.join(', ')) || '-'}</p>
-                    </div>
-                    <div class="result-actions">
-                        <button class="btn-detail" data-id="${result.id}">상세 정보</button>
-                    </div>
-                </li>
-            `;
-        });
-        
-        html += '</ul>';
-        
-        // 페이지가 1이면 기존 내용 지우고 새로 표시, 아니면 추가
-        if (window.resultPaging.currentPage === 1) {
-            resultsList.innerHTML = html;
-        } else {
-            const ul = resultsList.querySelector('ul');
-            if (ul) {
-                ul.innerHTML += html.substring(21, html.length - 5); // <ul class="results-list"> 와 </ul> 제외
-            } else {
-                resultsList.innerHTML = html;
-            }
-        }
-        
-        // 상세 정보 버튼 클릭 이벤트 등록
-        const detailBtns = resultsList.querySelectorAll('.btn-detail');
-        detailBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const itemId = this.getAttribute('data-id');
-                showDetail(itemId);
-            });
-        });
-        
-        // 더보기 버튼 추가
-        if (window.resultPaging.currentPage < window.resultPaging.totalPages) {
-            const loadMoreContainer = document.createElement('div');
-            loadMoreContainer.className = 'load-more-container';
-            loadMoreContainer.innerHTML = `
-                <button id="load-more-btn" class="btn-primary">더 보기 (${startIndex + pageResults.length}/${results.length})</button>
-            `;
-            resultsList.appendChild(loadMoreContainer);
-            
-            // 더보기 버튼 클릭 이벤트
-            document.getElementById('load-more-btn').addEventListener('click', function() {
-                window.resultPaging.currentPage++;
-                displayResults(results);
-            });
-        }
-    }
+            </div>
+        `;
+    });
     
-    // 결과 수 업데이트
-    updateResultsCount(results.length);
+    resultsContainer.innerHTML = html;
+    
+    // 상세 정보 버튼 이벤트 설정
+    const detailButtons = resultsContainer.querySelectorAll('.btn-detail');
+    detailButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            showDetail(id);
+        });
+    });
+    
+    // 결과 항목 클릭 이벤트 설정 (버튼 외 영역)
+    const resultItems = resultsContainer.querySelectorAll('.result-item');
+    resultItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            // 버튼 클릭은 제외 (버튼의 자체 이벤트 처리)
+            if (e.target.classList.contains('btn-detail')) return;
+            
+            const id = this.getAttribute('data-id');
+            showDetail(id);
+        });
+    });
 }
 
 /**
- * 상세 정보 표시
- * @param {string} id 제재 대상 ID
+ * 유형에 따른 CSS 클래스 반환
+ * @param {string} type 유형
+ * @returns {string} CSS 클래스
  */
-async function showDetail(id) {
-    try {
-        // 로딩 표시
-        const loadingIndicator = showLoadingIndicator('detail-content', '상세 정보를 불러오는 중...');
-        
-        // API를 통해 상세 정보 가져오기
-        const data = await window.SanctionsAPI.getSanctionDetails(id);
-        
-        if (!data) {
-            throw new Error('상세 정보를 찾을 수 없습니다.');
-        }
-        
-        // 로딩 종료
-        hideLoadingIndicator(loadingIndicator);
-        
-        // detail.js 컴포넌트의 showDetail 함수 사용
-        if (window.detailModule && typeof window.detailModule.showDetail === 'function') {
-            window.detailModule.showDetail(data);
-        } else {
-            // 폴백: 기존 방식으로 모달 표시
-            console.warn('상세 정보 모듈을 찾을 수 없습니다. 기본 모달 표시 방식을 사용합니다.');
-            showLegacyDetailModal(data);
-        }
-    } catch (error) {
-        console.error('상세 정보 로드 중 오류:', error);
-        showAlert('상세 정보를 불러오는데 실패했습니다.', 'error');
+function getTypeClass(type) {
+    if (!type) return '';
+    
+    const lowerType = type.toLowerCase();
+    
+    if (lowerType.includes('개인') || lowerType.includes('individual')) {
+        return 'individual';
+    } else if (lowerType.includes('단체') || lowerType.includes('entity') || lowerType.includes('기업')) {
+        return 'entity';
+    } else if (lowerType.includes('선박') || lowerType.includes('vessel')) {
+        return 'vessel';
+    } else if (lowerType.includes('항공') || lowerType.includes('aircraft')) {
+        return 'aircraft';
     }
+    
+    return '';
 }
 
 /**
- * 레거시 상세 정보 모달 표시 (폴백)
- * @param {Object} data 제재 대상 데이터
+ * 날짜 포맷팅
+ * @param {string} dateStr 날짜 문자열
+ * @returns {string} 포맷팅된 날짜 문자열
  */
-function showLegacyDetailModal(data) {
-    // 모달 요소 가져오기
-    const modal = document.getElementById('detail-modal');
-    const detailContent = document.getElementById('detail-content');
+function formatDate(dateStr) {
+    if (!dateStr) return '정보 없음';
     
-    if (!modal || !detailContent) {
-        console.error('모달 요소를 찾을 수 없습니다.');
-        return;
-    }
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
     
-    // 날짜 형식화
-    const date = new Date(data.date_listed);
-    const formattedDate = date.toLocaleDateString('ko-KR', {
+    return date.toLocaleDateString('ko-KR', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
     });
+}
+
+/**
+ * 상세 정보 표시
+ * @param {string} id 항목 ID
+ */
+async function showDetail(id) {
+    console.log('상세 정보 표시:', id);
     
-    // 상세 정보 HTML 생성
-    let html = `
-        <div class="detail-header">
-            <h3>${data.name}</h3>
-            <span class="detail-type ${data.type.toLowerCase()}">
-                <i class="fas fa-${data.type === 'INDIVIDUAL' ? 'user' : 'building'}"></i>
-                ${data.type === 'INDIVIDUAL' ? '개인' : '단체'}
-            </span>
-        </div>
-        
-        <div class="detail-section">
-            <h4>기본 정보</h4>
-            <div class="detail-data">
-                <div class="data-item">
-                    <div class="data-label">국가</div>
-                    <div class="data-value">${data.country || '정보 없음'}</div>
+    // ID로 항목 찾기
+    let item = null;
+    
+    // 현재 결과에서 먼저 찾기
+    if (currentResults && currentResults.length > 0) {
+        item = currentResults.find(result => result.id === id);
+    }
+    
+    // 현재 결과에 없으면 API에서 가져오기
+    if (!item) {
+        try {
+            item = await apiModule.getSanctionDetails(id);
+        } catch (error) {
+            console.error('상세 정보 로드 중 오류:', error);
+            showAlert('상세 정보를 가져오는 중 오류가 발생했습니다.', 'error');
+            return;
+        }
+    }
+    
+    if (!item) {
+        showAlert('상세 정보를 찾을 수 없습니다.', 'error');
+        return;
+    }
+    
+    // 상세 정보 모달 요소 확인
+    const detailModal = document.getElementById('detail-modal');
+    const detailContent = document.getElementById('detail-content');
+    
+    if (!detailModal || !detailContent) {
+        console.error('상세 정보 모달 요소를 찾을 수 없습니다.');
+        return;
+    }
+    
+    // 현재 아이템 저장 (PDF 생성용)
+    window.currentItem = item;
+    
+    // 상세 정보 컨텐츠 렌더링 함수 호출
+    if (window.renderDetailContent) {
+        window.renderDetailContent(item);
+    } else {
+        // 기본 렌더링 로직
+        detailContent.innerHTML = `
+            <div class="detail-container">
+                <div class="detail-header">
+                    <h3>${item.name || '이름 정보 없음'}</h3>
+                    <span class="detail-type ${getTypeClass(item.type)}">${item.type || '유형 정보 없음'}</span>
                 </div>
-                <div class="data-item">
-                    <div class="data-label">등재일</div>
-                    <div class="data-value">${formattedDate}</div>
+                
+                <div class="detail-section">
+                    <h3 class="section-title">기본 정보</h3>
+                    <div class="detail-data">
+                        <div class="data-item">
+                            <div class="data-label">ID</div>
+                            <div class="data-value">${item.id || '-'}</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">국가</div>
+                            <div class="data-value">${item.country || '정보 없음'}</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">제재 프로그램</div>
+                            <div class="data-value">${Array.isArray(item.programs) ? item.programs.join(', ') : (item.program || '정보 없음')}</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">출처</div>
+                            <div class="data-value">${item.source || '정보 없음'}</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">등재일</div>
+                            <div class="data-value">${formatDate(item.date_listed)}</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="data-item">
-                    <div class="data-label">제재 출처</div>
-                    <div class="data-value">${data.source}</div>
+                
+                ${item.reason ? `
+                <div class="detail-section">
+                    <h3 class="section-title">제재 사유</h3>
+                    <div class="detail-data">
+                        <div class="data-item reason">
+                            <div class="data-value">${item.reason}</div>
+                        </div>
+                    </div>
                 </div>
+                ` : ''}
             </div>
-        </div>
+        `;
+    }
+    
+    // 모달 표시
+    detailModal.style.display = 'block';
+    document.body.classList.add('modal-open');
+}
+
+/**
+ * 로딩 인디케이터 표시
+ * @param {string} containerId 컨테이너 ID
+ * @param {string} message 표시할 메시지
+ * @returns {HTMLElement} 생성된 로딩 인디케이터 요소
+ */
+function showLoadingIndicator(containerId, message = '로딩 중...') {
+    const container = document.getElementById(containerId);
+    if (!container) return null;
+    
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.className = 'loading-indicator';
+    loadingIndicator.innerHTML = `
+        <div class="spinner"></div>
+        <p>${message}</p>
     `;
     
-    // 프로그램 정보
-    if (data.programs && data.programs.length > 0) {
-        html += `
-            <div class="detail-section">
-                <h4>제재 프로그램</h4>
-                <div class="detail-data">
-                    <div class="data-item">
-                        <ul class="program-list">
-                            ${data.programs.map(program => `<li>${program}</li>`).join('')}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        `;
+    container.innerHTML = '';
+    container.appendChild(loadingIndicator);
+    
+    return loadingIndicator;
+}
+
+/**
+ * 로딩 인디케이터 숨기기
+ * @param {HTMLElement} indicatorElement 로딩 인디케이터 요소
+ */
+function hideLoadingIndicator(indicatorElement) {
+    if (!indicatorElement) return;
+    
+    indicatorElement.classList.add('fade-out');
+    setTimeout(() => {
+        if (indicatorElement.parentNode) {
+            indicatorElement.parentNode.removeChild(indicatorElement);
+        }
+    }, 300);
+}
+
+/**
+ * 알림 표시
+ * @param {string} message 메시지
+ * @param {string} type 알림 유형 (success, error, warning, info)
+ * @param {object} options 옵션
+ */
+function showAlert(message, type = 'info', options = {}) {
+    const defaults = {
+        duration: 3000,
+        isStatic: false
+    };
+    
+    const settings = { ...defaults, ...options };
+    
+    // 알림 컨테이너 찾기
+    let container = document.querySelector('.alert-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'alert-container';
+        document.body.appendChild(container);
     }
     
-    // 별칭 정보
-    if (data.details.aliases && data.details.aliases.length > 0) {
-        html += `
-            <div class="detail-section">
-                <h4>별칭</h4>
-                <div class="detail-data">
-                    <div class="data-item">
-                        <ul class="alias-list">
-                            ${data.details.aliases.map(alias => `<li>${alias}</li>`).join('')}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // 주소 정보
-    if (data.details.addresses && data.details.addresses.length > 0) {
-        html += `
-            <div class="detail-section">
-                <h4>주소</h4>
-                <div class="detail-data">
-                    <div class="data-item">
-                        <ul class="address-list">
-                            ${data.details.addresses.map(address => `<li>${address}</li>`).join('')}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // 신분증 정보
-    if (data.details.identifications && data.details.identifications.length > 0) {
-        html += `
-            <div class="detail-section">
-                <h4>신분증 정보</h4>
-                <div class="detail-data">
-                    <div class="data-item">
-                        <ul class="id-list">
-                            ${data.details.identifications.map(id => `
-                                <li>
-                                    <strong>${id.type}:</strong> ${id.number}
-                                    ${id.country ? `(${id.country})` : ''}
-                                </li>
-                            `).join('')}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // 내용 설정 및 모달 표시
-    detailContent.innerHTML = html;
-    modal.style.display = 'block';
-    document.body.classList.add('modal-open');
+    // 알림 요소 생성
+    const alertId = 'alert-' + Date.now();
+    const alertElement = document.createElement('div');
+    alertElement.id = alertId;
+    alertElement.className = `alert alert-${type}`;
+    alertElement.innerHTML = `
+        <div class="alert-content">${message}</div>
+        <button class="alert-close">&times;</button>
+    `;
     
     // 닫기 버튼 이벤트
-    const closeBtn = document.getElementById('detail-close');
-    if (closeBtn) {
-        closeBtn.onclick = () => {
-            modal.style.display = 'none';
-            document.body.classList.remove('modal-open');
-        };
+    const closeButton = alertElement.querySelector('.alert-close');
+    if (closeButton) {
+        closeButton.addEventListener('click', () => {
+            removeAlert(alertElement);
+        });
     }
     
-    // ESC 키로 닫기
-    const escHandler = (e) => {
-        if (e.key === 'Escape') {
-            modal.style.display = 'none';
-            document.body.classList.remove('modal-open');
-            document.removeEventListener('keydown', escHandler);
-        }
-    };
-    document.addEventListener('keydown', escHandler);
+    // 알림 표시
+    container.appendChild(alertElement);
     
-    // 모달 외부 클릭 시 닫기
-    modal.onclick = (e) => {
-        if (e.target === modal) {
-            modal.style.display = 'none';
-            document.body.classList.remove('modal-open');
+    // 애니메이션 효과
+    setTimeout(() => {
+        alertElement.classList.add('alert-visible');
+    }, 10);
+    
+    // 자동 닫힘
+    if (!settings.isStatic && settings.duration > 0) {
+        setTimeout(() => {
+            removeAlert(alertElement);
+        }, settings.duration);
+    }
+    
+    return alertElement;
+}
+
+/**
+ * 알림 제거
+ * @param {HTMLElement} alertElement 
+ */
+function removeAlert(alertElement) {
+    if (!alertElement) return;
+    
+    alertElement.classList.remove('alert-visible');
+    alertElement.classList.add('alert-hiding');
+    
+    setTimeout(() => {
+        if (alertElement.parentNode) {
+            alertElement.parentNode.removeChild(alertElement);
         }
-    };
+    }, 300);
 }
 
 /**
@@ -1429,11 +1395,11 @@ async function loadInitialData() {
         const loadingIndicator = showLoadingIndicator('results-container', '데이터를 불러오는 중...');
         
         // API를 통해 제재 데이터 로드
-        const data = await window.SanctionsAPI.fetchSanctionsData(true);
+        const data = await apiModule.fetchSanctionsData();
         
         if (data && data.length > 0) {
             // 최근 제재 데이터 표시
-            const recentSanctions = await window.SanctionsAPI.getRecentSanctions(10);
+            const recentSanctions = await apiModule.getRecentSanctions(10);
             displayResults(recentSanctions);
         } else {
             showAlert('데이터를 불러오는데 실패했습니다.', 'error');
@@ -1754,168 +1720,6 @@ function getSuggestedSearchTerms(query) {
     return sampleTerms.filter(term => 
         term.toLowerCase().includes(query.toLowerCase())
     ).slice(0, 5); // 최대 5개 표시
-}
-
-/**
- * 알림 표시
- * @param {string} message 알림 메시지
- * @param {string} type 알림 타입 (info, success, warning, error)
- * @param {Object} options 옵션 객체
- */
-function showAlert(message, type = 'info', options = {}) {
-    console.log(`알림 표시: "${message}" (타입: ${type})`, options);
-    
-    const defaults = {
-        duration: 3000,            // 알림 표시 시간 (ms)
-        isStatic: false,           // true면 자동으로 사라지지 않음
-        target: '.alert-container' // 알림을 표시할 컨테이너 선택자
-    };
-    
-    const settings = { ...defaults, ...options };
-    console.log('알림 설정:', settings);
-    
-    const alertContainer = document.querySelector(settings.target);
-    if (!alertContainer) {
-        console.error(`알림 컨테이너를 찾을 수 없음: ${settings.target}`);
-        return;
-    }
-    
-    // 동일한 알림이 이미 표시중인지 확인
-    const existingAlerts = alertContainer.querySelectorAll('.alert');
-    for (let i = 0; i < existingAlerts.length; i++) {
-        const existingAlert = existingAlerts[i];
-        const alertContent = existingAlert.querySelector('.alert-content');
-        if (alertContent && alertContent.textContent === message) {
-            console.log('동일한 알림이 이미 표시되어 있음. 중복 제거');
-            return;
-        }
-    }
-    
-    // 새 알림 생성
-    const alertElement = document.createElement('div');
-    alertElement.className = `alert alert-${type}`;
-    
-    // 알림 내용 추가
-    alertElement.innerHTML = `
-        <div class="alert-content">${message}</div>
-        <button class="alert-close">&times;</button>
-    `;
-    
-    // 닫기 버튼 설정
-    const closeButton = alertElement.querySelector('.alert-close');
-    closeButton.addEventListener('click', () => {
-        alertElement.classList.add('fade-out');
-        setTimeout(() => {
-            if (alertContainer.contains(alertElement)) {
-                alertContainer.removeChild(alertElement);
-                console.log('알림 닫힘 (사용자 클릭)');
-            }
-        }, 300);
-    });
-    
-    // 컨테이너에 알림 추가
-    alertContainer.appendChild(alertElement);
-    console.log('알림 요소가 DOM에 추가됨');
-    
-    // 일정 시간 후 자동으로 사라지기
-    if (!settings.isStatic) {
-        setTimeout(() => {
-            alertElement.classList.add('fade-out');
-            setTimeout(() => {
-                if (alertContainer.contains(alertElement)) {
-                    alertContainer.removeChild(alertElement);
-                    console.log('알림 자동 닫힘 (시간 경과)');
-                }
-            }, 300);
-        }, settings.duration);
-    }
-}
-
-/**
- * 제재 데이터 검색 API 호출 시뮬레이션
- * @param {Object} params 검색 파라미터
- * @returns {Promise<Array>} 검색 결과 배열
- */
-async function searchSanctionData(params) {
-    console.log('API 호출 파라미터:', params);
-    
-    try {
-        // 실제 데이터를 api.js의 fetchSanctionsData 함수로 가져옴
-        const sanctions = await fetchSanctionsData();
-        let results = [...sanctions];
-        
-        // 필터링 로직
-        // 텍스트 검색
-        if(params.query && params.type === 'text') {
-            const query = params.query.toLowerCase();
-            results = results.filter(item => 
-                (item.name && item.name.toLowerCase().includes(query)) || 
-                (item.details && item.details.aliases && 
-                 item.details.aliases.some(alias => alias.toLowerCase().includes(query)))
-            );
-        }
-        
-        // 번호 검색
-        if(params.query && params.type === 'number') {
-            const query = params.query;
-            
-            results = results.filter(item => {
-                if(!item.details || !item.details.identifications) return false;
-                
-                return item.details.identifications.some(id => {
-                    // 특정 번호 유형 필터링
-                    if(params.numberType && params.numberType !== 'all') {
-                        return id.type.toLowerCase().includes(params.numberType.toLowerCase()) && 
-                               id.number.includes(query);
-                    }
-                    return id.number.includes(query);
-                });
-            });
-        }
-        
-        // 국가 필터
-        if(params.country) {
-            results = results.filter(item => item.country === params.country);
-        }
-        
-        // 프로그램 필터
-        if(params.program) {
-            results = results.filter(item => {
-                if(Array.isArray(item.programs)) {
-                    return item.programs.includes(params.program);
-                }
-                return item.program === params.program;
-            });
-        }
-        
-        // 유형 필터
-        if(params.entityType) {
-            results = results.filter(item => item.type.toLowerCase() === params.entityType.toLowerCase());
-        }
-        
-        return results;
-    } catch (error) {
-        console.error('검색 오류:', error);
-        showAlert('검색 중 오류가 발생했습니다.', 'error');
-        return [];
-    }
-}
-
-/**
- * 제재 대상 상세 정보 조회
- * @param {string} id 제재 대상 ID
- * @returns {Promise<Object>} 제재 대상 상세 정보
- */
-async function getSanctionDetail(id) {
-    try {
-        // 실제 데이터에서 ID로 검색
-        const sanctions = await fetchSanctionsData();
-        return sanctions.find(item => item.id === id) || null;
-    } catch (error) {
-        console.error('상세 정보 조회 오류:', error);
-        showAlert('상세 정보를 불러오는 중 오류가 발생했습니다.', 'error');
-        return null;
-    }
 }
 
 // 전역 함수 노출
