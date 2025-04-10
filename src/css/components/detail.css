@@ -1,0 +1,312 @@
+/**
+ * detail.css - 상세 정보 모달 컴포넌트 스타일
+ */
+
+/* 모달 기본 스타일 */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    overflow-y: auto;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal.show {
+    display: block;
+}
+
+body.modal-open {
+    overflow: hidden;
+}
+
+.modal-content {
+    background-color: var(--bg-white);
+    margin: 50px auto;
+    width: 90%;
+    max-width: 800px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    position: relative;
+    animation: fadeIn 0.4s ease;
+    overflow: hidden;
+}
+
+/* 모달 헤더 */
+.modal-header {
+    padding: 20px 25px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(to right, #f8f9fc, #f0f2fa);
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: color 0.2s;
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    text-align: center;
+}
+
+.close-btn:hover {
+    color: var(--error-color);
+}
+
+/* 모달 바디 & 푸터 */
+.modal-body {
+    padding: 25px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    padding: 15px 25px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    background-color: var(--bg-light);
+}
+
+/* 상세 정보 컨테이너 */
+.detail-container {
+    font-family: 'Noto Sans KR', sans-serif;
+    color: var(--text-primary);
+}
+
+/* 상세 정보 헤더 */
+.detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+}
+
+.detail-header h3 {
+    font-size: 22px;
+    margin: 0;
+    font-weight: 500;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+/* 유형 배지 */
+.detail-type {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: var(--bg-light);
+    color: var(--text-secondary);
+}
+
+.detail-type.individual {
+    background-color: var(--type-individual-bg);
+    color: var(--type-individual);
+}
+
+.detail-type.entity {
+    background-color: var(--type-entity-bg);
+    color: var(--type-entity);
+}
+
+.detail-type.vessel {
+    background-color: var(--type-vessel-bg);
+    color: var(--type-vessel);
+}
+
+.detail-type.aircraft {
+    background-color: var(--type-aircraft-bg);
+    color: var(--type-aircraft);
+}
+
+/* 상세 정보 섹션 */
+.detail-section {
+    margin-bottom: 25px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 20px;
+}
+
+.detail-section:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.section-title, 
+.detail-section h4 {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0 0 15px 0;
+    padding-left: 12px;
+    border-left: 3px solid var(--primary-color);
+}
+
+/* 데이터 표시 영역 */
+.detail-data {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.data-item {
+    margin-bottom: 10px;
+}
+
+.data-label {
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+}
+
+.data-value {
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+/* 제재 사유 */
+.data-item.reason {
+    grid-column: 1 / -1;
+}
+
+.data-item.reason .data-value {
+    line-height: 1.6;
+    white-space: pre-line;
+}
+
+/* 목록 스타일 */
+.aliases-list, 
+.addresses-list, 
+.id-list, 
+.related-list,
+.program-list {
+    margin: 0;
+    padding-left: 5px;
+    list-style-type: none;
+}
+
+.aliases-list li, 
+.addresses-list li, 
+.id-list li, 
+.related-list li,
+.program-list li {
+    margin-bottom: 8px;
+    padding-left: 15px;
+    position: relative;
+    line-height: 1.4;
+}
+
+.aliases-list li::before, 
+.addresses-list li::before, 
+.id-list li::before, 
+.related-list li::before,
+.program-list li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--primary-color);
+}
+
+/* PDF 다운로드 버튼 */
+#detail-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 10px 16px;
+    border: none;
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+#detail-download:hover {
+    background-color: var(--secondary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+#detail-download:active {
+    transform: translateY(0);
+}
+
+/* 로딩 인디케이터 */
+.loading-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+}
+
+.loading-indicator .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(126, 87, 194, 0.2);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 10px;
+}
+
+/* 반응형 조정 */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        margin: 30px auto;
+    }
+    
+    .detail-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .detail-type {
+        align-self: flex-start;
+    }
+    
+    .detail-data {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-body {
+        padding: 15px;
+    }
+}
+
+/* 애니메이션 */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+} 
