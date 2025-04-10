@@ -8,6 +8,7 @@ import { getCurrentResults } from './search.js';
 
 let detailModal = null;
 let modalOverlay = null;
+let currentItem = null;
 
 /**
  * 상세 정보 컴포넌트 초기화
@@ -23,6 +24,9 @@ export function initDetailComponent() {
     
     // 닫기 이벤트 설정
     setupCloseEvents();
+    
+    // jsPDF 라이브러리 미리 로드
+    preloadJsPDF();
 }
 
 /**
@@ -98,6 +102,22 @@ function setupCloseEvents() {
 }
 
 /**
+ * jsPDF 라이브러리 미리 로드
+ */
+function preloadJsPDF() {
+    if (typeof window.jspdf === 'undefined') {
+        console.log('jsPDF 라이브러리 미리 로드 중...');
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script.async = true;
+        script.onload = () => {
+            console.log('jsPDF 라이브러리 로드 완료');
+        };
+        document.head.appendChild(script);
+    }
+}
+
+/**
  * 상세 정보 표시
  * @param {string} id 제재 대상 ID
  */
@@ -110,8 +130,15 @@ export async function showDetail(id) {
     }
     
     // 모달 및 오버레이 표시
-    if (modalOverlay) modalOverlay.style.display = 'block';
-    if (detailModal) detailModal.style.display = 'block';
+    if (modalOverlay) {
+        modalOverlay.style.display = 'block';
+        document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
+    }
+    
+    if (detailModal) {
+        detailModal.style.display = 'block';
+        detailModal.scrollTop = 0; // 스크롤 위치 초기화
+    }
     
     // 내용 초기화
     const modalBody = detailModal.querySelector('.modal-body');
@@ -146,6 +173,7 @@ export async function showDetail(id) {
             throw new Error('상세 정보를 찾을 수 없습니다.');
         }
         
+        currentItem = item; // 현재 표시중인 아이템 저장
         console.log('상세 정보 로드 완료:', item);
         
         // 상세 정보 표시
@@ -168,6 +196,8 @@ export async function showDetail(id) {
 export function hideDetail() {
     if (modalOverlay) modalOverlay.style.display = 'none';
     if (detailModal) detailModal.style.display = 'none';
+    document.body.style.overflow = ''; // 배경 스크롤 복원
+    currentItem = null;
 }
 
 /**
@@ -251,7 +281,9 @@ function renderDetailContent(item) {
                     <span class="detail-type ${typeClass}">${type}</span>
                 </div>
                 <div class="detail-actions">
-                    <button class="btn-pdf" id="btn-download-pdf">PDF 다운로드</button>
+                    <button id="btn-download-pdf" class="btn-pdf">
+                        <i class="fas fa-file-pdf"></i> PDF 다운로드
+                    </button>
                 </div>
             </div>
             
@@ -368,15 +400,19 @@ function renderDetailContent(item) {
     // PDF 다운로드 버튼 이벤트 리스너 추가
     const pdfButton = modalBody.querySelector('#btn-download-pdf');
     if (pdfButton) {
-        pdfButton.addEventListener('click', () => generatePDF(item));
+        pdfButton.addEventListener('click', generatePDF);
     }
 }
 
 /**
  * PDF 파일 생성
- * @param {Object} item 제재 대상 정보
  */
-function generatePDF(item) {
+function generatePDF() {
+    if (!currentItem) {
+        showAlert('PDF 생성을 위한 데이터가 없습니다.', 'error');
+        return;
+    }
+    
     try {
         // jsPDF 라이브러리 확인
         if (typeof window.jspdf === 'undefined') {
@@ -388,12 +424,13 @@ function generatePDF(item) {
             script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
             script.onload = () => {
                 console.log('jsPDF 라이브러리 로드 완료');
-                setTimeout(() => generatePDF(item), 500);
+                setTimeout(generatePDF, 500);
             };
             document.head.appendChild(script);
             return;
         }
         
+        const item = currentItem;
         console.log('PDF 생성 시작:', item);
         
         // 필수 필드 확인 및 기본값 설정
