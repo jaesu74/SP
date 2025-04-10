@@ -1,5 +1,4 @@
 # 임시 파일 및 백업
-backup/
 temp/
 *.bak
 *.tmp

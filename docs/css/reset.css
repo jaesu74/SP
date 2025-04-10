@@ -1,0 +1,147 @@
+/**
+ * 기본 리셋 스타일
+ * 브라우저 간 일관된 스타일링을 위한 리셋 규칙
+ */
+
+/* 박스 모델 재설정 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* HTML 기본 설정 */
+html {
+  font-size: var(--font-size-base, 16px);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+/* 기본 body 설정 */
+body {
+  font-family: var(--font-family, 'Noto Sans KR', sans-serif);
+  font-size: var(--font-size-md, 1rem);
+  line-height: 1.5;
+  color: var(--color-text, #333);
+  background-color: var(--color-background, #f4f6fa);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 텍스트 요소 리셋 */
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-weight: var(--font-weight-bold, 700);
+  line-height: 1.2;
+}
+
+p {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+/* 목록 스타일 리셋 */
+ol, ul {
+  padding-left: 2rem;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+ol ol, ul ul, ol ul, ul ol {
+  margin-bottom: 0;
+}
+
+li {
+  margin-bottom: 0.25rem;
+}
+
+/* 인라인 요소 리셋 */
+a {
+  color: var(--color-primary, #5c6ac4);
+  text-decoration: none;
+  background-color: transparent;
+}
+
+a:hover {
+  color: var(--color-primary-dark, #3a4394);
+  text-decoration: underline;
+}
+
+/* 이미지 및 미디어 요소 리셋 */
+img, svg, video, canvas, audio {
+  vertical-align: middle;
+  max-width: 100%;
+  height: auto;
+}
+
+/* 테이블 리셋 */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th {
+  text-align: inherit;
+  font-weight: var(--font-weight-bold, 700);
+}
+
+/* 폼 요소 리셋 */
+button, input, optgroup, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  margin: 0;
+}
+
+button, select {
+  text-transform: none;
+}
+
+button,
+[type="button"],
+[type="reset"],
+[type="submit"] {
+  -webkit-appearance: button;
+  appearance: button;
+}
+
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+}
+
+/* 숨김 요소 설정 */
+[hidden] {
+  display: none !important;
+}
+
+/* 접근성 관련 설정 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* 포커스 스타일 */
+:focus-visible {
+  outline: 2px solid var(--color-primary, #5c6ac4);
+  outline-offset: 2px;
+}
+
+/* 선택 스타일 */
+::selection {
+  background-color: var(--color-primary-light, #8e9be4);
+  color: var(--color-text-light, #ffffff);
+} 
