@@ -1506,7 +1506,14 @@ window.app = {
         if (e) e.preventDefault();
         await performSearch();
     },
-    showDetail: showDetail,
+    handleShowDetails: async function(id) {
+        // EventManager나 다른 모듈에 있는 showDetail 함수 참조
+        if (window.EventManager && typeof window.EventManager.handleShowDetails === 'function') {
+            await window.EventManager.handleShowDetails(id);
+        } else {
+            console.error('상세정보 표시 함수를 찾을 수 없습니다');
+        }
+    },
     handleLogout: handleLogout
 };
 

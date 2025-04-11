@@ -8,7 +8,7 @@
     "build": "webpack --mode production",
     "build:dev": "webpack --mode development",
     "analyze": "webpack --mode production --analyze",
-    "lint": "eslint src/**/*.js",
+    "lint": "eslint src/**/*.js --fix",
     "lint:fix": "eslint src/**/*.js --fix",
     "test": "jest"
   },

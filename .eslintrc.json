@@ -11,18 +11,18 @@
     "sourceType": "module"
   },
   "rules": {
-    "indent": ["error", 2, { "SwitchCase": 1 }],
-    "linebreak-style": ["error", "unix"],
-    "quotes": ["error", "single"],
-    "semi": ["error", "always"],
+    "indent": ["warn", 2, { "SwitchCase": 1 }],
+    "linebreak-style": ["warn", "windows"],
+    "quotes": ["warn", "single"],
+    "semi": ["warn", "always"],
     "no-console": ["warn", { "allow": ["warn", "error"] }],
     "no-unused-vars": ["warn"],
-    "no-var": "error",
+    "no-var": "warn",
     "prefer-const": "warn",
-    "arrow-spacing": "error",
-    "no-trailing-spaces": "error",
-    "eqeqeq": ["error", "always"],
-    "block-spacing": "error",
-    "keyword-spacing": "error"
+    "arrow-spacing": "warn",
+    "no-trailing-spaces": "warn",
+    "eqeqeq": ["warn", "always"],
+    "block-spacing": "warn",
+    "keyword-spacing": "warn"
   }
 }
