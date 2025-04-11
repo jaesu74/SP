@@ -19,7 +19,8 @@ module.exports = (env, argv) => {
       filename: 'js/[name].[contenthash:8].js',
       chunkFilename: 'js/[name].[contenthash:8].chunk.js',
       assetModuleFilename: 'assets/[name].[hash:8][ext]',
-      publicPath: '/',
+      publicPath: './',
+      clean: true,
     },
     devtool: isProduction ? 'source-map' : 'eval-source-map',
     devServer: {
@@ -139,7 +140,8 @@ module.exports = (env, argv) => {
         template: './src/index.html',
         filename: 'index.html',
         inject: 'body',
-        minify: isProduction ? {
+        scriptLoading: 'defer',
+        minify: {
           removeComments: true,
           collapseWhitespace: true,
           removeRedundantAttributes: true,
@@ -150,7 +152,7 @@ module.exports = (env, argv) => {
           minifyJS: true,
           minifyCSS: true,
           minifyURLs: true,
-        } : false,
+        },
       }),
       new MiniCssExtractPlugin({
         filename: 'css/[name].[contenthash:8].css',
