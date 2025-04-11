@@ -12,7 +12,6 @@ Thumbs.db
 
 # 노드 패키지 관리자 (추후 사용시)
 node_modules/
-package-lock.json
 yarn.lock
 
 # 빌드 파일
