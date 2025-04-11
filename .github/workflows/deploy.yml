@@ -16,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -35,6 +35,10 @@ jobs:
         env:
           NODE_ENV: production
 
+      - name: Create .nojekyll file
+        run: |
+          touch dist/.nojekyll
+          
       - name: Verify CNAME file
         run: |
           if [ ! -f "dist/CNAME" ]; then
@@ -43,11 +47,10 @@ jobs:
           echo "Verifying CNAME content:"
           cat dist/CNAME
 
-      - name: Deploy Files
-        run: |
-          cp -r dist/* .
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add -A
-          git commit -m "Deploy built files to gh-pages" || echo "No changes to commit"
-          git push --force origin HEAD:gh-pages
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dist
+          branch: gh-pages
+          clean: true
+          single-commit: true
