@@ -5,12 +5,12 @@
 
 // 데이터 캐시
 let cachedData = null;
-let searchCache = new Map();
+const searchCache = new Map();
 
 // 웹 워커 메시지 리스너
 self.addEventListener('message', function(e) {
   const { type, data } = e.data;
-  
+
   switch (type) {
     case 'load':
       loadData(data);
@@ -44,25 +44,25 @@ function loadData(data) {
     if (!data) {
       throw new Error('No data provided');
     }
-    
+
     // 데이터 정규화 및 색인화
     const startTime = performance.now();
-    
+
     // 데이터 정규화
     const normalizedData = data.map(normalizeItem);
-    
+
     // 데이터 색인화 (검색 최적화)
     const indexedData = buildSearchIndex(normalizedData);
-    
+
     // 데이터 캐싱
     cachedData = {
       items: normalizedData,
       index: indexedData,
       loadTime: new Date().toISOString()
     };
-    
+
     const processTime = performance.now() - startTime;
-    
+
     // 완료 알림
     self.postMessage({
       type: 'load-complete',
@@ -70,7 +70,7 @@ function loadData(data) {
       processTime: processTime,
       timestamp: cachedData.loadTime
     });
-    
+
   } catch (error) {
     self.postMessage({
       type: 'error',
@@ -91,27 +91,27 @@ function normalizeItem(item) {
     name: item.name || '',
     type: item.type || 'UNKNOWN',
     country: item.country || '',
-    programs: Array.isArray(item.programs) ? item.programs : 
-              item.program ? [item.program] : [],
+    programs: Array.isArray(item.programs) ? item.programs :
+      item.program ? [item.program] : [],
     source: item.source || '',
     date_listed: item.date_listed || item.listDate || '',
     reason: item.reason || '',
-    
+
     // 상세 정보 정규화
     details: {
-      aliases: Array.isArray(item.details?.aliases) ? item.details.aliases : 
-               Array.isArray(item.aliases) ? item.aliases : [],
-               
-      addresses: Array.isArray(item.details?.addresses) ? item.details.addresses : 
-                 Array.isArray(item.addresses) ? item.addresses : [],
-                 
-      nationalities: Array.isArray(item.details?.nationalities) ? item.details.nationalities : 
-                     Array.isArray(item.nationalities) ? item.nationalities : [],
-                     
-      identifications: Array.isArray(item.details?.identifications) ? item.details.identifications : 
-                       Array.isArray(item.identifications) ? item.identifications : []
+      aliases: Array.isArray(item.details?.aliases) ? item.details.aliases :
+        Array.isArray(item.aliases) ? item.aliases : [],
+
+      addresses: Array.isArray(item.details?.addresses) ? item.details.addresses :
+        Array.isArray(item.addresses) ? item.addresses : [],
+
+      nationalities: Array.isArray(item.details?.nationalities) ? item.details.nationalities :
+        Array.isArray(item.nationalities) ? item.nationalities : [],
+
+      identifications: Array.isArray(item.details?.identifications) ? item.details.identifications :
+        Array.isArray(item.identifications) ? item.identifications : []
     },
-    
+
     // 색인용 토큰화된 텍스트
     _searchableText: ''
   };
@@ -132,18 +132,18 @@ function buildSearchIndex(data) {
     aliasIndex: new Map(),
     textIndex: new Map()
   };
-  
+
   data.forEach((item, idx) => {
     // 이름 색인화
     if (item.name) {
       const normalizedName = item.name.toLowerCase();
-      
+
       // 전체 이름으로 색인
       if (!index.nameIndex.has(normalizedName)) {
         index.nameIndex.set(normalizedName, []);
       }
       index.nameIndex.get(normalizedName).push(idx);
-      
+
       // 이름을 단어로 분리하여 색인
       const words = normalizedName.split(/\s+/);
       words.forEach(word => {
@@ -157,7 +157,7 @@ function buildSearchIndex(data) {
         }
       });
     }
-    
+
     // 국가 색인화
     if (item.country) {
       const country = item.country.toLowerCase();
@@ -166,7 +166,7 @@ function buildSearchIndex(data) {
       }
       index.countryIndex.get(country).push(idx);
     }
-    
+
     // 유형 색인화
     if (item.type) {
       const type = item.type.toLowerCase();
@@ -175,7 +175,7 @@ function buildSearchIndex(data) {
       }
       index.typeIndex.get(type).push(idx);
     }
-    
+
     // 프로그램 색인화
     if (item.programs && item.programs.length) {
       item.programs.forEach(program => {
@@ -186,7 +186,7 @@ function buildSearchIndex(data) {
         index.programIndex.get(normalizedProgram).push(idx);
       });
     }
-    
+
     // 별칭 색인화
     if (item.details.aliases && item.details.aliases.length) {
       item.details.aliases.forEach(alias => {
@@ -195,7 +195,7 @@ function buildSearchIndex(data) {
           index.aliasIndex.set(normalizedAlias, []);
         }
         index.aliasIndex.get(normalizedAlias).push(idx);
-        
+
         // 별칭 단어도 텍스트 색인에 추가
         const words = normalizedAlias.split(/\s+/);
         words.forEach(word => {
@@ -210,7 +210,7 @@ function buildSearchIndex(data) {
         });
       });
     }
-    
+
     // 식별 번호 색인화
     if (item.details.identifications && item.details.identifications.length) {
       item.details.identifications.forEach(id => {
@@ -223,7 +223,7 @@ function buildSearchIndex(data) {
         }
       });
     }
-    
+
     // 통합 검색 텍스트 생성
     item._searchableText = [
       item.name,
@@ -234,7 +234,7 @@ function buildSearchIndex(data) {
       ...(item.details.identifications || []).map(id => id.number)
     ].filter(Boolean).join(' ').toLowerCase();
   });
-  
+
   return index;
 }
 
@@ -248,15 +248,15 @@ function searchData(query, options = {}) {
     if (!cachedData || !cachedData.items || !cachedData.items.length) {
       throw new Error('No data available for search');
     }
-    
+
     const startTime = performance.now();
-    
+
     // 검색 결과
     let results;
-    
+
     // 캐시 키 생성
     const cacheKey = `${query}|${JSON.stringify(options)}`;
-    
+
     // 캐시 확인
     if (searchCache.has(cacheKey)) {
       results = searchCache.get(cacheKey);
@@ -267,7 +267,7 @@ function searchData(query, options = {}) {
         results = cachedData.items.map((_, idx) => idx);
       } else {
         const normalizedQuery = query.toLowerCase().trim();
-        
+
         if (options.searchType === 'number') {
           // 번호 검색
           results = searchByNumber(normalizedQuery, options.numberType);
@@ -276,7 +276,7 @@ function searchData(query, options = {}) {
           results = searchByText(normalizedQuery);
         }
       }
-      
+
       // 결과 캐싱 (최대 50개 캐시 유지)
       if (searchCache.size >= 50) {
         // 가장 오래된 항목 제거
@@ -285,12 +285,12 @@ function searchData(query, options = {}) {
       }
       searchCache.set(cacheKey, results);
     }
-    
+
     // 결과 항목 생성
     const resultItems = results.map(idx => cachedData.items[idx]);
-    
+
     const processTime = performance.now() - startTime;
-    
+
     // 결과 전송
     self.postMessage({
       type: 'search-results',
@@ -299,7 +299,7 @@ function searchData(query, options = {}) {
       results: resultItems,
       processTime: processTime
     });
-    
+
   } catch (error) {
     self.postMessage({
       type: 'error',
@@ -316,7 +316,7 @@ function searchData(query, options = {}) {
  */
 function searchByNumber(query, numberType) {
   const results = new Set();
-  
+
   // 번호 색인에서 검색
   cachedData.index.numberIndex.forEach((indices, number) => {
     if (number.includes(query)) {
@@ -324,11 +324,11 @@ function searchByNumber(query, numberType) {
         // 번호 유형 필터링
         if (numberType !== 'all') {
           const item = cachedData.items[idx];
-          const matchesType = item.details.identifications.some(id => 
+          const matchesType = item.details.identifications.some(id =>
             id.number && id.number.toLowerCase().includes(query) &&
             id.type && id.type.toLowerCase().includes(numberType.toLowerCase())
           );
-          
+
           if (matchesType) {
             results.add(idx);
           }
@@ -338,7 +338,7 @@ function searchByNumber(query, numberType) {
       });
     }
   });
-  
+
   return Array.from(results);
 }
 
@@ -350,33 +350,33 @@ function searchByNumber(query, numberType) {
 function searchByText(query) {
   const results = new Set();
   const words = query.split(/\s+/).filter(w => w.length > 1);
-  
+
   // 검색어가 없으면 빈 결과 반환
   if (words.length === 0) {
     return [];
   }
-  
+
   // 정확한 이름 매치 검색
   if (cachedData.index.nameIndex.has(query)) {
     cachedData.index.nameIndex.get(query).forEach(idx => {
       results.add(idx);
     });
   }
-  
+
   // 정확한 별칭 매치 검색
   if (cachedData.index.aliasIndex.has(query)) {
     cachedData.index.aliasIndex.get(query).forEach(idx => {
       results.add(idx);
     });
   }
-  
+
   // 정확한 국가 매치 검색
   if (cachedData.index.countryIndex.has(query)) {
     cachedData.index.countryIndex.get(query).forEach(idx => {
       results.add(idx);
     });
   }
-  
+
   // 단어 기반 검색
   words.forEach(word => {
     // 텍스트 색인에서 검색
@@ -386,7 +386,7 @@ function searchByText(query) {
       });
     }
   });
-  
+
   // 부분 일치 검색 (색인에 없는 경우)
   if (results.size === 0) {
     cachedData.items.forEach((item, idx) => {
@@ -395,7 +395,7 @@ function searchByText(query) {
       }
     });
   }
-  
+
   return Array.from(results);
 }
 
@@ -408,12 +408,12 @@ function filterData(filters) {
     if (!cachedData || !cachedData.items) {
       throw new Error('No data available for filtering');
     }
-    
+
     const startTime = performance.now();
-    
+
     // 결과 필터링
     const filteredIndices = [];
-    
+
     cachedData.items.forEach((item, idx) => {
       // 국가 필터
       if (filters.countries && filters.countries.size > 0) {
@@ -421,40 +421,40 @@ function filterData(filters) {
           return;
         }
       }
-      
+
       // 프로그램 필터
       if (filters.programs && filters.programs.size > 0) {
-        if (!item.programs || !item.programs.some(program => 
+        if (!item.programs || !item.programs.some(program =>
           filters.programs.has(program)
         )) {
           return;
         }
       }
-      
+
       // 날짜 필터
       if (filters.startDate || filters.endDate) {
         const itemDate = item.date_listed ? new Date(item.date_listed) : null;
-        
+
         if (!itemDate) return;
-        
+
         if (filters.startDate && itemDate < new Date(filters.startDate)) {
           return;
         }
-        
+
         if (filters.endDate && itemDate > new Date(filters.endDate)) {
           return;
         }
       }
-      
+
       // 모든 필터 통과
       filteredIndices.push(idx);
     });
-    
+
     // 필터링된 결과 항목 생성
     const filteredItems = filteredIndices.map(idx => cachedData.items[idx]);
-    
+
     const processTime = performance.now() - startTime;
-    
+
     // 결과 전송
     self.postMessage({
       type: 'filter-results',
@@ -462,7 +462,7 @@ function filterData(filters) {
       results: filteredItems,
       processTime: processTime
     });
-    
+
   } catch (error) {
     self.postMessage({
       type: 'error',
@@ -480,21 +480,21 @@ function getDetails(id) {
     if (!cachedData || !cachedData.items) {
       throw new Error('No data available for retrieving details');
     }
-    
+
     // ID로 항목 찾기
     const item = cachedData.items.find(item => item.id === id);
-    
+
     if (!item) {
       throw new Error(`Item with ID ${id} not found`);
     }
-    
+
     // 결과 전송
     self.postMessage({
       type: 'details-result',
       id: id,
       item: item
     });
-    
+
   } catch (error) {
     self.postMessage({
       type: 'error',
@@ -509,7 +509,7 @@ function getDetails(id) {
 function clearCache() {
   cachedData = null;
   searchCache.clear();
-  
+
   self.postMessage({
     type: 'cache-cleared'
   });
