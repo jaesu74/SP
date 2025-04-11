@@ -11,7 +11,19 @@ const apiState = {
     sanctions: null,
     lastFetched: null,
     isLoading: false,
-    error: null
+    loadingProgress: 0,
+    error: null,
+    // 유사어 사전
+    similarTerms: {
+        '북한': ['dprk', 'north korea', '조선민주주의인민공화국'],
+        '러시아': ['russia', 'russian federation', '러시아연방'],
+        '미국': ['usa', 'america', 'united states'],
+        '중국': ['china', 'prc', '중화인민공화국'],
+        '여권': ['passport', 'travel document'],
+        '신분증': ['id card', 'identity card', 'identification'],
+        '테러': ['terror', 'terrorist', 'terrorism'],
+        '제재': ['sanction', 'restriction', 'ban']
+    }
 };
 
 /**
@@ -26,6 +38,16 @@ ApiService.init = function() {
         apiState.sanctions = cached.data;
         apiState.lastFetched = cached.timestamp ? new Date(cached.timestamp) : null;
         console.log(`캐시된 제재 데이터 ${apiState.sanctions.length}개 항목 로드됨`);
+        
+        // 캐시된 데이터가 1시간 이상 지났으면 백그라운드에서 새로고침
+        const now = new Date();
+        if (apiState.lastFetched && (now - apiState.lastFetched) > 60 * 60 * 1000) {
+            console.log('캐시된 데이터가 오래되어 백그라운드에서 새로고침합니다.');
+            setTimeout(() => this.fetchSanctionsData(true), 2000);
+        }
+    } else {
+        // 캐시된 데이터가 없으면 즉시 로드
+        this.fetchSanctionsData();
     }
     
     console.log('API 서비스 초기화 완료');
@@ -51,15 +73,10 @@ ApiService.fetchSanctionsData = async function(forceRefresh = false) {
     
     try {
         apiState.isLoading = true;
+        apiState.loadingProgress = 0;
         
         // 로딩 인디케이터 표시
-        const container = document.getElementById('results-container');
-        if (container) {
-            const loadingElement = document.createElement('div');
-            loadingElement.className = 'loading-indicator';
-            loadingElement.innerHTML = '<div class="spinner"></div><p>제재 데이터를 불러오는 중...</p>';
-            container.appendChild(loadingElement);
-        }
+        this._showLoadingIndicator('데이터를 불러오는 중...');
         
         // 데이터 소스
         const sources = [
@@ -71,22 +88,32 @@ ApiService.fetchSanctionsData = async function(forceRefresh = false) {
         let sanctionsData = [];
         let failedSources = [];
         
-        // 각 소스에서 데이터 가져오기
-        for (const source of sources) {
+        // 각 소스에서 데이터 가져오기 (병렬 처리)
+        const sourcePromises = sources.map(async (source, index) => {
             try {
                 const response = await fetch(source.url);
                 if (response.ok) {
                     const data = await response.json();
                     if (data && Array.isArray(data.data)) {
-                        sanctionsData = [...sanctionsData, ...data.data];
+                        // 로딩 진행 상황 업데이트
+                        apiState.loadingProgress = Math.min(90, apiState.loadingProgress + (30 * (index + 1) / sources.length));
+                        this._updateLoadingProgress();
+                        
                         console.log(`${source.name.toUpperCase()} 제재 데이터 로드 완료: ${data.data.length}개 항목`);
+                        return data.data;
                     }
                 }
+                throw new Error(`${source.name} 데이터 로드 실패`);
             } catch (error) {
                 console.warn(`${source.name.toUpperCase()} 제재 데이터 로드 실패:`, error);
                 failedSources.push(source.name.toUpperCase());
+                return [];
             }
-        }
+        });
+        
+        // 모든 소스의 데이터를 병렬로 가져옴
+        const results = await Promise.all(sourcePromises);
+        sanctionsData = results.flat();
         
         // 데이터가 없는 경우 기본 데이터로 폴백
         if (sanctionsData.length === 0) {
@@ -104,6 +131,10 @@ ApiService.fetchSanctionsData = async function(forceRefresh = false) {
                 throw new Error('제재 데이터를 로드할 수 없습니다.');
             }
         }
+        
+        // 로딩 진행상황 업데이트
+        apiState.loadingProgress = 95;
+        this._updateLoadingProgress();
         
         // 데이터 정규화 및 중복 제거
         sanctionsData = sanctionsData.map(item => ({
@@ -132,6 +163,10 @@ ApiService.fetchSanctionsData = async function(forceRefresh = false) {
             return true;
         });
         
+        // 로딩 진행상황 업데이트
+        apiState.loadingProgress = 100;
+        this._updateLoadingProgress();
+        
         // 상태 업데이트
         apiState.sanctions = sanctionsData;
         apiState.lastFetched = now;
@@ -151,7 +186,7 @@ ApiService.fetchSanctionsData = async function(forceRefresh = false) {
         }
         
         // 실패한 소스에 대한 경고 표시
-        if (failedSources.length > 0) {
+        if (failedSources.length > 0 && !forceRefresh) {
             const failedSourcesStr = failedSources.join(', ');
             console.warn(`일부 데이터(${failedSourcesStr})를 로드하지 못했습니다.`);
             
@@ -168,7 +203,7 @@ ApiService.fetchSanctionsData = async function(forceRefresh = false) {
         apiState.error = error.message;
         
         // 알림 표시
-        if (window.Utils) {
+        if (window.Utils && !forceRefresh) {
             window.Utils.showAlert('제재 데이터를 불러오는 도중 오류가 발생했습니다.', 'error');
         }
         
@@ -177,28 +212,73 @@ ApiService.fetchSanctionsData = async function(forceRefresh = false) {
         apiState.isLoading = false;
         
         // 로딩 인디케이터 제거
-        setTimeout(() => {
-            const loadingIndicator = document.querySelector('.loading-indicator');
-            if (loadingIndicator && loadingIndicator.parentNode) {
-                loadingIndicator.parentNode.removeChild(loadingIndicator);
-            }
-        }, 500);
+        this._hideLoadingIndicator();
     }
+};
+
+/**
+ * 로딩 인디케이터 표시
+ * @param {string} message 표시할 메시지
+ * @private
+ */
+ApiService._showLoadingIndicator = function(message) {
+    const container = document.getElementById('results-container');
+    if (!container) return;
+    
+    // 기존 로딩 인디케이터 확인
+    let loadingElement = document.querySelector('.loading-indicator');
+    if (loadingElement) {
+        loadingElement.querySelector('p').textContent = message;
+        return;
+    }
+    
+    // 새 로딩 인디케이터 생성
+    loadingElement = document.createElement('div');
+    loadingElement.className = 'loading-indicator';
+    loadingElement.innerHTML = `
+        <div class="spinner"></div>
+        <p>${message}</p>
+        <div class="progress-bar">
+            <div class="progress" style="width: 0%"></div>
+        </div>
+    `;
+    container.appendChild(loadingElement);
+};
+
+/**
+ * 로딩 진행상황 업데이트
+ * @private
+ */
+ApiService._updateLoadingProgress = function() {
+    const progressBar = document.querySelector('.loading-indicator .progress');
+    if (progressBar) {
+        progressBar.style.width = `${apiState.loadingProgress}%`;
+    }
+};
+
+/**
+ * 로딩 인디케이터 숨기기
+ * @private
+ */
+ApiService._hideLoadingIndicator = function() {
+    setTimeout(() => {
+        const loadingIndicator = document.querySelector('.loading-indicator');
+        if (loadingIndicator && loadingIndicator.parentNode) {
+            loadingIndicator.parentNode.removeChild(loadingIndicator);
+        }
+    }, 500);
 };
 
 /**
  * 제재 데이터 검색
  * @param {string} query 검색어
- * @param {Object} options 검색 옵션
- * @param {string} options.country 국가 필터
- * @param {string} options.program 프로그램 필터
- * @param {string} options.searchType 검색 유형 (text, number)
- * @param {string} options.numberType 번호 유형 (passport, id, other)
- * @param {Date} options.startDate 시작일
- * @param {Date} options.endDate 종료일
+ * @param {string} countryFilter 국가 필터
+ * @param {string} programFilter 프로그램 필터
+ * @param {string} searchType 검색 유형 (text, number)
+ * @param {string} numberType 번호 유형
  * @returns {Promise<Object>} 검색 결과
  */
-ApiService.searchSanctions = async function(query, options = {}) {
+ApiService.searchSanctions = async function(query, countryFilter = '', programFilter = '', searchType = 'text', numberType = 'all') {
     // 데이터 가져오기
     let data = apiState.sanctions;
     if (!data || data.length === 0) {
@@ -208,6 +288,14 @@ ApiService.searchSanctions = async function(query, options = {}) {
     if (!data || data.length === 0) {
         return { results: [], total: 0 };
     }
+    
+    // 옵션 객체 생성
+    const options = {
+        country: countryFilter,
+        program: programFilter,
+        searchType: searchType,
+        numberType: numberType
+    };
     
     // 검색어가 없으면 전체 데이터 반환 (필터링은 적용)
     if (!query || query.trim() === '') {
@@ -229,9 +317,13 @@ ApiService.searchSanctions = async function(query, options = {}) {
     // 결과에 필터 적용
     const filteredResults = this._applyFilters(searchResults, options);
     
+    // 유사어 및 추천 검색어
+    const suggestions = this.getSuggestedSearchTerms(query);
+    
     return {
         results: filteredResults,
-        total: filteredResults.length
+        total: filteredResults.length,
+        suggestions: suggestions
     };
 };
 
@@ -296,42 +388,79 @@ ApiService._searchByText = function(data, query) {
     
     query = query.toLowerCase().trim();
     
+    // 유사어 확장
+    const expandedTerms = this._expandSearchTerms(query);
+    console.log('확장된 검색어:', expandedTerms);
+    
     return data.filter(item => {
-        // 이름 검색
-        if (item.name && item.name.toLowerCase().includes(query)) {
-            return true;
-        }
-        
-        // 별칭 검색
-        if (item.details && item.details.aliases && item.details.aliases.length > 0) {
-            if (item.details.aliases.some(alias => 
-                alias.toLowerCase().includes(query)
-            )) {
+        // 각 확장된 검색어에 대해 검색
+        for (const term of expandedTerms) {
+            // 이름 검색
+            if (item.name && item.name.toLowerCase().includes(term)) {
                 return true;
             }
-        }
-        
-        // 국가 검색
-        if (item.country && item.country.toLowerCase().includes(query)) {
-            return true;
-        }
-        
-        // 프로그램 검색
-        if (item.programs && item.programs.length > 0) {
-            if (item.programs.some(program => 
-                program.toLowerCase().includes(query)
-            )) {
+            
+            // 별칭 검색
+            if (item.details && item.details.aliases && item.details.aliases.length > 0) {
+                if (item.details.aliases.some(alias => 
+                    alias.toLowerCase().includes(term)
+                )) {
+                    return true;
+                }
+            }
+            
+            // 국가 검색
+            if (item.country && item.country.toLowerCase().includes(term)) {
                 return true;
             }
-        }
-        
-        // 출처 검색
-        if (item.source && item.source.toLowerCase().includes(query)) {
-            return true;
+            
+            // 프로그램 검색
+            if (item.programs && item.programs.length > 0) {
+                if (item.programs.some(program => 
+                    program.toLowerCase().includes(term)
+                )) {
+                    return true;
+                }
+            }
+            
+            // 출처 검색
+            if (item.source && item.source.toLowerCase().includes(term)) {
+                return true;
+            }
         }
         
         return false;
     });
+};
+
+/**
+ * 검색어 확장 (유사어 포함)
+ * @param {string} query 원본 검색어
+ * @returns {Array<string>} 확장된 검색어 배열
+ * @private
+ */
+ApiService._expandSearchTerms = function(query) {
+    const terms = [query]; // 원래 검색어는 항상 포함
+    
+    // 유사어 사전에서 관련 용어 찾기
+    for (const [key, values] of Object.entries(apiState.similarTerms)) {
+        // 키워드가 검색어에 포함되어 있으면
+        if (query.includes(key.toLowerCase())) {
+            // 유사어 추가
+            terms.push(...values.map(v => v.toLowerCase()));
+        }
+        
+        // 검색어가 유사어에 포함되어 있으면
+        if (values.some(v => query.includes(v.toLowerCase()))) {
+            // 키워드 추가
+            terms.push(key.toLowerCase());
+            // 다른 유사어도 추가
+            terms.push(...values.map(v => v.toLowerCase()).filter(v => !query.includes(v.toLowerCase())));
+        }
+    }
+    
+    // 중복 제거 후 반환
+    return [...new Set(terms)];
 };
 
 /**

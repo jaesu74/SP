@@ -32,7 +32,7 @@ function copyDir(src, dest) {
 function copyAndModifyHtml(srcPath, destPath) {
   let content = fs.readFileSync(srcPath, 'utf8');
   
-  // src/ 경로 참조를 제거 (dist에서는 상대 경로만 사용)
+  // src/ 경로 참조 제거 (dist에서는 상대 경로만 사용)
   content = content.replace(/src="src\//g, 'src="');
   content = content.replace(/href="src\//g, 'href="');
   

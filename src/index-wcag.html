@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="세계 경제 제재 검색 서비스 - UN, EU, US 제재 대상 검색">
+    <meta name="keywords" content="경제 제재, 제재 검색, UN 제재, EU 제재, US 제재, 북한 제재, 러시아 제재">
+    <meta name="author" content="WVL">
+    <!-- 캐시 제어 메타 태그 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <!-- 성능 관련 메타 태그 -->
+    <meta name="performance-mode" content="medium">
+    <meta name="application-version" content="1.2.0">
+    
+    <title>세계 경제 제재 검색 서비스</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/textures.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- 선로딩 스크립트 - API 서비스 먼저 로드 -->
+    <script src="js/services/api.js"></script>
+    
+    <!-- 알림 및 검색 컴포넌트 -->
+    <script src="js/components/alerts.js"></script>
+    <script src="js/components/search.js"></script>
+    
+    <!-- PDF 생성 라이브러리 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- 컴포넌트 스크립트 -->
+    <script src="js/components/detail.js"></script>
+    
+    <!-- 앱 코어 스크립트 -->
+    <script type="module" src="js/core/app.js"></script>
+</head>
+<body class="textured-layer">
+    <!-- 로그인 섹션 -->
+    <section id="login-section" class="textured-layer" aria-labelledby="login-title">
+        <div class="page-title-header animated">
+            <h1 id="login-title">세계 경제 제재 검색 서비스</h1>
+        </div>
+        <div class="login-container maximalist animated delay-100">
+            <div class="login-header">
+                <h2>WVL 제재 조회 시스템</h2>
+                <p>UN, EU, US의 제재 대상을 검색하세요</p>
+            </div>
+            <div class="login-body">
+                <div class="alert-container" aria-live="polite"></div>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="email">이메일</label>
+                        <input type="email" id="email" placeholder="이메일을 입력하세요" autocomplete="email" aria-required="true" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">비밀번호</label>
+                        <input type="password" id="password" placeholder="비밀번호를 입력하세요" autocomplete="current-password" aria-required="true" required>
+                        <button type="button" class="toggle-password-btn" aria-label="비밀번호 표시 전환">
+                            <i class="fas fa-eye toggle-password" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <button type="submit" class="btn-primary">로그인</button>
+                </form>
+                <div class="login-notice" style="margin-top: 15px; text-align: center;">
+                    <p style="color: #666; font-size: 0.9em;">로그인에 문제가 있나요? 아래 버튼을 클릭해보세요:</p>
+                    <button type="button" class="btn-secondary" style="margin-top: 5px;" id="auto-login-btn">자동 로그인</button>
+                </div>
+                <div class="login-footer">
+                    <p>테스트 계정: jaesu@kakao.com / 1234</p>
+                    <div class="login-links">
+                        <a href="#" id="register-link">회원가입</a>
+                        <a href="#" id="help-link">도움말</a>
+                        <a href="#" id="about-link">회사소개</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 메인 섹션 -->
+    <section id="main-section" class="textured-layer" style="display: none;" aria-labelledby="main-title">
+        <!-- 상단 헤더 -->
+        <header class="main-header maximalist">
+            <div class="container">
+                <div class="header-logo">
+                    <h1 id="main-title">WVL 제재 조회 시스템</h1>
+                </div>
+                <div class="user-info">
+                    <span id="user-name"></span>
+                    <button id="logout-btn" class="btn-text">로그아웃</button>
+                </div>
+            </div>
+        </header>
+        
+        <div class="container">
+            <div class="alert-container" aria-live="polite"></div>
+            
+            <!-- 검색 섹션 업데이트 - 통합 검색 인터페이스 -->
+            <div class="search-section maximalist" aria-labelledby="search-section-title">
+                <div class="container">
+                    <h2 id="search-section-title">제재 정보 검색</h2>
+                    <div class="search-bar" role="search">
+                        <label for="search-input" class="sr-only">검색어 입력</label>
+                        <input type="text" id="search-input" placeholder="이름, 별칭, 국가, 식별번호 등으로 검색..." aria-label="검색어 입력">
+                        <button id="search-button" aria-label="검색">
+                            <i class="fas fa-search" aria-hidden="true"></i> 검색
+                        </button>
+                    </div>
+
+                    <!-- 간소화된 검색 옵션 -->
+                    <div class="search-options">
+                        <div class="search-hints">
+                            <p class="hint-text">이름, 별칭, 국가, 여권번호, 신분증번호 등 모든 정보로 통합 검색이 가능합니다.</p>
+                        </div>
+                        
+                        <div id="search-suggestions" class="search-suggestions" style="display: none;" aria-live="polite">
+                            <p>추천 검색어:</p>
+                            <div class="suggestion-tags" role="listbox" aria-label="검색어 추천 목록"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 필터 및 결과 요약 -->
+            <div class="filter-summary" aria-live="polite">
+                <div class="results-count-container">
+                    검색 결과: <span id="results-count">0</span>개
+                </div>
+            </div>
+
+            <!-- 결과 컨테이너 -->
+            <div class="results-section" aria-labelledby="results-title">
+                <h2 id="results-title" class="sr-only">검색 결과</h2>
+                <div class="container">
+                    <div id="results-container" class="results-grid animated delay-300" role="region" aria-live="polite">
+                        <!-- 검색 결과가 여기에 표시됩니다 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 최신 업데이트 정보 -->
+            <div class="update-info animated delay-400">
+                <p>마지막 업데이트: <span id="last-update">2025-03-26 12:00 LT</span></p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 상세 정보 모달 -->
+    <div id="detail-modal" class="modal" role="dialog" aria-labelledby="detail-title" aria-hidden="true" aria-modal="true">
+        <div class="modal-content maximalist">
+            <div class="modal-header">
+                <h2 id="detail-title">제재 대상 상세 정보</h2>
+                <button id="detail-close" class="close-btn" aria-label="닫기">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="detail-content"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="detail-download" class="btn-primary">
+                    <i class="fas fa-download" aria-hidden="true"></i> PDF 다운로드
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 정보 모달 -->
+    <div id="info-modal" class="modal" role="dialog" aria-labelledby="info-title" aria-hidden="true" aria-modal="true">
+        <div class="modal-content maximalist">
+            <div class="modal-header">
+                <h2 id="info-title">정보</h2>
+                <button id="info-close" class="close-btn" aria-label="닫기">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="info-content"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 회원가입 모달 -->
+    <div id="register-modal" class="modal" role="dialog" aria-labelledby="register-title" aria-hidden="true" aria-modal="true">
+        <div class="modal-content maximalist">
+            <div class="modal-header">
+                <h2 id="register-title">회원가입</h2>
+                <button id="register-close" class="close-btn" aria-label="닫기">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="alert-container" aria-live="polite"></div>
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="register-name">이름 (실명)</label>
+                        <input type="text" id="register-name" placeholder="이름을 입력하세요" aria-required="true" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">이메일</label>
+                        <input type="email" id="register-email" placeholder="이메일을 입력하세요" aria-required="true" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">비밀번호</label>
+                        <input type="password" id="register-password" placeholder="비밀번호를 입력하세요" aria-required="true" required>
+                        <button type="button" class="toggle-password-btn" aria-label="비밀번호 표시 전환">
+                            <i class="fas fa-eye toggle-password" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-confirm">비밀번호 확인</label>
+                        <input type="password" id="register-confirm" placeholder="비밀번호를 다시 입력하세요" aria-required="true" required>
+                        <button type="button" class="toggle-password-btn" aria-label="비밀번호 표시 전환">
+                            <i class="fas fa-eye toggle-password" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <input type="checkbox" id="register-terms" aria-required="true" required>
+                        <label for="register-terms">
+                            <a href="#" id="terms-link">이용약관</a>과 <a href="#" id="privacy-link">개인정보 처리방침</a>에 동의합니다.
+                        </label>
+                    </div>
+                    <button type="submit" class="btn-primary">가입하기</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 스크린 리더용 설명 (화면에는 보이지 않음) -->
+    <div class="sr-only" aria-live="polite" id="screen-reader-announcements"></div>
+
+</body>
+</html>

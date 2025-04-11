@@ -1,0 +1,295 @@
+/* 접근성 관련 CSS */
+
+/* 스크린 리더 전용 클래스 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 스크린 리더에서는 표시하고 시각적으로는 숨김 */
+.sr-only-focusable:active,
+.sr-only-focusable:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* 키보드 포커스 스타일 */
+:focus {
+  outline: 3px solid #4d90fe;
+  outline-offset: 2px;
+}
+
+/* 높은 대비 모드 지원 */
+@media (forced-colors: active) {
+  button, a, .btn-primary, .btn-secondary {
+    forced-color-adjust: none;
+  }
+}
+
+/* 충분한 색상 대비 제공 */
+.high-contrast {
+  --text-color: #000;
+  --background-color: #fff;
+  --primary-color: #0066cc;
+  --secondary-color: #4d4d4d;
+  --success-color: #007700;
+  --error-color: #cc0000;
+  --warning-color: #cc7700;
+  --info-color: #0066cc;
+  --border-color: #000;
+  
+  color: var(--text-color);
+  background-color: var(--background-color);
+}
+
+/* 스킵 네비게이션 */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #000;
+  color: white;
+  padding: 8px;
+  z-index: 100;
+  transition: top 0.3s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* 키보드 사용자를 위한 포커스 표시기 */
+.keyboard-user *:focus {
+  outline: 3px solid #4d90fe !important;
+}
+
+/* 모바일 기기에서 터치 타겟 크기 충분히 확보 */
+@media (max-width: 768px) {
+  button, .btn, 
+  input[type="button"], 
+  input[type="submit"],
+  input[type="reset"],
+  a.btn, 
+  a.button,
+  .toggle-password-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .form-group {
+    margin-bottom: 16px;
+  }
+  
+  input, select, textarea {
+    font-size: 16px; /* 모바일에서 자동 확대 방지 */
+  }
+}
+
+/* 텍스트 간격 및 행 높이 */
+body {
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+
+p, li, td, th, input, button, a {
+  line-height: 1.5;
+}
+
+/* 모달 접근성 */
+.modal {
+  display: none;
+}
+
+.modal[aria-hidden="false"] {
+  display: flex;
+}
+
+.modal[aria-hidden="false"] .modal-content {
+  animation: fadeIn 0.3s forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 알림 접근성 */
+.alert {
+  position: relative;
+}
+
+/* 로딩 인디케이터 접근성 */
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.loading-message {
+  margin-left: 10px;
+}
+
+/* 접근성 테마 전환 버튼 */
+.accessibility-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1000;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.accessibility-menu {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  background: white;
+  border-radius: 5px;
+  padding: 15px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  display: none;
+}
+
+.accessibility-menu.show {
+  display: block;
+}
+
+.accessibility-menu ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.accessibility-menu li {
+  margin: 10px 0;
+}
+
+.accessibility-menu button {
+  background: none;
+  border: 1px solid #ccc;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.accessibility-menu button:hover {
+  background: #f5f5f5;
+}
+
+/* 검색 추천 접근성 */
+.suggestion-tag {
+  padding: 5px 10px;
+  margin: 3px;
+  display: inline-block;
+  background: #f0f0f0;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+}
+
+.suggestion-tag:hover,
+.suggestion-tag:focus {
+  background: #e0e0e0;
+  outline: 2px solid #4d90fe;
+}
+
+/* 결과 항목 접근성 */
+.result-item {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 15px;
+  margin-bottom: 15px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.result-item:hover,
+.result-item:focus {
+  background-color: #f5f5f5;
+  outline: 2px solid #4d90fe;
+}
+
+/* 상세 정보 테이블 접근성 */
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.detail-table th,
+.detail-table td {
+  padding: 8px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.detail-table th {
+  background-color: #f5f5f5;
+  font-weight: bold;
+}
+
+/* 고대비 모드 */
+body.high-contrast {
+  background: #fff;
+  color: #000;
+}
+
+body.high-contrast .modal-content,
+body.high-contrast .result-item,
+body.high-contrast .detail-table th,
+body.high-contrast .detail-table td,
+body.high-contrast .search-bar input,
+body.high-contrast .btn-primary,
+body.high-contrast .btn-secondary {
+  background: #fff;
+  color: #000;
+  border: 2px solid #000;
+}
+
+body.high-contrast a {
+  color: #00008B;
+  text-decoration: underline;
+}
+
+body.high-contrast .btn-primary {
+  background: #000;
+  color: #fff;
+}
+
+/* 텍스트 크기 조정 */
+body.larger-text {
+  font-size: 120%;
+}
+
+body.largest-text {
+  font-size: 150%;
+}
+
+/* 애니메이션 감소 모드 */
+body.reduce-motion * {
+  animation-duration: 0.001s !important;
+  transition-duration: 0.001s !important;
+}
