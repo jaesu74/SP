@@ -1,0 +1,53 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Verify CNAME file
+        run: |
+          if [ ! -f "dist/CNAME" ]; then
+            echo "wvl.co.kr" > dist/CNAME
+          fi
+          echo "Verifying CNAME content:"
+          cat dist/CNAME
+
+      - name: Deploy Files
+        run: |
+          cp -r dist/* .
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          git commit -m "Deploy built files to gh-pages" || echo "No changes to commit"
+          git push --force origin HEAD:gh-pages
