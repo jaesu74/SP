@@ -48,11 +48,27 @@ jobs:
           echo "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID || '123456789012' }}" >> .env.local
           echo "NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID || '1:123456789012:web:abc123def456' }}" >> .env.local
           echo "NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${{ secrets.FIREBASE_MEASUREMENT_ID || 'G-ABCD1234' }}" >> .env.local
+          
+      - name: Debug file structure
+        run: |
+          echo "=== File Structure ==="
+          ls -la
+          echo "=== Lib Directory ==="
+          ls -la lib/
+          echo "=== Firebase Directory ==="
+          ls -la lib/firebase/
+          echo "=== Pages Directory ==="
+          ls -la pages/
       
       - name: Build with Next.js
-        run: npm run build
+        run: |
+          echo "=== Starting Next.js build ==="
+          npm run build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
       
       - name: Upload artifact
+        if: success()
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./out
