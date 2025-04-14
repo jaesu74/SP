@@ -1,12 +1,27 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // 정적 내보내기 비활성화
-  // output: 'export',
+  swcMinify: true,
+  output: 'standalone',
+  // GitHub Pages 배포를 위한 설정
+  basePath: process.env.NODE_ENV === 'production' ? '/SP' : '',
   images: {
     unoptimized: true,
   },
-  // Next.js 14에서는 Pages Router가 기본값이므로 설정 필요 없음
+  // 환경 변수 설정
+  env: {
+    APP_NAME: '제재 정보 검색 시스템',
+    APP_VERSION: '1.0.0',
+  },
+  // API 경로
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: '/api/:path*',
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig; 

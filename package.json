@@ -5,9 +5,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && next export",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "collect": "node scripts/integrate-sanctions-data.js",
+    "cleanup": "node scripts/cleanup-old-versions.js"
   },
   "dependencies": {
     "chart.js": "^4.4.8",
