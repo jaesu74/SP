@@ -1,0 +1,97 @@
+name: Deploy Sanctions Search System
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 9 * * 0,3,4'  # 일요일(0), 수요일(3), 목요일(4) 오전 9시에 실행
+
+jobs:
+  collect-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip list
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Install Node.js dependencies
+        run: |
+          npm ci
+          
+      - name: Environment Setup
+        run: |
+          # 필요한 디렉토리 생성
+          mkdir -p public/data
+          mkdir -p logs
+          # 파일 시스템 확인
+          find . -type f -name "*.py" | sort
+          # Python 버전 확인
+          python --version
+          # Node.js 버전 확인
+          node --version
+          npm --version
+          # 실행 권한 설정
+          chmod +x sanctions_collector.py
+          chmod +x collectors/*.py
+          
+      - name: Setup Firebase Config
+        run: |
+          echo "Creating Firebase service account file"
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > firebase-service-account.json
+          cat firebase-service-account.json | jq 'del(.private_key)'
+          
+      - name: Update sanctions data
+        run: |
+          echo "Running sanctions collector..."
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          export PYTHONIOENCODING=utf-8
+          export LANG=en_US.UTF-8
+          # 모든 제재 데이터 수집 (UN, EU, US)
+          python sanctions_collector.py
+          echo "Collector execution completed"
+          # 결과 확인
+          ls -la public/data
+          
+      - name: Build Next.js application
+        run: |
+          npm run build
+          
+      - name: Create CNAME file
+        run: |
+          echo "wvl.co.kr" > out/CNAME
+          cat out/CNAME
+          
+      - name: Deploy to GitHub Pages
+        if: success()
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: out
+          branch: gh-pages
+          token: ${{ secrets.GITHUB_TOKEN }}
+          clean: true
+          
+      - name: Send notification on failure
+        if: failure()
+        run: |
+          echo "Workflow failed at $(date)"
+          echo "Please check the logs for more information." 
