@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  output: 'standalone',
+  output: 'export',
   // GitHub Pages 배포를 위한 설정
   basePath: process.env.NODE_ENV === 'production' ? '/SP' : '',
   images: {
