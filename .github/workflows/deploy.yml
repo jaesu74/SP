@@ -1,110 +1,97 @@
-name: 제재 정보 검색 시스템 배포
+name: Deploy Sanctions Search System
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+    branches: [ main ]
+  schedule:
+    - cron: '0 9 * * 0,3,4'  # 일요일(0), 수요일(3), 목요일(4) 오전 9시에 실행
 
 jobs:
-  build:
+  collect-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-      - name: Setup Node
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip list
+          
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-      
-      - name: Create dummy data for static build
-        run: |
-          mkdir -p public/data
-          echo '[]' > public/data/sanctions.json
-          echo '{"current":"2023-01-01","lastUpdated":"2023-01-01T00:00:00.000Z","recordCount":0}' > public/data/version.json
-      
-      - name: Create CNAME file if not exists
-        run: |
-          if [ ! -f ./public/CNAME ]; then
-            echo "wvl.co.kr" > ./public/CNAME
-            echo "Created CNAME file"
-          else
-            echo "CNAME file already exists"
-            cat ./public/CNAME
-          fi
-      
-      - name: Detect custom domain
-        id: detect_domain
-        run: |
-          if [ -f ./public/CNAME ]; then
-            echo "Custom domain detected: $(cat ./public/CNAME)"
-            echo "USE_CUSTOM_DOMAIN=true" >> $GITHUB_ENV
-          else
-            echo "No custom domain detected"
-            echo "USE_CUSTOM_DOMAIN=false" >> $GITHUB_ENV
-          fi
-      
-      - name: Create environment file
-        run: |
-          echo "NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY || 'dummy-api-key' }}" >> .env.local
-          echo "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.FIREBASE_AUTH_DOMAIN || 'example.firebaseapp.com' }}" >> .env.local
-          echo "NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID || 'example-project' }}" >> .env.local
-          echo "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET || 'example.appspot.com' }}" >> .env.local
-          echo "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID || '123456789012' }}" >> .env.local
-          echo "NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID || '1:123456789012:web:abc123def456' }}" >> .env.local
-          echo "NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${{ secrets.FIREBASE_MEASUREMENT_ID || 'G-ABCD1234' }}" >> .env.local
-          echo "NEXT_PUBLIC_USE_CUSTOM_DOMAIN=${{ env.USE_CUSTOM_DOMAIN }}" >> .env.local
+          node-version: '18'
           
-      - name: Debug file structure
+      - name: Install Node.js dependencies
         run: |
-          echo "=== File Structure ==="
-          ls -la
-          echo "=== Lib Directory ==="
-          ls -la lib/
-          echo "=== Firebase Directory ==="
-          ls -la lib/firebase/
-          echo "=== Pages Directory ==="
-          ls -la pages/
-          echo "=== Custom Domain Status ==="
-          echo "USE_CUSTOM_DOMAIN=${{ env.USE_CUSTOM_DOMAIN }}"
-      
-      - name: Build with Next.js
+          npm ci
+          
+      - name: Environment Setup
         run: |
-          echo "=== Starting Next.js build ==="
+          # 필요한 디렉토리 생성
+          mkdir -p public/data
+          mkdir -p logs
+          # 파일 시스템 확인
+          find . -type f -name "*.py" | sort
+          # Python 버전 확인
+          python --version
+          # Node.js 버전 확인
+          node --version
+          npm --version
+          # 실행 권한 설정
+          chmod +x sanctions_collector.py
+          chmod +x collectors/*.py
+          
+      - name: Setup Firebase Config
+        run: |
+          echo "Creating Firebase service account file"
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > firebase-service-account.json
+          cat firebase-service-account.json | jq 'del(.private_key)'
+          
+      - name: Update sanctions data
+        run: |
+          echo "Running sanctions collector..."
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          export PYTHONIOENCODING=utf-8
+          export LANG=en_US.UTF-8
+          # 모든 제재 데이터 수집 (UN, EU, US)
+          python sanctions_collector.py
+          echo "Collector execution completed"
+          # 결과 확인
+          ls -la public/data
+          
+      - name: Build Next.js application
+        run: |
           npm run build
-        env:
-          NODE_OPTIONS: --max-old-space-size=4096
-          NEXT_PUBLIC_USE_CUSTOM_DOMAIN: ${{ env.USE_CUSTOM_DOMAIN }}
-      
-      - name: Upload artifact
-        if: success()
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./out
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
+          
+      - name: Create CNAME file
+        run: |
+          echo "wvl.co.kr" > out/CNAME
+          cat out/CNAME
+          
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4 
+        if: success()
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: out
+          branch: gh-pages
+          token: ${{ secrets.GITHUB_TOKEN }}
+          clean: true
+          
+      - name: Send notification on failure
+        if: failure()
+        run: |
+          echo "Workflow failed at $(date)"
+          echo "Please check the logs for more information." 
