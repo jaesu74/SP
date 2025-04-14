@@ -9,6 +9,8 @@ on:
 jobs:
   collect-data:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 저장소 쓰기 권한 필요
     steps:
       - name: 코드 체크아웃
         uses: actions/checkout@v3
@@ -22,6 +24,11 @@ jobs:
       - name: 종속성 설치
         run: npm ci
         
+      - name: 디렉토리 준비
+        run: |
+          mkdir -p public/data/versions
+          touch public/data/versions/.gitkeep
+        
       - name: 데이터 수집 스크립트 실행
         run: node scripts/integrate-sanctions-data.js
         
@@ -33,7 +40,7 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add public/data/
-          git commit -m "데이터 자동 수집: $(date +'%Y-%m-%d')" || echo "변경 사항 없음"
+          git diff --quiet && git diff --staged --quiet || git commit -m "데이터 자동 수집: $(date +'%Y-%m-%d')"
           
       - name: 변경사항 푸시
         uses: ad-m/github-push-action@master
