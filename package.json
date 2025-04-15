@@ -12,8 +12,7 @@
     "collect": "node scripts/integrate-sanctions-data.js",
     "cleanup": "node scripts/cleanup-old-versions.js",
     "split-data": "node scripts/split-data.js",
-    "sync-data": "node scripts/sync-data.js && node scripts/split-data.js",
-    "prepare": "node scripts/split-data.js"
+    "sync-data": "node scripts/sync-data.js && node scripts/split-data.js"
   },
   "dependencies": {
     "axios": "^1.8.4",

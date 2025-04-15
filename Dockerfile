@@ -8,6 +8,9 @@ WORKDIR /app
 # 패키지 파일 복사
 COPY package.json package-lock.json ./
 
+# 먼저 scripts 디렉토리 복사 (prepare 스크립트에 필요)
+COPY scripts ./scripts/
+
 # 종속성 설치
 RUN npm ci --frozen-lockfile --production
 
@@ -17,6 +20,7 @@ WORKDIR /app
 
 # 의존성 복사
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/scripts ./scripts
 COPY . .
 
 # 환경 변수 설정 (만약 있다면)
@@ -42,6 +46,7 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/docs ./docs
+COPY --from=builder /app/scripts ./scripts
 
 # 헬스체크 및 유지보수를 위한 스크립트 복사
 COPY --from=builder /app/scripts ./scripts
