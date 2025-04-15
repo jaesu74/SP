@@ -19,6 +19,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# 환경 변수 설정 (만약 있다면)
+ARG FIREBASE_SERVICE_ACCOUNT
+ENV FIREBASE_SERVICE_ACCOUNT=${FIREBASE_SERVICE_ACCOUNT}
+
 # 데이터 동기화 및 빌드
 RUN npm run sync-data
 RUN npm run build
@@ -29,6 +33,7 @@ WORKDIR /app
 
 # 환경 변수 설정
 ENV NODE_ENV=production
+ENV FIREBASE_SERVICE_ACCOUNT=${FIREBASE_SERVICE_ACCOUNT}
 
 # 필요한 파일만 복사
 COPY --from=builder /app/next.config.js ./
