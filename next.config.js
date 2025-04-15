@@ -8,6 +8,32 @@ const nextConfig = {
   },
   // 출력 압축
   compress: true,
+  
+  // 프로덕션 URL 설정
+  assetPrefix: process.env.NODE_ENV === 'production' ? 'https://wvl.co.kr' : '',
+  
+  // 환경 변수
+  env: {
+    SITE_URL: 'https://wvl.co.kr',
+  },
+  
+  // 리다이렉션 설정 - 로컬에서 접속 시 wvl.co.kr로 리다이렉트
+  async redirects() {
+    if (process.env.NODE_ENV === 'development') {
+      return [
+        {
+          source: '/',
+          destination: 'https://wvl.co.kr',
+          permanent: true,
+        },
+      ];
+    }
+    return [];
+  },
+  
+  // 출력 모드
+  output: 'export',
+  
   // 실험적 기능 제거 - 오류 방지
 };
 

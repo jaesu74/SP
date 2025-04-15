@@ -8,6 +8,10 @@ on:
 
 env:
   FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+  NEXT_PUBLIC_DOMAIN: wvl.co.kr
+  NEXT_PUBLIC_BASE_URL: https://wvl.co.kr
+  NEXT_PUBLIC_API_URL: https://wvl.co.kr/api
+  NEXT_PUBLIC_DATA_API_URL: https://wvl.co.kr/api/sanctions
 
 jobs:
   collect-and-deploy:
@@ -63,6 +67,10 @@ jobs:
           echo "Firebase 환경 변수 설정 완료"
           # 환경 변수 파일 생성
           echo "FIREBASE_SERVICE_ACCOUNT='${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'" > .env
+          echo "NEXT_PUBLIC_DOMAIN=wvl.co.kr" >> .env
+          echo "NEXT_PUBLIC_BASE_URL=https://wvl.co.kr" >> .env
+          echo "NEXT_PUBLIC_API_URL=https://wvl.co.kr/api" >> .env
+          echo "NEXT_PUBLIC_DATA_API_URL=https://wvl.co.kr/api/sanctions" >> .env
           
       - name: Update sanctions data
         run: |
@@ -114,6 +122,10 @@ jobs:
           ECR_REPOSITORY: sanctions-app
           IMAGE_TAG: ${{ github.sha }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          NEXT_PUBLIC_DOMAIN: wvl.co.kr
+          NEXT_PUBLIC_BASE_URL: https://wvl.co.kr
+          NEXT_PUBLIC_API_URL: https://wvl.co.kr/api
+          NEXT_PUBLIC_DATA_API_URL: https://wvl.co.kr/api/sanctions
         run: |
           # Docker 이미지 빌드
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .

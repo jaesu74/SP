@@ -8,6 +8,10 @@ on:
 
 env:
   FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+  NEXT_PUBLIC_DOMAIN: wvl.co.kr
+  NEXT_PUBLIC_BASE_URL: https://wvl.co.kr
+  NEXT_PUBLIC_API_URL: https://wvl.co.kr/api
+  NEXT_PUBLIC_DATA_API_URL: https://wvl.co.kr/api/sanctions
 
 jobs:
   collect-data:
@@ -36,6 +40,10 @@ jobs:
         run: |
           echo "Firebase 환경 변수 설정 완료"
           echo "FIREBASE_SERVICE_ACCOUNT='${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'" > .env
+          echo "NEXT_PUBLIC_DOMAIN=wvl.co.kr" >> .env
+          echo "NEXT_PUBLIC_BASE_URL=https://wvl.co.kr" >> .env
+          echo "NEXT_PUBLIC_API_URL=https://wvl.co.kr/api" >> .env
+          echo "NEXT_PUBLIC_DATA_API_URL=https://wvl.co.kr/api/sanctions" >> .env
           
       - name: 데이터 수집 스크립트 실행
         run: node scripts/integrate-sanctions-data.js

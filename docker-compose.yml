@@ -10,6 +10,10 @@ services:
     environment:
       - NODE_ENV=production
       - FIREBASE_SERVICE_ACCOUNT=${FIREBASE_SERVICE_ACCOUNT}
+      - NEXT_PUBLIC_DOMAIN=wvl.co.kr
+      - NEXT_PUBLIC_BASE_URL=https://wvl.co.kr
+      - NEXT_PUBLIC_API_URL=https://wvl.co.kr/api
+      - NEXT_PUBLIC_DATA_API_URL=https://wvl.co.kr/api/sanctions
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
