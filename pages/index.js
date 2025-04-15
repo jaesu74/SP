@@ -5,6 +5,351 @@ import { searchSanctions, getSanctionById } from '../lib/sanctionsService';
 import { useAuth } from '../lib/firebase/context';
 import { logoutUser } from '../lib/firebase/auth';
 
+// 팝업 모달 컴포넌트 추가
+const DetailModal = ({ item, isOpen, onClose, activeTab, setActiveTab }) => {
+  if (!isOpen || !item) return null;
+
+  const handleDownloadPDF = async () => {
+    try {
+      // 상태 업데이트 - 다운로드 중
+      onStatusChange({ isDownloading: true });
+      
+      // PDF 생성을 위한 API 호출
+      const response = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(item),
+      });
+      
+      if (!response.ok) {
+        throw new Error('PDF 생성 중 오류가 발생했습니다.');
+      }
+      
+      // PDF 바이너리 데이터 받기
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      // PDF 다운로드
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `sanction_${item.id}.pdf`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      // 상태 업데이트 - 다운로드 완료
+      onStatusChange({ isDownloading: false });
+    } catch (error) {
+      console.error('PDF 다운로드 중 오류:', error);
+      alert('PDF 다운로드 중 오류가 발생했습니다.');
+      onStatusChange({ isDownloading: false });
+    }
+  };
+
+  const handleDownloadText = () => {
+    if (!item) return;
+    
+    // 텍스트 내용 생성
+    let textContent = `FACTION 세계 무역 제재 정보\n\n`;
+    textContent += `ID: ${item.id}\n`;
+    textContent += `이름: ${item.name}\n`;
+    textContent += `유형: ${item.type || '정보 없음'}\n`;
+    textContent += `국가: ${item.country || '정보 없음'}\n`;
+    textContent += `출처: ${item.source || '정보 없음'}\n\n`;
+    
+    textContent += `제재 프로그램:\n`;
+    if (item.programs && item.programs.length > 0) {
+      item.programs.forEach(program => {
+        textContent += `- ${program}\n`;
+      });
+    } else {
+      textContent += `정보 없음\n`;
+    }
+    
+    textContent += `\n세부 정보:\n`;
+    if (item.details) {
+      Object.entries(item.details).forEach(([key, value]) => {
+        const formattedKey = key.replace(/([A-Z])/g, ' $1').trim();
+        
+        if (Array.isArray(value)) {
+          textContent += `${formattedKey}:\n`;
+          value.forEach(v => {
+            textContent += `- ${v}\n`;
+          });
+        } else {
+          textContent += `${formattedKey}: ${value}\n`;
+        }
+      });
+    } else {
+      textContent += `세부 정보 없음\n`;
+    }
+    
+    // 텍스트 파일 다운로드
+    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `sanction_${item.id}.txt`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadJSON = () => {
+    if (!item) return;
+    
+    const jsonContent = JSON.stringify(item, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `sanction_${item.id}.json`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const onStatusChange = (statusUpdate) => {
+    // 모달에서 상태 변경을 위한 콜백
+    // 여기서는 아이템 업데이트를 직접 할 수 없으므로 필요한 경우 콜백을 통해 처리
+  };
+
+  // 상세 정보 렌더링
+  const renderDetailContent = () => {
+    if (!item) return null;
+    
+    if (item.isLoading) {
+      return (
+        <div className="modal-loading">
+          <div className="modal-loading-spinner"></div>
+          <p>상세 정보를 불러오는 중입니다...</p>
+        </div>
+      );
+    }
+    
+    if (item.loadError) {
+      return (
+        <div className="modal-error">
+          <svg xmlns="http://www.w3.org/2000/svg" className="modal-error-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p>{item.errorMessage || '상세 정보를 불러오는 중 오류가 발생했습니다.'}</p>
+          <button 
+            onClick={() => onRetry(item)}
+            className="retry-btn"
+          >
+            다시 시도
+          </button>
+        </div>
+      );
+    }
+    
+    switch(activeTab) {
+      case 'basic':
+        return (
+          <div className="detail-grid">
+            <div>
+              <h4 className="detail-section-title">기본 정보</h4>
+              <ul className="detail-list">
+                <li><span className="detail-label">ID:</span> {item.id}</li>
+                <li><span className="detail-label">이름:</span> {item.name}</li>
+                <li><span className="detail-label">유형:</span> {item.type || '정보 없음'}</li>
+                <li><span className="detail-label">국가:</span> {item.country || '정보 없음'}</li>
+                <li><span className="detail-label">출처:</span> {item.source || '정보 없음'}</li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="detail-section-title">제재 정보</h4>
+              <ul className="detail-list">
+                <li>
+                  <span className="detail-label">제재 프로그램:</span> 
+                  <div className="detail-tags">
+                    {item.programs && item.programs.length > 0 
+                      ? item.programs.map((program, idx) => (
+                        <span key={idx} className="tag blue-tag">
+                          {program}
+                        </span>
+                      ))
+                      : <span className="no-data">정보 없음</span>}
+                  </div>
+                </li>
+                {item.details && (
+                  <>
+                    {item.details.aliases && item.details.aliases.length > 0 && (
+                      <li>
+                        <span className="detail-label">별칭:</span>
+                        <div className="detail-tags">
+                          {item.details.aliases.map((alias, idx) => (
+                            <span key={idx} className="tag gray-tag">
+                              {alias}
+                            </span>
+                          ))}
+                        </div>
+                      </li>
+                    )}
+                    {item.details.birthDate && (
+                      <li><span className="detail-label">생년월일:</span> {item.details.birthDate}</li>
+                    )}
+                  </>
+                )}
+              </ul>
+            </div>
+            
+            {/* 추가 상세 정보 */}
+            {item.details && (
+              <div className="full-width">
+                <h4 className="detail-section-title">추가 정보</h4>
+                <div className="detail-grid">
+                  {Object.entries(item.details).map(([key, value]) => {
+                    // 이미 위에서 표시된 정보는 제외
+                    if (key === 'aliases' || key === 'birthDate') return null;
+                    
+                    return (
+                      <div key={key} className="detail-item">
+                        <div className="detail-label capitalize">
+                          {key.replace(/([A-Z])/g, ' $1').trim()}:
+                        </div>
+                        <div className="detail-value">
+                          {Array.isArray(value) 
+                            ? value.map((v, i) => (
+                              <span key={i} className="tag gray-tag">
+                                {typeof v === 'object' 
+                                  ? JSON.stringify(v) // 객체는 문자열로 변환
+                                  : v}
+                              </span>
+                            ))
+                            : typeof value === 'object'
+                              ? JSON.stringify(value) // 객체는 문자열로 변환 
+                              : <span>{value}</span>
+                          }
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      case 'json':
+        return (
+          <div>
+            <div className="detail-header">
+              <h4 className="detail-section-title">JSON 데이터</h4>
+              <button
+                onClick={handleDownloadJSON}
+                className="download-btn json-btn"
+              >
+                JSON 다운로드
+              </button>
+            </div>
+            <pre className="json-display">
+              {JSON.stringify(item, null, 2)}
+            </pre>
+          </div>
+        );
+      case 'download':
+        return (
+          <div>
+            <h4 className="detail-section-title">문서 다운로드</h4>
+            <p>이 제재 항목에 대한 정보를 다양한 형식으로 다운로드할 수 있습니다.</p>
+            
+            <div className="download-actions">
+              <button
+                onClick={handleDownloadPDF}
+                className="download-btn pdf-btn"
+                disabled={item.isDownloading}
+              >
+                {item.isDownloading ? (
+                  <>
+                    <span className="loading-spinner"></span>
+                    <span>PDF 생성 중...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="download-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    PDF 다운로드
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={handleDownloadText}
+                className="download-btn text-btn"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="download-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                텍스트 다운로드
+              </button>
+              
+              <button
+                onClick={handleDownloadJSON}
+                className="download-btn json-btn"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="download-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                </svg>
+                JSON 다운로드
+              </button>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-container" onClick={e => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>×</button>
+        
+        <div className="modal-header">
+          <h2>{item.name}</h2>
+          <p>ID: {item.id}</p>
+        </div>
+        
+        <div className="modal-tabs">
+          <button 
+            className={`modal-tab ${activeTab === 'basic' ? 'active' : ''}`}
+            onClick={() => setActiveTab('basic')}
+          >
+            기본 정보
+          </button>
+          <button 
+            className={`modal-tab ${activeTab === 'json' ? 'active' : ''}`}
+            onClick={() => setActiveTab('json')}
+          >
+            JSON 데이터
+          </button>
+          <button 
+            className={`modal-tab ${activeTab === 'download' ? 'active' : ''}`}
+            onClick={() => setActiveTab('download')}
+          >
+            다운로드
+          </button>
+        </div>
+        
+        <div className="modal-content">
+          {renderDetailContent()}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -17,6 +362,7 @@ export default function Home() {
   const [hasSearched, setHasSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isFirstVisit, setIsFirstVisit] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
@@ -89,16 +435,46 @@ export default function Home() {
   // 항목 선택 시 상세 정보 표시
   const handleItemSelect = async (item) => {
     try {
-      const detailedItem = await getSanctionById(item.id);
-      setSelectedItem(detailedItem);
-      setActiveTab('basic');
+      // 이미 상세 정보가 불러와진 경우는 API 호출 건너뛰기
+      if (selectedItem && selectedItem.id === item.id && selectedItem.details) {
+        console.log('이미 로드된 상세 정보를 사용합니다.');
+        setSelectedItem(selectedItem);
+        setIsModalOpen(true);
+        setActiveTab('basic');
+        return;
+      }
       
-      // 상세 정보가 표시된 위치로 스크롤
-      setTimeout(() => {
-        document.getElementById('detailsSection')?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+      // 로딩 상태 표시
+      setSelectedItem({
+        ...item, 
+        isLoading: true, 
+        loadError: false
+      });
+      setIsModalOpen(true);
+      
+      console.log(`ID '${item.id}'의 상세 정보를 요청합니다.`);
+      
+      // API를 통해 상세 정보 가져오기
+      const detailedItem = await getSanctionById(item.id);
+      
+      // 상세 정보 설정
+      setSelectedItem({
+        ...detailedItem,
+        isLoading: false,
+        loadError: false
+      });
+      
+      setActiveTab('basic');
     } catch (error) {
       console.error("상세 정보 로딩 중 오류 발생:", error);
+      
+      // 오류 상태 표시 - 기본 항목 정보는 유지하고 오류 상태만 추가
+      setSelectedItem({
+        ...item,
+        isLoading: false,
+        loadError: true,
+        errorMessage: error.message || '상세 정보를 불러오는 중 오류가 발생했습니다.'
+      });
     }
   };
 
@@ -249,146 +625,47 @@ export default function Home() {
     }
   };
 
-  // 상세 정보 렌더링
-  const renderDetailContent = () => {
-    if (!selectedItem) return null;
-    
-    switch(activeTab) {
-      case 'basic':
-        return (
-          <div className="detail-grid">
-            <div>
-              <h4 className="detail-section-title">기본 정보</h4>
-              <ul className="detail-list">
-                <li><span className="detail-label">ID:</span> {selectedItem.id}</li>
-                <li><span className="detail-label">이름:</span> {selectedItem.name}</li>
-                <li><span className="detail-label">유형:</span> {selectedItem.type || '정보 없음'}</li>
-                <li><span className="detail-label">국가:</span> {selectedItem.country || '정보 없음'}</li>
-                <li><span className="detail-label">출처:</span> {selectedItem.source || '정보 없음'}</li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="detail-section-title">제재 정보</h4>
-              <ul className="detail-list">
-                <li>
-                  <span className="detail-label">제재 프로그램:</span> 
-                  <div className="detail-tags">
-                    {selectedItem.programs && selectedItem.programs.length > 0 
-                      ? selectedItem.programs.map((program, idx) => (
-                        <span key={idx} className="tag blue-tag">
-                          {program}
-                        </span>
-                      ))
-                      : <span className="no-data">정보 없음</span>}
-                  </div>
-                </li>
-                {selectedItem.details && (
-                  <>
-                    {selectedItem.details.aliases && selectedItem.details.aliases.length > 0 && (
-                      <li>
-                        <span className="detail-label">별칭:</span>
-                        <div className="detail-tags">
-                          {selectedItem.details.aliases.map((alias, idx) => (
-                            <span key={idx} className="tag gray-tag">
-                              {alias}
-                            </span>
-                          ))}
-                        </div>
-                      </li>
-                    )}
-                    {selectedItem.details.birthDate && (
-                      <li><span className="detail-label">생년월일:</span> {selectedItem.details.birthDate}</li>
-                    )}
-                  </>
-                )}
-              </ul>
-            </div>
-            
-            {/* 추가 상세 정보 */}
-            {selectedItem.details && (
-              <div className="full-width">
-                <h4 className="detail-section-title">추가 정보</h4>
-                <div className="detail-grid">
-                  {Object.entries(selectedItem.details).map(([key, value]) => {
-                    // 이미 위에서 표시된 정보는 제외
-                    if (key === 'aliases' || key === 'birthDate') return null;
-                    
-                    return (
-                      <div key={key} className="detail-item">
-                        <div className="detail-label capitalize">
-                          {key.replace(/([A-Z])/g, ' $1').trim()}:
-                        </div>
-                        <div className="detail-value">
-                          {Array.isArray(value) 
-                            ? value.map((v, i) => (
-                              <span key={i} className="tag gray-tag">
-                                {typeof v === 'object' 
-                                  ? JSON.stringify(v) // 객체는 문자열로 변환
-                                  : v}
-                              </span>
-                            ))
-                            : typeof value === 'object'
-                              ? JSON.stringify(value) // 객체는 문자열로 변환 
-                              : <span>{value}</span>
-                          }
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      case 'json':
-        return (
-          <div>
-            <div className="detail-header">
-              <h4 className="detail-section-title">JSON 데이터</h4>
-              <button
-                onClick={() => handleDownloadJSON(selectedItem)}
-                className="download-btn json-btn"
-              >
-                JSON 다운로드
-              </button>
-            </div>
-            <pre className="json-display">
-              {JSON.stringify(selectedItem, null, 2)}
-            </pre>
-          </div>
-        );
-      default:
-        return null;
-    }
+  // 사용자 이름 포맷팅 (최대 5자 + '님')
+  const formatUserName = (name) => {
+    if (!name) return '';
+    const displayName = name.length > 5 ? name.slice(0, 5) : name;
+    return `${displayName}님`;
+  };
+
+  // 사용자 프로필 페이지로 이동
+  const goToProfile = () => {
+    router.push('/profile');
   };
 
   return (
     <div className="app-container">
       <Head>
-        <title>제재 정보 검색 시스템</title>
-        <meta name="description" content="제재 정보 검색 시스템" />
+        <title>경제 제재 정보 검색 시스템</title>
+        <meta name="description" content="경제 제재 정보 검색 시스템" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <div className="main-container">
         <header className="app-header">
-          <div className="header-wrapper">
-            <div className="header-title-container">
-              <h1 className="app-title">제재 정보 검색 시스템</h1>
-              <p className="app-subtitle">UN, EU, US(OFAC) 제재 데이터베이스 통합 검색</p>
-            </div>
+          <div className="header-content">
+            <h1 className="app-title">경제 제재 정보 검색 시스템</h1>
+            <p className="app-subtitle">UN, EU, US(OFAC) 제재 데이터베이스 통합 검색</p>
             
-            <div className="user-container">
-              <div className="user-info">
-                <span className="user-name">{user.displayName || user.email}</span>
-                <div className="email-logout-container">
-                  <button onClick={handleLogout} className="logout-button">
+            <div className="user-actions">
+              {user && (
+                <>
+                  <button 
+                    className="user-profile-btn" 
+                    onClick={goToProfile}
+                    title={user.displayName || user.email}
+                  >
+                    {formatUserName(user.displayName || user.email.split('@')[0])}
+                  </button>
+                  <button className="logout-btn" onClick={handleLogout}>
                     로그아웃
                   </button>
-                  <span className="user-email">{user.email}</span>
-                </div>
-              </div>
+                </>
+              )}
             </div>
           </div>
         </header>
@@ -532,7 +809,6 @@ export default function Home() {
                     <div 
                       key={result.id} 
                       className="result-card"
-                      onClick={() => handleItemSelect(result)}
                     >
                       <div className="result-content">
                         <h3 className="result-title">{result.name}</h3>
@@ -552,10 +828,7 @@ export default function Home() {
                           )}
                         </div>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation(); // 카드 클릭 이벤트와 겹치지 않도록
-                            handleItemSelect(result);
-                          }}
+                          onClick={() => handleItemSelect(result)}
                           className="view-details-btn"
                         >
                           상세 정보 보기
@@ -592,137 +865,84 @@ export default function Home() {
             )}
           </div>
           
-          {/* 상세 정보 */}
-          {selectedItem && (
-            <div id="detailsSection" className="details-section">
-              <div className="details-header">
-                <div>
-                  <h3 className="details-title">{selectedItem.name}</h3>
-                  <p className="details-subtitle">
-                    {selectedItem.type && <span className="details-type">{selectedItem.type}</span>}
-                    {selectedItem.country && <span className="details-country">{selectedItem.country}</span>}
-                  </p>
-                </div>
-                
-                <div className="details-actions">
-                  <button
-                    onClick={() => handleDownloadPDF(selectedItem)}
-                    className="download-btn pdf-btn"
-                    title="PDF로 다운로드"
-                    disabled={selectedItem.isDownloading}
-                  >
-                    {selectedItem.isDownloading ? '다운로드 중...' : 'PDF'}
-                  </button>
-                  <button
-                    onClick={() => handleDownloadText(selectedItem)}
-                    className="download-btn text-btn"
-                    title="텍스트 파일로 다운로드"
-                  >
-                    텍스트
-                  </button>
-                  <button
-                    onClick={() => setSelectedItem(null)}
-                    className="back-btn"
-                  >
-                    ← 목록으로 돌아가기
-                  </button>
-                </div>
-              </div>
-              
-              {/* 탭 메뉴 */}
-              <div className="tabs-container">
-                <nav className="tabs-nav">
-                  <button
-                    onClick={() => setActiveTab('basic')}
-                    className={`tab-btn ${activeTab === 'basic' ? 'active-tab' : ''}`}
-                  >
-                    기본 정보
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('json')}
-                    className={`tab-btn ${activeTab === 'json' ? 'active-tab' : ''}`}
-                  >
-                    JSON 데이터
-                  </button>
-                </nav>
-              </div>
-              
-              {/* 탭 내용 */}
-              <div className="tab-content">
-                {renderDetailContent()}
-              </div>
-            </div>
-          )}
+          {/* 모달 팝업으로 상세 정보 표시 */}
+          <DetailModal 
+            item={selectedItem}
+            isOpen={isModalOpen && selectedItem !== null}
+            onClose={() => setIsModalOpen(false)}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            onRetry={handleItemSelect}
+          />
         </main>
       </div>
 
       <footer className="app-footer">
         <div className="footer-content">
-          <p>© {new Date().getFullYear()} 제재 정보 검색 시스템</p>
+          <p>© {new Date().getFullYear()} FACTION 경제 제재 정보 검색 시스템</p>
         </div>
       </footer>
 
       <style jsx>{`
-        /* 사용자 관련 스타일 */
-        .header-wrapper {
+        .header-content {
           display: flex;
+          align-items: center;
           justify-content: space-between;
-          align-items: center;
+          padding: 0 20px;
           width: 100%;
-          padding: 0 1rem;
         }
         
-        .header-title-container {
-          flex: 1;
+        .app-title {
+          margin: 0;
+          font-size: 1.8rem;
+          color: #333;
         }
         
-        .user-container {
+        .app-subtitle {
+          margin: 0.5rem 0 0;
+          font-size: 1rem;
+          color: white;
+        }
+        
+        .user-actions {
           display: flex;
           align-items: center;
-          margin-left: 1rem;
+          gap: 10px;
         }
         
-        .user-info {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-end;
+        .user-profile-btn {
+          background-color: #2196f3;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          padding: 8px 16px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background-color 0.2s;
+          max-width: 100px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
         
-        .email-logout-container {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
+        .user-profile-btn:hover {
+          background-color: #1976d2;
         }
         
-        .user-name {
-          font-weight: 600;
-          color: #444;
-          font-size: 0.9rem;
-          margin-bottom: 0.3rem;
-        }
-        
-        .user-email {
-          font-size: 0.8rem;
-          color: #666;
-        }
-        
-        .logout-button {
-          padding: 0.3rem 0.6rem;
+        .logout-btn {
           background-color: #f44336;
           color: white;
           border: none;
           border-radius: 4px;
-          cursor: pointer;
+          padding: 8px 16px;
           font-weight: 500;
-          font-size: 0.7rem;
-          transition: background-color 0.3s;
+          cursor: pointer;
+          transition: background-color 0.2s;
         }
         
-        .logout-button:hover {
+        .logout-btn:hover {
           background-color: #d32f2f;
         }
-        
-        /* 기존 스타일 유지 */
       `}</style>
     </div>
   );

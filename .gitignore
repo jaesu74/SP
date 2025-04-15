@@ -103,3 +103,17 @@ public/data/*
 !public/data/versions/
 public/data/versions/*
 !public/data/versions/.gitkeep
+
+# Docker 볼륨 및 백업
+volumes/
+*.tar.gz
+*.backup
+backup_*/
+*_backup/
+
+# 임시 파일
+temp/
+tmp/
+
+# 사용자 데이터
+user_data/

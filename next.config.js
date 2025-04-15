@@ -1,12 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // 정적 내보내기 비활성화
-  // output: 'export',
+  swcMinify: true,
+  // 사전 렌더링 최적화
   images: {
-    unoptimized: true,
+    domains: ['www.un.org', 'europa.eu', 'home.treasury.gov'],
   },
-  // Next.js 14에서는 Pages Router가 기본값이므로 설정 필요 없음
+  // 출력 압축
+  compress: true,
+  // 실험적 기능 제거 - 오류 방지
 };
 
 module.exports = nextConfig; 

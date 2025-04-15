@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - sanctions-data:/app/docs
+      - ./logs:/app/logs
+    networks:
+      - sanctions-net
+
+  collector:
+    build:
+      context: .
+      dockerfile: Dockerfile.collector
+    volumes:
+      - sanctions-data:/app/docs
+      - sanctions-logs:/app/logs
+    environment:
+      - TZ=Asia/Seoul
+    restart: always
+    networks:
+      - sanctions-net
+    depends_on:
+      - web
+
+volumes:
+  sanctions-data:
+    # 데이터 영속성을 위한 명명된 볼륨
+  sanctions-logs:
+    # 로그 영속성을 위한 명명된 볼륨
+
+networks:
+  sanctions-net:
+    driver: bridge 
