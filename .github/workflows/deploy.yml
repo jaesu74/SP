@@ -6,6 +6,9 @@ on:
   schedule:
     - cron: '0 9 * * 0,3,4'  # 일요일(0), 수요일(3), 목요일(4) 오전 9시에 실행
 
+env:
+  FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
 jobs:
   collect-and-deploy:
     runs-on: ubuntu-latest
@@ -57,9 +60,9 @@ jobs:
           
       - name: Setup Firebase Config
         run: |
-          echo "Creating Firebase service account file"
-          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > firebase-service-account.json
-          cat firebase-service-account.json | jq 'del(.private_key)'
+          echo "Firebase 환경 변수 설정 완료"
+          # 환경 변수 파일 생성
+          echo "FIREBASE_SERVICE_ACCOUNT='${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'" > .env
           
       - name: Update sanctions data
         run: |
@@ -110,6 +113,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: sanctions-app
           IMAGE_TAG: ${{ github.sha }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
           # Docker 이미지 빌드
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
