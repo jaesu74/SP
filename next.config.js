@@ -10,11 +10,11 @@ const nextConfig = {
   compress: true,
   
   // 프로덕션 URL 설정
-  assetPrefix: process.env.NODE_ENV === 'production' ? 'https://wvl.co.kr' : '',
+  assetPrefix: process.env.NODE_ENV === 'production' ? 'https://sp.wvl.co.kr' : '',
   
   // 환경 변수
   env: {
-    SITE_URL: 'https://wvl.co.kr',
+    SITE_URL: 'https://sp.wvl.co.kr',
   },
   
   // 리다이렉션 설정 - 로컬에서 접속 시 wvl.co.kr로 리다이렉트
