@@ -1,11 +1,11 @@
 {
-  "last_update": "2025-04-15T10:03:44.061568",
+  "last_update": "2025-04-15T10:16:56.935468",
   "sources": [
     "un",
     "eu",
     "us"
   ],
-  "elapsed_time": 24.491490364074707,
+  "elapsed_time": 12.437856912612915,
   "status": "success",
   "un_count": 877,
   "eu_count": 5307,
