@@ -9,6 +9,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - FIREBASE_SERVICE_ACCOUNT=${FIREBASE_SERVICE_ACCOUNT}
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]

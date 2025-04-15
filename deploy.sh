@@ -56,6 +56,42 @@ fi
 echo "✅ Docker 환경 확인 완료"
 echo
 
+# 환경 변수 설정
+echo "환경 변수를 설정합니다..."
+
+# Firebase 서비스 계정 설정
+if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+  echo "⚠️ FIREBASE_SERVICE_ACCOUNT 환경 변수가 설정되지 않았습니다."
+  echo "관리자 기능(사용자 인증)이 제한될 수 있습니다."
+  
+  # 서비스 계정 설정 안내
+  echo
+  echo "Firebase 서비스 계정을 설정하려면:"
+  echo "1. Firebase 콘솔에서 프로젝트 설정 > 서비스 계정으로 이동"
+  echo "2. '새 비공개 키 생성' 버튼을 클릭하여 JSON 키 파일 다운로드"
+  echo "3. 다음 명령으로 환경 변수 설정:"
+  echo "   export FIREBASE_SERVICE_ACCOUNT='$(cat your-service-account.json)'"
+  echo
+  
+  read -p "계속 진행하시겠습니까? (y/n): " CONTINUE
+  if [ "$CONTINUE" != "y" ]; then
+    echo "배포가 취소되었습니다."
+    exit 1
+  fi
+else
+  echo "✅ Firebase 서비스 계정이 설정되었습니다."
+fi
+
+# 환경 변수 파일 생성
+echo "환경 변수 파일을 생성합니다..."
+if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
+  echo "FIREBASE_SERVICE_ACCOUNT='$FIREBASE_SERVICE_ACCOUNT'" > .env
+  echo "✅ 환경 변수 파일 생성 완료"
+else
+  touch .env
+  echo "⚠️ 환경 변수 파일이 비어 있습니다."
+fi
+
 # Docker 컨테이너 빌드 및 실행
 echo "Docker 컨테이너를 빌드하고 실행합니다..."
 docker-compose build
