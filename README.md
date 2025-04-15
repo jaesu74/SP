@@ -50,6 +50,19 @@ npm install
 cp .env.example .env.local
 ```
 
+그 후 `.env.local` 파일을 편집하여 다음 내용을 입력합니다:
+
+- Firebase 웹 앱 설정 (Firebase 콘솔의 프로젝트 설정에서 확인 가능)
+- Firebase Admin SDK 서비스 계정 키 (관리자 기능 사용 시 필요)
+
+Firebase Admin SDK 서비스 계정을 설정하려면:
+1. Firebase 콘솔에서 프로젝트 설정 > 서비스 계정 탭으로 이동
+2. "새 비공개 키 생성" 버튼을 클릭하여 JSON 키 파일 다운로드
+3. JSON 파일의 내용을 환경 변수에 입력
+   ```
+   FIREBASE_SERVICE_ACCOUNT={"type":"service_account","project_id":"...","private_key":"...","client_email":"..."}
+   ```
+
 4. 개발 서버 실행
 
 ```bash
