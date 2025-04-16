@@ -12,6 +12,7 @@ env:
   NEXT_PUBLIC_BASE_URL: https://wvl.co.kr
   NEXT_PUBLIC_API_URL: https://wvl.co.kr/api
   NEXT_PUBLIC_DATA_API_URL: https://wvl.co.kr/api/sanctions
+  NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
 
 jobs:
   collect-and-deploy:
@@ -71,6 +72,7 @@ jobs:
           echo "NEXT_PUBLIC_BASE_URL=https://wvl.co.kr" >> .env
           echo "NEXT_PUBLIC_API_URL=https://wvl.co.kr/api" >> .env
           echo "NEXT_PUBLIC_DATA_API_URL=https://wvl.co.kr/api/sanctions" >> .env
+          echo "NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}" >> .env
           
       - name: Update sanctions data
         run: |
@@ -107,7 +109,8 @@ jobs:
         if: success()
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-2
           
       - name: Login to Amazon ECR
@@ -126,6 +129,7 @@ jobs:
           NEXT_PUBLIC_BASE_URL: https://wvl.co.kr
           NEXT_PUBLIC_API_URL: https://wvl.co.kr/api
           NEXT_PUBLIC_DATA_API_URL: https://wvl.co.kr/api/sanctions
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
         run: |
           # Docker 이미지 빌드
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .

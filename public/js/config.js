@@ -25,7 +25,7 @@ const config = {
     
     // Firebase 설정
     firebase: {
-        apiKey: "AIzaSyCu82sysG5VTNHpKEvEnT-A33B8EwBKT7A",
+        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
         authDomain: "sp-2504.firebaseapp.com",
         projectId: "sp-2504",
         storageBucket: "sp-2504.firebasestorage.app",

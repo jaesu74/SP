@@ -1,0 +1,17 @@
+FROM node:14-alpine
+WORKDIR /app
+
+# 패키지 파일 복사
+COPY package.json package-lock.json ./
+
+# 필요한 데이터 디렉토리 생성
+RUN mkdir -p docs/data public/data
+
+# 전체 코드 복사 및 의존성 설치
+COPY . .
+RUN npm install
+
+# 데이터 동기화 스크립트 실행 부분을 주석 처리하여 임시로 비활성화
+# RUN npm run sync-data
+
+CMD ["npm", "start"] 

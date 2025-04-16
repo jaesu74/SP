@@ -117,3 +117,4 @@ tmp/
 
 # 사용자 데이터
 user_data/
+certbot/conf/

@@ -1,0 +1,5 @@
+certbot/
+nginx/
+node_modules/
+.git/
+*.md 

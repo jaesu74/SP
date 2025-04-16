@@ -1,14 +1,17 @@
 # 베이스 이미지
 FROM node:18-alpine AS base
+WORKDIR /app
+
+# 필요한 패키지 설치
+RUN apk add --no-cache libc6-compat curl
+RUN apk update
 
 # 의존성 설치 단계
 FROM base AS deps
 WORKDIR /app
 
 # 패키지 파일 복사
-COPY package.json package-lock.json ./
-
-# 먼저 scripts 디렉토리 복사 (prepare 스크립트에 필요)
+COPY package.json package-lock.json* ./
 COPY scripts ./scripts/
 
 # 종속성 설치
@@ -28,7 +31,7 @@ ARG FIREBASE_SERVICE_ACCOUNT
 ENV FIREBASE_SERVICE_ACCOUNT=${FIREBASE_SERVICE_ACCOUNT}
 
 # 데이터 동기화 및 빌드
-RUN npm run sync-data
+# RUN npm run sync-data
 RUN npm run build
 
 # 프로덕션 단계

@@ -217,4 +217,59 @@ docker run --rm -v sanctions-logs:/data -v $(pwd):/backup alpine sh -c "cd /data
 
 ## 라이선스
 
-이 프로젝트는 MIT 라이선스에 따라 배포됩니다. 
+이 프로젝트는 MIT 라이선스에 따라 배포됩니다.
+
+## HTTPS 설정 방법
+
+### 사전 준비사항
+- 도메인 설정이 완료되어야 합니다 (wvl.co.kr)
+- Docker와 Docker Compose가 설치되어 있어야 합니다
+
+### 설정 단계
+
+1. 필요한 디렉토리 생성
+```bash
+mkdir -p nginx certbot/conf certbot/www
+```
+
+2. 환경 변수 설정
+`.env` 파일을 생성하고 필요한 환경 변수를 설정합니다:
+```
+FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}
+```
+
+3. 초기화 스크립트 실행 (리눅스 환경)
+```bash
+# 실행 권한 부여
+chmod +x init-letsencrypt.sh
+# 스크립트 실행
+./init-letsencrypt.sh
+```
+
+윈도우 환경에서는 다음 명령어로 실행:
+```powershell 
+# 먼저 필요한 디렉토리 생성
+mkdir nginx
+mkdir -p certbot/conf certbot/www
+
+# Docker Compose 실행 
+docker-compose up -d
+```
+
+4. 인증서 갱신 테스트
+```bash
+docker-compose run --rm certbot certonly --webroot -w /var/www/certbot --force-renewal -d wvl.co.kr -d www.wvl.co.kr
+```
+
+### 서비스 실행
+```bash
+docker-compose up -d
+```
+
+### 인증서 자동 갱신
+Let's Encrypt 인증서는 90일마다 갱신이 필요합니다. certbot 서비스가 자동으로 인증서를 갱신합니다.
+
+### 문제 해결
+- 인증서 발급 실패 시, `--staging` 옵션을 사용해 테스트할 수 있습니다.
+- 방화벽 설정으로 80, 443 포트가 열려있는지 확인하세요.
+- DNS 설정이 올바른지 확인하세요.

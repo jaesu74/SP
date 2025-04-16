@@ -32,7 +32,7 @@ const nextConfig = {
   },
   
   // 출력 모드
-  output: 'export',
+  // output: 'export', // 주석 처리하여 Server-Side Rendering 활성화
   
   // 실험적 기능 제거 - 오류 방지
 };
