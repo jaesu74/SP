@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="세계 경제 제재 검색 서비스 - UN, EU, US 제재 대상 검색">
+    <meta name="keywords" content="경제 제재, 제재 검색, UN 제재, EU 제재, US 제재, 북한 제재, 러시아 제재">
+    <meta name="author" content="WVL">
+    <!-- 캐시 제어 메타 태그 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <!-- 성능 관련 메타 태그 -->
+    <meta name="performance-mode" content="medium">
+    <meta name="application-version" content="1.1.0">
+    
+    <title>FACTION 세계 경제 제재 정보 시스템</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/textures.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAM1BMVEUAAAD///////////////////////////////////////////////////////////////+3leKCAAAAEHRSTlMA3CIz7u/wMt0xERLvIjDv5r1mswAAALVJREFUeAGNkUsOwyAMBQ2YT8L9z1ufQK2qKWk6i1E8z5bFCIyZxuSUXCbM4TTNtU/zL2Wlg5YyUJnK6kJqL9KiezEt2hjPkS3O5ZNueOVGqP0qP9C/wJHyeYkR5b0hQvlQRFz9QgSIn4ifiP+I5+8VAdbfEQHlQxEMTTEI94sI+VSciqvFc9SfMVXLtT0zL4EVrZoWxVVtS2rqnrZ3Vpn16vqt3T3trtfcvdP+ff0De6MCe4vlPkwAAAAASUVORK5CYII=" type="image/png">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+</head>
+<body class="textured-layer">
+    <!-- 로그인 섹션 -->
+    <section id="login-section" class="textured-layer">
+        <div class="page-title-header animated">
+            <h1>FACTION 세계 경제 제재 정보 시스템</h1>
+        </div>
+        <div class="login-container maximalist animated delay-100">
+            <div class="login-header">
+                <h2>경제 제재 조회 시스템</h2>
+                <p>UN, EU, US의 제재 대상을 검색하세요</p>
+            </div>
+            <div class="login-body">
+                <div class="alert-container"></div>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="email">이메일</label>
+                        <input type="email" id="email" placeholder="이메일을 입력하세요" autocomplete="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">비밀번호</label>
+                        <input type="password" id="password" placeholder="비밀번호를 입력하세요" autocomplete="current-password" required>
+                        <i class="fas fa-eye toggle-password"></i>
+                    </div>
+                    <button type="submit" class="btn-primary">로그인</button>
+                </form>
+                <div class="login-footer">
+                    <p></p>
+                    <div class="login-links">
+                        <a href="#" id="register-link">회원가입</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 메인 섹션 -->
+    <div id="main-section" class="page-section main-container" style="display: none;">
+        <header class="main-header">
+            <div class="container">
+                <div class="header-content">
+                    <div class="brand">
+                        <h1>FACTION 세계 경제 제재 정보 시스템</h1>
+                    </div>
+                    <div class="user-info">
+                        <span id="user-info">사용자 정보</span>
+                        <button id="logout-btn" class="btn-logout" onclick="logout()">로그아웃</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <!-- 검색 영역 -->
+            <section class="search-section">
+                <div class="container mt-5">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>제재 정보 검색</h3>
+                                </div>
+                                <div class="card-body">
+                                    <!-- 검색 폼 -->
+                                    <form id="search-form" class="mb-4">
+                                        <div class="input-group">
+                                            <input type="text" id="searchInput" class="form-control" placeholder="이름, 키워드, 국가 등으로 검색">
+                                            <button type="submit" id="searchButton" class="btn btn-primary">검색</button>
+                                        </div>
+                                        
+                                        <!-- 상세 검색 토글 -->
+                                        <div class="mt-2">
+                                            <a href="#" id="advanced-toggle" class="text-primary">
+                                                <i class="fas fa-caret-right"></i> 상세 검색
+                                            </a>
+                                        </div>
+                                        
+                                        <!-- 상세 검색 영역 -->
+                                        <div id="advanced-search" class="advanced-search mt-3">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="form-group mb-3">
+                                                        <label for="sourceFilter">출처</label>
+                                                        <select id="sourceFilter" class="form-control">
+                                                            <option value="">모든 출처</option>
+                                                            <option value="UN">UN 제재</option>
+                                                            <option value="EU">EU 제재</option>
+                                                            <option value="US">미국 제재</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-group mb-3">
+                                                        <label for="typeFilter">유형</label>
+                                                        <select id="typeFilter" class="form-control">
+                                                            <option value="">모든 유형</option>
+                                                            <option value="개인">개인</option>
+                                                            <option value="단체">단체</option>
+                                                            <option value="선박">선박</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="form-group mb-3">
+                                                        <label for="countryFilter">국가</label>
+                                                        <select id="countryFilter" class="form-control">
+                                                            <option value="">모든 국가</option>
+                                                            <option value="북한">북한</option>
+                                                            <option value="러시아">러시아</option>
+                                                            <option value="이란">이란</option>
+                                                            <option value="시리아">시리아</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-group mb-3">
+                                                        <label for="yearFilter">등재 연도</label>
+                                                        <select id="yearFilter" class="form-control">
+                                                            <option value="">모든 연도</option>
+                                                            <option value="2023">2023</option>
+                                                            <option value="2022">2022</option>
+                                                            <option value="2021">2021</option>
+                                                            <option value="2020">2020</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </form>
+                                    
+                                    <!-- 메시지 컨테이너 -->
+                                    <div id="messageContainer"></div>
+                                    
+                                    <!-- 로딩 인디케이터 -->
+                                    <div id="loadingIndicator" style="display: none;">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">로딩 중...</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 결과 컨테이너 -->
+                                    <div id="resultsContainer"></div>
+                                    
+                                    <!-- 상세 정보 컨테이너 -->
+                                    <div id="detailContainer" style="display: none;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 상세 정보 모달 -->
+            <div id="detail-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>상세 정보</h2>
+                        <span class="close-modal">&times;</span>
+                    </div>
+                    <div class="modal-body" id="detail-content"></div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="main-footer">
+            <div class="container">
+                <p>&copy; 2025 FACTION 경제 제재 정보 시스템</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 정보 모달 -->
+    <div id="info-modal" class="modal">
+        <div class="modal-content maximalist">
+            <div class="modal-header">
+                <h2 id="info-title">정보</h2>
+                <button id="info-close" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="info-content"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 회원가입 모달 -->
+    <div id="register-modal" class="modal">
+        <div class="modal-content maximalist">
+            <div class="modal-header">
+                <h2>회원가입</h2>
+                <button id="register-close" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert-container"></div>
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="register-name">이름 (실명)</label>
+                        <input type="text" id="register-name" placeholder="이름을 입력하세요" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">이메일</label>
+                        <input type="email" id="register-email" placeholder="이메일을 입력하세요" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">비밀번호</label>
+                        <input type="password" id="register-password" placeholder="비밀번호를 입력하세요" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password-confirm">비밀번호 확인</label>
+                        <input type="password" id="register-password-confirm" placeholder="비밀번호를 다시 입력하세요" required>
+                    </div>
+                    <button type="submit" id="register-btn" class="btn-primary">가입하기</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 로그인 상태 상세 모달 -->
+    <div id="login-status-modal" class="modal">
+        <div class="modal-content maximalist">
+            <div class="modal-header">
+                <h2>로그인 상태 정보</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="login-status-content">
+                    <p>로그인 상태 정보를 불러오는 중...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="exportLoginLogs()">
+                    <i class="fas fa-download"></i> 로그 내보내기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript 파일 -->
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/sanctions.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html> 

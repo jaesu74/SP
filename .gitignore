@@ -1,0 +1,124 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+.next/
+out/
+
+# Firebase
+firebase-service-account.json
+firebase-debug.log
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs/
+*.log
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific
+public/data/
+
+# 의존성 모듈
+node_modules/
+.pnp
+.pnp.js
+
+# 실행 파일/테스트
+.nyc_output
+.next/
+out/
+build
+coverage
+dist
+build/
+
+# 환경 변수 파일
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 로그 파일
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 캐시 파일
+.cache/
+.npm
+
+# IDE 파일
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# 보안 파일
+lib/firebase/serviceAccount.json
+**/serviceAccount*.json
+**/firebase-adminsdk*.json
+
+# 대용량 데이터 폴더
+public/data/*
+!public/data/versions/
+public/data/versions/*
+!public/data/versions/.gitkeep
+
+# Docker 볼륨 및 백업
+volumes/
+*.tar.gz
+*.backup
+backup_*/
+*_backup/
+
+# 임시 파일
+temp/
+tmp/
+
+# 사용자 데이터
+user_data/
+certbot/conf/
+
+# Nginx configuration
+nginx-*.sh
+*.conf

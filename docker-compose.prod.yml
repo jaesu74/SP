@@ -1,0 +1,52 @@
+version: '3'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sanctions-app
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - FIREBASE_SERVICE_ACCOUNT=${FIREBASE_SERVICE_ACCOUNT}
+      - NEXT_PUBLIC_FIREBASE_API_KEY=${NEXT_PUBLIC_FIREBASE_API_KEY}
+      - NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
+      - NEXT_PUBLIC_FIREBASE_PROJECT_ID=${NEXT_PUBLIC_FIREBASE_PROJECT_ID}
+      - NEXT_PUBLIC_DOMAIN=sp.wvl.co.kr
+      - NEXT_PUBLIC_BASE_URL=https://sp.wvl.co.kr
+      - NEXT_PUBLIC_API_URL=https://sp.wvl.co.kr/api
+      - NEXT_PUBLIC_DATA_API_URL=https://sp.wvl.co.kr/api/sanctions
+    volumes:
+      - sanctions-data:/app/docs
+      - ./logs:/app/logs
+    networks:
+      - app-network
+    ports:
+      - "3000:3000"
+
+  collector:
+    build:
+      context: .
+      dockerfile: Dockerfile.collector
+    container_name: sanctions-collector
+    restart: always
+    volumes:
+      - sanctions-data:/app/docs
+      - sanctions-logs:/app/logs
+    environment:
+      - TZ=Asia/Seoul
+    networks:
+      - app-network
+    depends_on:
+      - app
+
+volumes:
+  sanctions-data:
+    # 데이터 영속성을 위한 명명된 볼륨
+  sanctions-logs:
+    # 로그 영속성을 위한 명명된 볼륨
+
+networks:
+  app-network:
+    driver: bridge 

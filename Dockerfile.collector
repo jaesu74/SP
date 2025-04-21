@@ -1,0 +1,46 @@
+# 베이스 이미지
+FROM python:3.10-slim
+
+# 작업 디렉토리 설정
+WORKDIR /app
+
+# 타임존 설정
+ENV TZ=Asia/Seoul
+
+# 시스템 패키지 설치
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cron \
+    && rm -rf /var/lib/apt/lists/*
+
+# 필요한 파일 복사
+COPY requirements.txt ./
+COPY sanctions_collector.py ./
+COPY collectors/ ./collectors/
+COPY scripts/cron-collector.sh ./scripts/
+COPY scripts/remove-duplicate-data.js ./scripts/
+COPY scripts/cleanup-old-versions.js ./scripts/
+COPY scripts/integrate-sanctions-data.js ./scripts/
+COPY scripts/sync-data.js ./scripts/
+
+# Node.js 설치
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nodejs \
+    npm \
+    && rm -rf /var/lib/apt/lists/*
+
+# 로그 및, 데이터 디렉토리 생성
+RUN mkdir -p logs docs/data
+# 로그 파일 생성 (tail 명령이 실패하지 않도록)
+RUN touch logs/cron.log
+
+# 파이썬 종속성 설치
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 크론 작업 설정 (매주 월, 수, 금 오전 3시에 수집)
+RUN echo "0 3 * * 1,3,5 /app/scripts/cron-collector.sh >> /app/logs/cron.log 2>&1" | crontab -
+
+# 스크립트 실행 권한 설정
+RUN chmod +x /app/scripts/cron-collector.sh
+
+# 엔트리포인트 스크립트
+CMD ["bash", "-c", "service cron start && tail -f /app/logs/cron.log"] 

@@ -1,0 +1,167 @@
+name: Deploy Sanctions Search System
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 9 * * 0,3,4'  # 일요일(0), 수요일(3), 목요일(4) 오전 9시에 실행
+
+env:
+  FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+  NEXT_PUBLIC_DOMAIN: wvl.co.kr
+  NEXT_PUBLIC_BASE_URL: https://wvl.co.kr
+  NEXT_PUBLIC_API_URL: https://wvl.co.kr/api
+  NEXT_PUBLIC_DATA_API_URL: https://wvl.co.kr/api/sanctions
+  NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+
+jobs:
+  collect-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write # OIDC 인증을 위해 필요
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip list
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Install Node.js dependencies
+        run: |
+          npm ci
+          
+      - name: Environment Setup
+        run: |
+          # 필요한 디렉토리 생성
+          mkdir -p public/data
+          mkdir -p logs
+          # 파일 시스템 확인
+          find . -type f -name "*.py" | sort
+          # Python 버전 확인
+          python --version
+          # Node.js 버전 확인
+          node --version
+          npm --version
+          # 실행 권한 설정
+          chmod +x sanctions_collector.py
+          chmod +x collectors/*.py
+          
+      - name: Setup Firebase Config
+        run: |
+          echo "Firebase 환경 변수 설정 완료"
+          # 환경 변수 파일 생성
+          echo "FIREBASE_SERVICE_ACCOUNT='${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'" > .env
+          echo "NEXT_PUBLIC_DOMAIN=wvl.co.kr" >> .env
+          echo "NEXT_PUBLIC_BASE_URL=https://wvl.co.kr" >> .env
+          echo "NEXT_PUBLIC_API_URL=https://wvl.co.kr/api" >> .env
+          echo "NEXT_PUBLIC_DATA_API_URL=https://wvl.co.kr/api/sanctions" >> .env
+          echo "NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}" >> .env
+          
+      - name: Update sanctions data
+        run: |
+          echo "Running sanctions collector..."
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          export PYTHONIOENCODING=utf-8
+          export LANG=en_US.UTF-8
+          # 모든 제재 데이터 수집 (UN, EU, US)
+          python sanctions_collector.py
+          echo "Collector execution completed"
+          # 결과 확인
+          ls -la public/data
+          
+      - name: Build Next.js application
+        run: |
+          npm run build
+          
+      - name: Create CNAME file
+        run: |
+          echo "wvl.co.kr" > out/CNAME
+          cat out/CNAME
+          
+      - name: Deploy to GitHub Pages
+        if: success()
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: out
+          branch: gh-pages
+          token: ${{ secrets.GITHUB_TOKEN }}
+          clean: true
+      
+      # AWS 배포 단계
+      - name: Configure AWS credentials
+        if: success()
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+          
+      - name: Login to Amazon ECR
+        if: success()
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+          
+      - name: Build, tag, and push Docker image to ECR
+        if: success()
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: sanctions-app
+          IMAGE_TAG: ${{ github.sha }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          NEXT_PUBLIC_DOMAIN: wvl.co.kr
+          NEXT_PUBLIC_BASE_URL: https://wvl.co.kr
+          NEXT_PUBLIC_API_URL: https://wvl.co.kr/api
+          NEXT_PUBLIC_DATA_API_URL: https://wvl.co.kr/api/sanctions
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+        run: |
+          # Docker 이미지 빌드
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          
+          # ECR로 이미지 푸시
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          
+          # 이미지 URI 파일에 저장
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+      
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        if: success()
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: taskdef.json
+          container-name: sanctions-app
+          image: ${{ steps.login-ecr.outputs.registry }}/sanctions-app:${{ github.sha }}
+      
+      - name: Deploy Amazon ECS task definition
+        if: success()
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: sanctions-app-service
+          cluster: sanctions-app-cluster
+          wait-for-service-stability: true
+          
+      - name: Send notification on failure
+        if: failure()
+        run: |
+          echo "Workflow failed at $(date)"
+          echo "Please check the logs for more information." 

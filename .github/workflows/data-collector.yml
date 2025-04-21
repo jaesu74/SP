@@ -1,0 +1,65 @@
+name: 제재 정보 데이터 수집
+
+on:
+  schedule:
+    # 주 3회: 월수금 오전 6시(UTC)에 실행 (한국 시간으로는 오후 3시)
+    - cron: '0 6 * * 1,3,5'
+  workflow_dispatch:  # 수동 실행 가능
+
+env:
+  FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+  NEXT_PUBLIC_DOMAIN: wvl.co.kr
+  NEXT_PUBLIC_BASE_URL: https://wvl.co.kr
+  NEXT_PUBLIC_API_URL: https://wvl.co.kr/api
+  NEXT_PUBLIC_DATA_API_URL: https://wvl.co.kr/api/sanctions
+
+jobs:
+  collect-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 저장소 쓰기 권한 필요
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v3
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: 종속성 설치
+        run: npm ci
+        
+      - name: 디렉토리 준비
+        run: |
+          mkdir -p public/data/versions
+          touch public/data/versions/.gitkeep
+        
+      - name: 환경 변수 설정
+        run: |
+          echo "Firebase 환경 변수 설정 완료"
+          echo "FIREBASE_SERVICE_ACCOUNT='${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'" > .env
+          echo "NEXT_PUBLIC_DOMAIN=wvl.co.kr" >> .env
+          echo "NEXT_PUBLIC_BASE_URL=https://wvl.co.kr" >> .env
+          echo "NEXT_PUBLIC_API_URL=https://wvl.co.kr/api" >> .env
+          echo "NEXT_PUBLIC_DATA_API_URL=https://wvl.co.kr/api/sanctions" >> .env
+          
+      - name: 데이터 수집 스크립트 실행
+        run: node scripts/integrate-sanctions-data.js
+        
+      - name: 이전 버전 정리
+        run: node scripts/cleanup-old-versions.js
+        
+      - name: 변경사항 커밋
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add public/data/
+          git diff --quiet && git diff --staged --quiet || git commit -m "데이터 자동 수집: $(date +'%Y-%m-%d')"
+          
+      - name: 변경사항 푸시
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }} 

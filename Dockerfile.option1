@@ -1,0 +1,23 @@
+FROM node:14-alpine
+WORKDIR /app
+
+# 패키지 파일 복사
+COPY package.json package-lock.json ./
+
+# 필요한 데이터 디렉토리 생성 및 placeholder JSON 파일 생성
+RUN mkdir -p docs/data public/data && \
+    echo '{}' > docs/data/integrated_sanctions.json && \
+    echo '{}' > docs/data/un_sanctions.json && \
+    echo '{}' > docs/data/eu_sanctions.json && \
+    echo '{}' > docs/data/us_sanctions.json && \
+    echo '{}' > docs/data/diagnostic_info.json && \
+    echo '{}' > docs/data/version.json
+
+# 전체 코드 복사 및 의존성 설치
+COPY . .
+RUN npm install
+
+# 데이터 동기화 스크립트 실행
+RUN npm run sync-data
+
+CMD ["npm", "start"] 

@@ -1,0 +1,155 @@
+/**
+ * 뉴모피즘 효과 스타일
+ * MZ 세대 트렌드에 맞춘 부드러운 3D 효과
+ */
+
+/* 기본 뉴모피즘 효과 */
+.neumorphism {
+    background-color: #f0f0f3;
+    box-shadow: 
+        10px 10px 20px rgba(174, 174, 192, 0.4),
+        -10px -10px 20px rgba(255, 255, 255, 1);
+    border-radius: 15px;
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.neumorphism:hover {
+    box-shadow: 
+        5px 5px 10px rgba(174, 174, 192, 0.4),
+        -5px -5px 10px rgba(255, 255, 255, 1);
+}
+
+/* 누르기 효과 */
+.neumorphism-pressed {
+    background-color: #f0f0f3;
+    box-shadow: 
+        inset 5px 5px 10px rgba(174, 174, 192, 0.4),
+        inset -5px -5px 10px rgba(255, 255, 255, 1);
+    border-radius: 15px;
+    padding: 20px;
+}
+
+/* 버튼 스타일 */
+.neumorphism-button {
+    background-color: #f0f0f3;
+    box-shadow: 
+        5px 5px 10px rgba(174, 174, 192, 0.4),
+        -5px -5px 10px rgba(255, 255, 255, 1);
+    border-radius: 10px;
+    border: none;
+    padding: 10px 20px;
+    font-weight: 500;
+    color: #666;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.neumorphism-button:hover {
+    color: #4a6cf7;
+}
+
+.neumorphism-button:active {
+    box-shadow: 
+        inset 3px 3px 5px rgba(174, 174, 192, 0.4),
+        inset -3px -3px 5px rgba(255, 255, 255, 1);
+}
+
+/* 입력 필드 스타일 */
+.neumorphism-input {
+    background-color: #f0f0f3;
+    box-shadow: 
+        inset 3px 3px 5px rgba(174, 174, 192, 0.4),
+        inset -3px -3px 5px rgba(255, 255, 255, 1);
+    border-radius: 10px;
+    border: none;
+    padding: 12px 15px;
+    width: 100%;
+    font-size: 16px;
+    color: #666;
+    transition: all 0.3s ease;
+}
+
+.neumorphism-input:focus {
+    outline: none;
+    box-shadow: 
+        inset 4px 4px 6px rgba(174, 174, 192, 0.4),
+        inset -4px -4px 6px rgba(255, 255, 255, 1);
+}
+
+/* 카드 스타일 */
+.neumorphism-card {
+    background-color: #f0f0f3;
+    box-shadow: 
+        10px 10px 20px rgba(174, 174, 192, 0.3),
+        -10px -10px 20px rgba(255, 255, 255, 0.8);
+    border-radius: 15px;
+    padding: 25px;
+    margin: 20px 0;
+    transition: all 0.3s ease;
+}
+
+.neumorphism-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 
+        15px 15px 25px rgba(174, 174, 192, 0.3),
+        -15px -15px 25px rgba(255, 255, 255, 0.8);
+}
+
+/* 동그란 버튼 */
+.neumorphism-circle {
+    width: 50px;
+    height: 50px;
+    background-color: #f0f0f3;
+    box-shadow: 
+        5px 5px 10px rgba(174, 174, 192, 0.4),
+        -5px -5px 10px rgba(255, 255, 255, 1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.neumorphism-circle:hover {
+    box-shadow: 
+        7px 7px 14px rgba(174, 174, 192, 0.4),
+        -7px -7px 14px rgba(255, 255, 255, 1);
+}
+
+.neumorphism-circle:active {
+    box-shadow: 
+        inset 3px 3px 5px rgba(174, 174, 192, 0.4),
+        inset -3px -3px 5px rgba(255, 255, 255, 1);
+}
+
+/* 어두운 테마 */
+.dark-neumorphism {
+    background-color: #2d2d30;
+    box-shadow: 
+        5px 5px 10px rgba(0, 0, 0, 0.5),
+        -5px -5px 10px rgba(68, 68, 68, 0.3);
+    color: #e0e0e0;
+    border-radius: 15px;
+    padding: 20px;
+}
+
+.dark-neumorphism-button {
+    background-color: #2d2d30;
+    box-shadow: 
+        5px 5px 10px rgba(0, 0, 0, 0.5),
+        -5px -5px 10px rgba(68, 68, 68, 0.3);
+    color: #e0e0e0;
+    border-radius: 10px;
+    border: none;
+    padding: 10px 20px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.dark-neumorphism-button:active {
+    box-shadow: 
+        inset 3px 3px 5px rgba(0, 0, 0, 0.5),
+        inset -3px -3px 5px rgba(68, 68, 68, 0.3);
+} 

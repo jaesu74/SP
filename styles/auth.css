@@ -1,0 +1,221 @@
+/* 인증 페이지 스타일 */
+.auth-container {
+  max-width: 450px;
+  margin: 0 auto;
+  padding: 30px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.auth-title {
+  text-align: center;
+  color: #0b3d91;
+  margin-bottom: 25px;
+  font-size: 1.8rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 15px;
+}
+
+.auth-label {
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.auth-input {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.auth-input:focus {
+  border-color: #0b3d91;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(11, 61, 145, 0.2);
+}
+
+.auth-button {
+  background-color: #0b3d91;
+  color: white;
+  border: none;
+  padding: 12px;
+  font-size: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 10px;
+  transition: background-color 0.3s;
+}
+
+.auth-button:hover {
+  background-color: #072a66;
+}
+
+.auth-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.auth-link {
+  display: block;
+  text-align: center;
+  margin-top: 20px;
+  color: #0b3d91;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+.auth-error {
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.auth-success {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.loading-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+/* 프로필 페이지 스타일 */
+.profile-page .main-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-content {
+  flex: 1;
+  padding: 30px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.profile-info {
+  margin-bottom: 30px;
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 4px;
+  border-left: 4px solid #0b3d91;
+}
+
+.profile-item {
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.profile-item:last-child {
+  border-bottom: none;
+}
+
+.profile-label {
+  font-weight: 600;
+  margin-right: 10px;
+  color: #555;
+  display: inline-block;
+  width: 80px;
+}
+
+.profile-value {
+  color: #333;
+}
+
+.profile-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-button {
+  padding: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+.back-btn {
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.back-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.logout-btn {
+  background-color: #4a6fa5;
+  color: white;
+  border: none;
+}
+
+.logout-btn:hover {
+  background-color: #3a5a87;
+}
+
+.delete-btn {
+  background-color: #fff;
+  color: #d32f2f;
+  border: 1px solid #d32f2f;
+}
+
+.delete-btn:hover {
+  background-color: #ffebee;
+}
+
+.delete-btn.confirm-delete {
+  background-color: #d32f2f;
+  color: white;
+}
+
+.delete-btn.confirm-delete:hover {
+  background-color: #b71c1c;
+}
+
+/* 반응형 스타일 */
+@media (max-width: 768px) {
+  .auth-container {
+    padding: 20px;
+    width: 90%;
+  }
+
+  .profile-label {
+    width: 70px;
+  }
+} 
