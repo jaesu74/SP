@@ -222,7 +222,7 @@ docker run --rm -v sanctions-logs:/data -v $(pwd):/backup alpine sh -c "cd /data
 ## HTTPS 설정 방법
 
 ### 사전 준비사항
-- 도메인 설정이 완료되어야 합니다 (wvl.co.kr)
+- 도메인 설정이 완료되어야 합니다 (sp.wvl.co.kr)
 - Docker와 Docker Compose가 설치되어 있어야 합니다
 
 ### 설정 단계
@@ -258,7 +258,7 @@ docker-compose up -d
 
 4. 인증서 갱신 테스트
 ```bash
-docker-compose run --rm certbot certonly --webroot -w /var/www/certbot --force-renewal -d wvl.co.kr -d www.wvl.co.kr
+docker-compose run --rm certbot certonly --webroot -w /var/www/certbot --force-renewal -d sp.wvl.co.kr -d www.sp.wvl.co.kr
 ```
 
 ### 서비스 실행

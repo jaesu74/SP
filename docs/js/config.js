@@ -10,7 +10,7 @@ const config = {
         useLocalData: true,
         updateInterval: 86400000, // 24시간마다 데이터 새로고침 (ms)
         cacheTimeout: 3600000, // 1시간 캐시 (ms)
-        domainName: 'wvl.co.kr'
+        domainName: 'sp.wvl.co.kr'
     },
     
     // 개발 환경 설정

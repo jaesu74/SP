@@ -17,13 +17,13 @@ const nextConfig = {
     SITE_URL: 'https://sp.wvl.co.kr',
   },
   
-  // 리다이렉션 설정 - 로컬에서 접속 시 wvl.co.kr로 리다이렉트
+  // 리다이렉션 설정 - 로컬에서 접속 시 sp.wvl.co.kr로 리다이렉트
   async redirects() {
     if (process.env.NODE_ENV === 'development') {
       return [
         {
           source: '/',
-          destination: 'https://wvl.co.kr',
+          destination: 'https://sp.wvl.co.kr',
           permanent: true,
         },
       ];

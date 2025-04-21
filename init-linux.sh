@@ -1,6 +1,6 @@
 #!/bin/bash
 
-domains=(wvl.co.kr www.wvl.co.kr)
+domains=(sp.wvl.co.kr www.sp.wvl.co.kr)
 rsa_key_size=4096
 data_path="./certbot"
 email="admin@wvl.co.kr" # 이메일 주소 변경 필요
