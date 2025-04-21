@@ -131,7 +131,7 @@ export default function Profile() {
   return (
     <div className={styles.container}>
       <Head>
-        <title>사용자 프로필 | 제재 정보 검색 시스템</title>
+        <title>사용자 프로필 | 세계 경제 제재 정보 검색 시스템</title>
         <meta name="description" content="사용자 프로필 관리" />
       </Head>
       

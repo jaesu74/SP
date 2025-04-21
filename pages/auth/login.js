@@ -69,12 +69,12 @@ export default function Login() {
   return (
     <div className={styles.container}>
       <Head>
-        <title>로그인 - 제재 정보 검색 시스템</title>
-        <meta name="description" content="제재 정보 검색 시스템 로그인 페이지" />
+        <title>로그인 - 세계 경제 제재 정보 검색 시스템</title>
+        <meta name="description" content="세계 경제 제재 정보 검색 시스템 로그인 페이지" />
       </Head>
       
       <div className={styles.loginBox}>
-        <h1 className={styles.title}>제재 정보 검색 시스템</h1>
+        <h1 className={styles.title}>세계 경제 제재 정보 검색 시스템</h1>
         <h2 className={styles.subtitle}>로그인</h2>
         
         {error && <p className={styles.error}>{error}</p>}

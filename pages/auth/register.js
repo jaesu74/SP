@@ -86,12 +86,12 @@ export default function Register() {
   return (
     <div className={styles.container}>
       <Head>
-        <title>회원가입 - 제재 정보 검색 시스템</title>
-        <meta name="description" content="제재 정보 검색 시스템 회원가입 페이지" />
+        <title>회원가입 - 세계 경제 제재 정보 검색 시스템</title>
+        <meta name="description" content="세계 경제 제재 정보 검색 시스템 회원가입 페이지" />
       </Head>
       
       <div className={styles.loginBox}>
-        <h1 className={styles.title}>제재 정보 검색 시스템</h1>
+        <h1 className={styles.title}>세계 경제 제재 정보 검색 시스템</h1>
         <h2 className={styles.subtitle}>회원가입</h2>
         
         {success ? (

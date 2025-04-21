@@ -51,10 +51,12 @@ export default async function handler(req, res) {
                 // 기본 텍스트 검색
                 const matchesQuery = (
                   (entry.name && entry.name.toLowerCase().includes(q.toLowerCase())) ||
-                  (entry.details?.birthDate && entry.details.birthDate.toString().includes(q)) ||
+                  (entry.details?.startDate && entry.details.startDate.toString().includes(q)) ||
                   (entry.aliases && entry.aliases.some(alias => alias.toLowerCase().includes(q.toLowerCase()))) ||
                   (entry.country && entry.country.toLowerCase().includes(q.toLowerCase())) ||
-                  (entry.id && entry.id.toLowerCase().includes(q.toLowerCase()))
+                  (entry.id && entry.id.toLowerCase().includes(q.toLowerCase())) ||
+                  (entry.details?.number && entry.details.number.toString().includes(q)) ||
+                  (entry.searchId && entry.searchId.toString().includes(q))
                 );
                 
                 if (!matchesQuery) return false;
@@ -130,10 +132,12 @@ export default async function handler(req, res) {
             // 기본 텍스트 검색
             const matchesQuery = (
               (entry.name && entry.name.toLowerCase().includes(q.toLowerCase())) ||
-              (entry.details?.birthDate && entry.details.birthDate.toString().includes(q)) ||
+              (entry.details?.startDate && entry.details.startDate.toString().includes(q)) ||
               (entry.aliases && entry.aliases.some(alias => alias.toLowerCase().includes(q.toLowerCase()))) ||
               (entry.country && entry.country.toLowerCase().includes(q.toLowerCase())) ||
-              (entry.id && entry.id.toLowerCase().includes(q.toLowerCase()))
+              (entry.id && entry.id.toLowerCase().includes(q.toLowerCase())) ||
+              (entry.details?.number && entry.details.number.toString().includes(q)) ||
+              (entry.searchId && entry.searchId.toString().includes(q))
             );
             
             if (!matchesQuery) return false;

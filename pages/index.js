@@ -196,8 +196,8 @@ const DetailModal = ({ item, isOpen, onClose, activeTab, setActiveTab }) => {
                         </div>
                       </li>
                     )}
-                    {item.details.birthDate && (
-                      <li><span className="detail-label">생년월일:</span> {item.details.birthDate}</li>
+                    {item.details.startDate && (
+                      <li><span className="detail-label">등재일:</span> {item.details.startDate}</li>
                     )}
                   </>
                 )}
@@ -211,7 +211,7 @@ const DetailModal = ({ item, isOpen, onClose, activeTab, setActiveTab }) => {
                 <div className="detail-grid">
                   {Object.entries(item.details).map(([key, value]) => {
                     // 이미 위에서 표시된 정보는 제외
-                    if (key === 'aliases' || key === 'birthDate') return null;
+                    if (key === 'aliases' || key === 'startDate') return null;
                     
                     return (
                       <div key={key} className="detail-item">
@@ -640,15 +640,15 @@ export default function Home() {
   return (
     <div className="app-container">
       <Head>
-        <title>경제 제재 정보 검색 시스템</title>
-        <meta name="description" content="경제 제재 정보 검색 시스템" />
+        <title>세계 경제 제재 정보 검색 시스템</title>
+        <meta name="description" content="세계 경제 제재 정보 검색 시스템" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <div className="main-container">
         <header className="app-header">
           <div className="header-content">
-            <h1 className="app-title">경제 제재 정보 검색 시스템</h1>
+            <h1 className="app-title">세계 경제 제재 정보 검색 시스템</h1>
             <p className="app-subtitle">UN, EU, US(OFAC) 제재 데이터베이스 통합 검색</p>
             
             <div className="user-actions">
@@ -744,8 +744,8 @@ export default function Home() {
           {!hasSearched && searchResults.length === 0 && !searchTerm && (
             <div className="start-screen">
               <div className="help-container">
-                <h2 className="help-title">제재 정보 검색을 시작하세요</h2>
-                <p className="help-text">국제 제재 대상 개인, 기업, 단체, 선박 등의 정보를 검색할 수 있습니다.</p>
+                <h2 className="help-title">경제 제재 정보 검색을 시작하세요</h2>
+                <p className="help-text">세계 경제 제재 대상 개인, 기업, 단체, 선박 등의 정보를 검색할 수 있습니다.</p>
                 
                 <div className="help-grid">
                   <div className="help-card">
@@ -823,8 +823,8 @@ export default function Home() {
                           </p>
                           <p><span className="result-label">국가:</span> {result.country || '-'}</p>
                           <p><span className="result-label">출처:</span> {result.source || '-'}</p>
-                          {result.details?.birthDate && (
-                            <p><span className="result-label">등재일:</span> {result.details.birthDate}</p>
+                          {result.details?.startDate && (
+                            <p><span className="result-label">등재일:</span> {result.details.startDate}</p>
                           )}
                         </div>
                         <button
